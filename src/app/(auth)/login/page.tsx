@@ -33,19 +33,22 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
 
-      {/* Hero — cobra */}
-      <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/cobra.webp"
-          alt="Naja"
-          className="w-36 object-contain opacity-90 select-none"
-        />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
+      {/* Hero — cobra com degradê no rabo */}
+      <div className="flex justify-center pt-14 relative">
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/cobra.webp"
+            alt="Naja"
+            className="w-44 object-contain select-none"
+          />
+          {/* degradê cobrindo o rabo (bottom 40% da imagem) */}
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black via-black/80 to-transparent" />
+        </div>
       </div>
 
-      {/* Form panel */}
-      <div className="px-6 pb-10 pt-2">
+      {/* Form panel — colado na cobra */}
+      <div className="px-6 pb-10 pt-4">
 
         {/* Brand */}
         <div className="text-center mb-6">
