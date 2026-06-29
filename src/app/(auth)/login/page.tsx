@@ -39,7 +39,7 @@ export default function LoginPage() {
         <img
           src="/cobra.webp"
           alt="Naja"
-          className="w-72 object-contain opacity-90 select-none"
+          className="w-36 object-contain opacity-90 select-none"
         />
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
       </div>
