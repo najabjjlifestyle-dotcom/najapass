@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import Image from 'next/image'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -36,13 +35,11 @@ export default function LoginPage() {
 
       {/* Hero — cobra */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="/cobra.png"
           alt="Naja"
-          width={340}
-          height={480}
-          className="object-contain opacity-90 select-none"
-          priority
+          className="w-72 object-contain opacity-90 select-none"
         />
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
       </div>
