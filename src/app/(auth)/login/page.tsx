@@ -32,21 +32,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-black flex flex-col">
 
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-5">
-            <Image
-              src="/logo.png"
-              alt="Naja BJJ Lifestyle"
-              width={120}
-              height={120}
-              className="rounded-full"
-              priority
-            />
-          </div>
+      {/* Hero — cobra */}
+      <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+        <Image
+          src="/cobra.png"
+          alt="Naja"
+          width={340}
+          height={480}
+          className="object-contain opacity-90 select-none"
+          priority
+        />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
+      </div>
+
+      {/* Form panel */}
+      <div className="px-6 pb-10 pt-2">
+
+        {/* Brand */}
+        <div className="text-center mb-6">
           <h1
             className="text-4xl font-bold uppercase tracking-widest text-white"
             style={{ fontFamily: 'var(--font-oswald)' }}
@@ -54,7 +59,7 @@ export default function LoginPage() {
             Naja BJJ
           </h1>
           <p
-            className="text-xs uppercase tracking-[0.3em] text-white/50 mt-1"
+            className="text-xs uppercase tracking-[0.35em] text-white/40 mt-1"
             style={{ fontFamily: 'var(--font-oswald)' }}
           >
             Lifestyle
@@ -63,52 +68,40 @@ export default function LoginPage() {
 
         {sent ? (
           <div className="border border-white/20 rounded-2xl p-6 text-center">
-            <div className="text-4xl mb-3">📬</div>
+            <div className="text-3xl mb-3">📬</div>
             <h2
               className="text-white font-bold text-lg mb-2 uppercase tracking-wider"
               style={{ fontFamily: 'var(--font-oswald)' }}
             >
               Link enviado!
             </h2>
-            <p className="text-white/60 text-sm" style={{ fontFamily: 'var(--font-inter)' }}>
-              Verifique seu e-mail{' '}
+            <p className="text-white/60 text-sm">
+              Verifique{' '}
               <span className="text-white font-medium">{email}</span>{' '}
               e clique no link para entrar.
             </p>
             <button
               onClick={() => { setSent(false); setEmail('') }}
-              className="mt-5 text-xs text-white/40 underline uppercase tracking-widest"
+              className="mt-4 text-xs text-white/40 underline uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-oswald)' }}
             >
               Usar outro e-mail
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-xs font-semibold uppercase tracking-widest text-white/60 mb-2"
-                style={{ fontFamily: 'var(--font-oswald)' }}
-              >
-                E-mail
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-                className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors"
-                style={{ fontFamily: 'var(--font-inter)' }}
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              required
+              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors"
+            />
 
             {error && (
-              <p className="text-red-400 text-sm" style={{ fontFamily: 'var(--font-inter)' }}>
-                {error}
-              </p>
+              <p className="text-red-400 text-sm">{error}</p>
             )}
 
             <button
@@ -121,7 +114,7 @@ export default function LoginPage() {
             </button>
 
             <p
-              className="text-center text-white/30 text-xs pt-2 uppercase tracking-widest"
+              className="text-center text-white/30 text-xs pt-1 uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-oswald)' }}
             >
               Não tem conta? Fale com seu professor.
