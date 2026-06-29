@@ -37,7 +37,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center relative overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/cobra.png"
+          src="/cobra.webp"
           alt="Naja"
           className="w-72 object-contain opacity-90 select-none"
         />
