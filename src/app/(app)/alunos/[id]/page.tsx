@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import GraduacaoForm from './graduacao'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -142,6 +143,9 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
             </div>
           )}
         </div>
+
+        {/* Graduação */}
+        <GraduacaoForm alunoId={aluno.id} faixaAtual={aluno.faixa ?? 'branca'} grauAtual={aluno.grau ?? 0} />
 
         {/* Attendance history */}
         {presencas.length > 0 && (
