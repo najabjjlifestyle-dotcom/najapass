@@ -24,6 +24,19 @@ export default async function BoasVindasPage() {
 
   if (aluno) redirect('/aluno')
 
+  // Professor pré-cadastrado por outro professor → vincular automaticamente
+  const { data: profPreReg } = await supabase
+    .from('professores')
+    .select('id')
+    .eq('email', user.email!)
+    .is('user_id', null)
+    .maybeSingle()
+
+  if (profPreReg) {
+    await supabase.rpc('vincular_professor_por_email', { p_email: user.email!, p_user_id: user.id })
+    redirect('/dashboard')
+  }
+
   const { data: solicitacao } = await supabase
     .from('solicitacoes')
     .select('status, academias(nome)')
