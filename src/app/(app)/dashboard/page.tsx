@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import LogoImg from '@/components/logo-img'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -30,9 +31,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <header className="px-6 pt-12 pb-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.webp" alt="" className="w-10 h-10 rounded-full"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          <LogoImg className="w-10 h-10 rounded-full" />
           <div>
             <p className="text-white/40 text-xs uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-oswald)' }}>
