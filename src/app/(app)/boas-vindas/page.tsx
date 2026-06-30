@@ -24,5 +24,30 @@ export default async function BoasVindasPage() {
 
   if (aluno) redirect('/aluno')
 
-  return <RoleSelect />
+  const { data: solicitacao } = await supabase
+    .from('solicitacoes')
+    .select('status, academias(nome)')
+    .eq('user_id', user.id)
+    .order('criado_em', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const { data: academias } = await supabase
+    .from('academias')
+    .select('id, nome, cidade')
+    .order('nome')
+
+  const solicitacaoFormatada = solicitacao
+    ? {
+        status: solicitacao.status,
+        academia_nome: (solicitacao.academias as unknown as { nome: string } | null)?.nome ?? '',
+      }
+    : null
+
+  return (
+    <RoleSelect
+      academias={academias ?? []}
+      solicitacao={solicitacaoFormatada}
+    />
+  )
 }

@@ -2,31 +2,31 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-export async function vincularAluno() {
+export async function solicitarEntrada(academiaId: string, nome: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !user.email) return { error: 'Sessão inválida.' }
 
-  // Already linked (trigger may have run on first login)
   const { data: existing } = await supabase
-    .from('alunos')
-    .select('id')
+    .from('solicitacoes')
+    .select('id, status')
     .eq('user_id', user.id)
+    .eq('academia_id', academiaId)
     .maybeSingle()
 
-  if (existing) return { success: true }
+  if (existing?.status === 'pendente') return { success: true }
+  if (existing?.status === 'aprovado') return { success: true }
 
-  // Try to link via SECURITY DEFINER function (bypasses RLS)
-  const { data: vinculado, error } = await supabase.rpc('vincular_aluno_por_email', {
-    p_email: user.email,
-    p_user_id: user.id,
-  })
+  const { error } = await supabase
+    .from('solicitacoes')
+    .insert({
+      academia_id: academiaId,
+      user_id: user.id,
+      email: user.email,
+      nome: nome.trim(),
+    })
 
-  if (error) return { error: 'Erro ao vincular perfil.' }
-
-  if (!vinculado) {
-    return { error: 'Seu e-mail não foi cadastrado por nenhum professor ainda. Peça a ele para te adicionar no sistema.' }
-  }
+  if (error) return { error: 'Erro ao enviar solicitação.' }
 
   return { success: true }
 }
