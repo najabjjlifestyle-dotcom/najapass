@@ -18,6 +18,12 @@ export default async function DashboardPage() {
 
   const academia = professor.academias as unknown as { nome: string } | null
 
+  const { count: pendentes } = await supabase
+    .from('solicitacoes')
+    .select('id', { count: 'exact', head: true })
+    .eq('academia_id', professor.academia_id)
+    .eq('status', 'pendente')
+
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Header */}
@@ -55,6 +61,23 @@ export default async function DashboardPage() {
           <span className="text-2xl">🥋</span>
         </a>
 
+        {/* Banner de solicitações pendentes */}
+        {(pendentes ?? 0) > 0 && (
+          <a href="/solicitacoes"
+            className="flex items-center justify-between w-full px-5 py-4 rounded-2xl border border-yellow-400/30 bg-yellow-400/5">
+            <div>
+              <p className="text-yellow-400 font-bold text-base uppercase tracking-wider"
+                style={{ fontFamily: 'var(--font-oswald)' }}>
+                Solicitações de Alunos
+              </p>
+              <p className="text-yellow-400/60 text-sm">
+                {pendentes} nova{pendentes !== 1 ? 's' : ''} aguardando aprovação
+              </p>
+            </div>
+            <span className="text-yellow-400 text-xl">→</span>
+          </a>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <a href="/alunos"
             className="flex flex-col gap-1 px-4 py-4 rounded-2xl border border-white/20">
@@ -74,11 +97,11 @@ export default async function DashboardPage() {
             <p className="text-white font-bold uppercase tracking-wider text-sm"
               style={{ fontFamily: 'var(--font-oswald)' }}>Histórico</p>
           </a>
-          <a href="/tecnicas"
+          <a href="/solicitacoes"
             className="flex flex-col gap-1 px-4 py-4 rounded-2xl border border-white/20">
-            <span className="text-2xl">🎯</span>
+            <span className="text-2xl">📨</span>
             <p className="text-white font-bold uppercase tracking-wider text-sm"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Técnicas</p>
+              style={{ fontFamily: 'var(--font-oswald)' }}>Solicitações</p>
           </a>
         </div>
       </main>
