@@ -58,8 +58,8 @@ export default async function TurmasPage() {
           </div>
         ) : (
           turmas.map((turma) => (
-            <div key={turma.id}
-              className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5">
+            <Link key={turma.id} href={`/turmas/${turma.id}`}
+              className="block px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
               <p className="text-white font-bold uppercase tracking-wider"
                 style={{ fontFamily: 'var(--font-oswald)' }}>
                 {turma.nome}
@@ -82,7 +82,7 @@ export default async function TurmasPage() {
                   </span>
                 )}
               </div>
-            </div>
+            </Link>
           ))
         )}
       </main>
