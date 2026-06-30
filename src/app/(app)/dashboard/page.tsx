@@ -23,6 +23,7 @@ export default async function DashboardPage() {
     .select('id', { count: 'exact', head: true })
     .eq('academia_id', professor.academia_id)
     .eq('status', 'pendente')
+    .then(r => r.error ? { count: 0 } : r)
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
