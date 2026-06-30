@@ -66,7 +66,7 @@ export default function LoginPage() {
         .eq('user_id', data.user.id)
         .maybeSingle()
 
-      router.replace(aluno ? '/aluno' : '/onboarding')
+      router.replace(aluno ? '/aluno' : '/boas-vindas')
     }
   }
 
