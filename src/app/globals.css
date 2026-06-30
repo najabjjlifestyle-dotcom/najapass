@@ -1,8 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Superfícies */
+  --brand-fundo:        #080808;
+  --brand-surf:         #111111;
+  --brand-surf-2:       #161616;
+
+  /* Accent — dourado Naja */
+  --brand-gold:         #C8A96E;
+  --brand-gold-dim:     rgba(200, 169, 110, 0.12);
+  --brand-gold-border:  rgba(200, 169, 110, 0.25);
+
+  /* Texto */
+  --brand-texto:        #FFFFFF;
+  --brand-texto-sec:    #888888;
+  --brand-texto-muted:  #444444;
+
+  /* Bordas */
+  --brand-border:       #1F1F1F;
+  --brand-border-str:   #2A2A2A;
+
+  /* Legado (manter compatibilidade) */
+  --background: #080808;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -12,15 +32,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--brand-fundo);
+  color: var(--brand-texto);
   font-family: Arial, Helvetica, sans-serif;
 }
