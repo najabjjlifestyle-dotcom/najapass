@@ -20,6 +20,7 @@ export async function abrirAula(formData: FormData) {
   const data_aula = formData.get('data') as string
   const tema = (formData.get('tema') as string | null)?.trim() || null
   const hora_inicio = (formData.get('hora_inicio') as string | null) || null
+  const video_url = (formData.get('video_url') as string | null)?.trim() || null
 
   const { data: aula, error } = await supabase
     .from('aulas')
@@ -30,6 +31,7 @@ export async function abrirAula(formData: FormData) {
       data: data_aula,
       hora_inicio: hora_inicio || null,
       tema,
+      video_url,
       status: 'aberta',
     })
     .select('id')

@@ -79,6 +79,13 @@ export default function NovaAulaForm({ turmas }: { turmas: Turma[] }) {
               className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors" />
           </div>
 
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
+              style={{ fontFamily: 'var(--font-oswald)' }}>Link de estudo (YouTube, etc)</label>
+            <input name="video_url" type="url" placeholder="https://youtube.com/..."
+              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors" />
+          </div>
+
           {error && <p className="text-red-400 text-sm">{error}</p>}
 
           <button type="submit" disabled={loading}
