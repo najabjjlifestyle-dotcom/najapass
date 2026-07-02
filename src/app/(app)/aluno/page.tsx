@@ -115,6 +115,23 @@ export default async function AlunoPortalPage() {
     .order('registrado_em', { ascending: false })
     .limit(10)
 
+  // Frequência: últimos 30/90 dias + última presença
+  const trintaDias = new Date(); trintaDias.setDate(trintaDias.getDate() - 30)
+  const noventaDias = new Date(); noventaDias.setDate(noventaDias.getDate() - 90)
+
+  const [{ count: presencas30 }, { count: presencas90 }, { data: ultimaPresenca }] = await Promise.all([
+    supabase.from('presencas').select('id', { count: 'exact', head: true })
+      .eq('aluno_id', aluno.id).gte('registrado_em', trintaDias.toISOString()),
+    supabase.from('presencas').select('id', { count: 'exact', head: true })
+      .eq('aluno_id', aluno.id).gte('registrado_em', noventaDias.toISOString()),
+    supabase.from('presencas').select('registrado_em')
+      .eq('aluno_id', aluno.id).order('registrado_em', { ascending: false }).limit(1).maybeSingle(),
+  ])
+
+  const diasDesdeUltima = ultimaPresenca?.registrado_em
+    ? Math.floor((Date.now() - new Date(ultimaPresenca.registrado_em).getTime()) / 86400000)
+    : null
+
   // Técnicas da Semana — posições desta semana filtradas pela faixa do aluno
   type PosicaoSemana = { data: string; turma_nome: string | null; posicoes: string[] }
   let tecnicasDaSemana: PosicaoSemana[] = []
@@ -267,6 +284,35 @@ export default async function AlunoPortalPage() {
             </div>
           </div>
         )}
+
+        {/* Frequência */}
+        {(presencas30 ?? 0) > 0 || (presencas90 ?? 0) > 0 ? (
+          <div>
+            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
+              style={{ fontFamily: 'var(--font-oswald)' }}>
+              Meu histórico
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-center">
+                <p className="text-white font-bold text-2xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+                  {presencas30 ?? 0}
+                </p>
+                <p className="text-white/40 text-[10px] uppercase tracking-widest mt-1">Últimos 30 dias</p>
+              </div>
+              <div className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-center">
+                <p className="text-white font-bold text-2xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+                  {presencas90 ?? 0}
+                </p>
+                <p className="text-white/40 text-[10px] uppercase tracking-widest mt-1">Últimos 90 dias</p>
+              </div>
+            </div>
+            {diasDesdeUltima !== null && (
+              <p className="text-white/30 text-xs mt-2">
+                Última presença: {diasDesdeUltima === 0 ? 'hoje' : diasDesdeUltima === 1 ? 'ontem' : `${diasDesdeUltima} dias atrás`}
+              </p>
+            )}
+          </div>
+        ) : null}
 
         {/* Recent presences */}
         {(presencasData ?? []).length > 0 && (
