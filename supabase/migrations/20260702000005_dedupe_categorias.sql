@@ -14,8 +14,11 @@
 -- existir desde o início.
 -- ============================================================
 
+-- MIN()/MAX() não existem pra uuid no Postgres (só tem operadores de
+-- comparação p/ índice btree, sem agregado definido) — castamos pra
+-- text pra poder pegar um valor canônico determinístico.
 CREATE TEMP TABLE _categoria_canonico AS
-SELECT nome, MIN(id) AS canonico
+SELECT nome, MIN(id::text)::uuid AS canonico
 FROM categorias_tecnicas
 GROUP BY nome;
 
