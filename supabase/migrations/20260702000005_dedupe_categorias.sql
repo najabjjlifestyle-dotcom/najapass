@@ -17,27 +17,42 @@
 -- MIN()/MAX() não existem pra uuid no Postgres (só tem operadores de
 -- comparação p/ índice btree, sem agregado definido) — castamos pra
 -- text pra poder pegar um valor canônico determinístico.
-CREATE TEMP TABLE _categoria_canonico AS
-SELECT nome, MIN(id::text)::uuid AS canonico
-FROM categorias_tecnicas
-GROUP BY nome;
+--
+-- Sem TEMP TABLE de propósito: o pooler do Supabase pode não manter a
+-- mesma sessão entre statements de um script, e temp table é
+-- session-scoped. Cada statement abaixo recalcula o canônico via CTE
+-- própria — como nada em categorias_tecnicas muda até o DELETE final,
+-- o cálculo fica consistente entre os três.
 
+WITH canonicos AS (
+  SELECT nome, MIN(id::text)::uuid AS canonico
+  FROM categorias_tecnicas
+  GROUP BY nome
+)
 UPDATE tecnicas t
-SET categoria_id = cc.canonico
+SET categoria_id = ca.canonico
 FROM categorias_tecnicas c
-JOIN _categoria_canonico cc ON cc.nome = c.nome
-WHERE t.categoria_id = c.id AND c.id <> cc.canonico;
+JOIN canonicos ca ON ca.nome = c.nome
+WHERE t.categoria_id = c.id AND c.id <> ca.canonico;
 
+WITH canonicos AS (
+  SELECT nome, MIN(id::text)::uuid AS canonico
+  FROM categorias_tecnicas
+  GROUP BY nome
+)
 UPDATE aulas a
-SET tema_id = cc.canonico
+SET tema_id = ca.canonico
 FROM categorias_tecnicas c
-JOIN _categoria_canonico cc ON cc.nome = c.nome
-WHERE a.tema_id = c.id AND c.id <> cc.canonico;
+JOIN canonicos ca ON ca.nome = c.nome
+WHERE a.tema_id = c.id AND c.id <> ca.canonico;
 
+WITH canonicos AS (
+  SELECT nome, MIN(id::text)::uuid AS canonico
+  FROM categorias_tecnicas
+  GROUP BY nome
+)
 DELETE FROM categorias_tecnicas c
-USING _categoria_canonico cc
-WHERE c.nome = cc.nome AND c.id <> cc.canonico;
-
-DROP TABLE _categoria_canonico;
+USING canonicos ca
+WHERE c.nome = ca.nome AND c.id <> ca.canonico;
 
 ALTER TABLE categorias_tecnicas ADD CONSTRAINT categorias_tecnicas_nome_key UNIQUE (nome);
