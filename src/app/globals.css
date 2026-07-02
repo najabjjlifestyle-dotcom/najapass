@@ -35,5 +35,5 @@
 body {
   background: var(--brand-fundo);
   color: var(--brand-texto);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }

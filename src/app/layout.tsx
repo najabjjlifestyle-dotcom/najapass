@@ -42,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${oswald.variable} ${inter.variable} antialiased bg-black text-white`}>
+      <body className={`${oswald.variable} ${inter.variable} antialiased`}>
         {children}
         <script
           dangerouslySetInnerHTML={{
