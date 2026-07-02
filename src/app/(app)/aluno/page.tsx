@@ -109,7 +109,7 @@ export default async function AlunoPortalPage() {
       .lte('data', weekEnd)
       .order('data')
 
-    const aulasSemanais = (aulasSemanaisData ?? []) as {
+    const aulasSemanais = (aulasSemanaisData ?? []) as unknown as {
       id: string; data: string; turma_id: string; turmas: { nome: string } | null
     }[]
 
