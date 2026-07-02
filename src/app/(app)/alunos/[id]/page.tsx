@@ -63,11 +63,10 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
     : null
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-12 pb-6 flex items-center gap-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/alunos" />
-        <h1 className="text-white font-bold text-xl uppercase tracking-wider"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+        <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
           Perfil
         </h1>
       </header>
@@ -84,18 +83,17 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
         />
 
         {/* Student card */}
-        <div className="flex items-center gap-4 p-5 rounded-2xl border border-white/10 bg-white/5">
+        <div className="flex items-center gap-4 p-5 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
           <div className={`w-4 h-16 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
           <div>
-            <h2 className="text-white font-bold text-2xl uppercase tracking-wider"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <h2 className="font-bold text-2xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
               {aluno.nome}
             </h2>
-            <p className="text-white/50 text-sm capitalize mt-0.5">
+            <p className="text-sm capitalize mt-0.5" style={{ color: 'var(--brand-texto-sec)' }}>
               Faixa {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
             </p>
             {matriculadoEm && (
-              <p className="text-white/30 text-xs mt-1">Desde {matriculadoEm}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--brand-texto-muted)' }}>Desde {matriculadoEm}</p>
             )}
             {!aluno.ativo && (
               <span className="inline-block mt-1.5 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
@@ -108,21 +106,19 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="px-4 py-4 rounded-2xl border border-white/10 bg-white/5 text-center">
-            <p className="text-white font-bold text-3xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+          <div className="px-4 py-4 rounded-2xl text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            <p className="font-bold text-3xl" style={{ color: 'var(--brand-texto)' }}>
               {presencas.length}
             </p>
-            <p className="text-white/40 text-xs uppercase tracking-widest mt-1"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
               Presenças total
             </p>
           </div>
-          <div className="px-4 py-4 rounded-2xl border border-white/10 bg-white/5 text-center">
-            <p className="text-white font-bold text-3xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+          <div className="px-4 py-4 rounded-2xl text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            <p className="font-bold text-3xl" style={{ color: 'var(--brand-texto)' }}>
               {presencasRecentes}
             </p>
-            <p className="text-white/40 text-xs uppercase tracking-widest mt-1"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
               Últimos 30 dias
             </p>
           </div>
@@ -131,30 +127,28 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
         {/* Contact */}
         {(aluno.email || aluno.telefone) && (
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-widest text-white/40"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Contato</p>
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Contato</p>
             {aluno.email && (
-              <p className="text-white/60 text-sm">{aluno.email}</p>
+              <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>{aluno.email}</p>
             )}
             {aluno.telefone && (
-              <p className="text-white/60 text-sm">{aluno.telefone}</p>
+              <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>{aluno.telefone}</p>
             )}
           </div>
         )}
 
         {/* Turmas */}
         <div>
-          <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
-            style={{ fontFamily: 'var(--font-oswald)' }}>Turmas</p>
+          <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Turmas</p>
           {turmas.length === 0 ? (
-            <p className="text-white/20 text-sm">Não matriculado em nenhuma turma.</p>
+            <p className="text-sm" style={{ color: 'var(--brand-texto-muted)' }}>Não matriculado em nenhuma turma.</p>
           ) : (
             <div className="space-y-2">
               {turmas.map(t => (
                 <Link key={t.id} href={`/turmas/${t.id}`}
-                  className="block px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
-                  <p className="text-white text-sm font-bold uppercase tracking-wider"
-                    style={{ fontFamily: 'var(--font-oswald)' }}>
+                  className="block px-4 py-2 rounded-xl active:scale-[0.98] transition-transform"
+                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <p className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
                     {t.nome}
                   </p>
                 </Link>
@@ -178,8 +172,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
         {/* Attendance history */}
         {presencas.length > 0 && (
           <div>
-            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Histórico de presenças</p>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Histórico de presenças</p>
             <div className="space-y-1">
               {presencas.map((p, i) => {
                 const aula = p.aulas
@@ -189,12 +182,12 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
                   day: '2-digit', month: 'short',
                 })
                 return (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl border border-white/5">
-                    <p className="text-white/60 text-xs">
+                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ border: '1px solid var(--brand-border)' }}>
+                    <p className="text-xs" style={{ color: 'var(--brand-texto-sec)' }}>
                       {turma?.nome ?? 'Aula avulsa'}
                       {aula.tema ? ` · ${aula.tema}` : ''}
                     </p>
-                    <p className="text-white/30 text-xs flex-shrink-0 ml-2">{data}</p>
+                    <p className="text-xs flex-shrink-0 ml-2" style={{ color: 'var(--brand-texto-muted)' }}>{data}</p>
                   </div>
                 )
               })}

@@ -219,13 +219,13 @@ Criar `src/components/bottom-nav.tsx`:
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, ClipboardList, User } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, BarChart2 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard',  Icon: LayoutDashboard, label: 'Início' },
   { href: '/alunos',     Icon: Users,           label: 'Alunos' },
   { href: '/aulas',      Icon: ClipboardList,   label: 'Histórico' },
-  { href: '/perfil',     Icon: User,            label: 'Perfil' },
+  { href: '/relatorios', Icon: BarChart2,       label: 'Insights' },
 ]
 
 export default function BottomNav() {
@@ -277,6 +277,9 @@ return (
   </div>
 )
 ```
+
+**Decisão de design — Perfil fora do nav:**  
+`/perfil` não entra no bottom nav. O avatar dourado no header do dashboard (que já existe e já navega para `/perfil`) serve como ponto de entrada. Padrão idêntico ao Instagram/Linear. O professor abre perfil raramente — não merece slot permanente.
 
 **Importante:** O bottom nav é somente para o professor. O portal do aluno (`/aluno`) tem layout próprio — não incluir bottom nav lá (o aluno usa o app de forma mais simples).
 

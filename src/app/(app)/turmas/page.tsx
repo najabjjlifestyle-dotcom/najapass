@@ -28,18 +28,17 @@ export default async function TurmasPage() {
     .order('nome')
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center justify-between">
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-3">
           <BackButton href="/dashboard" />
-          <h1 className="text-white font-bold text-xl uppercase tracking-wider"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
             Turmas
           </h1>
         </div>
         <Link href="/turmas/nova"
-          className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+          className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--brand-gold)', color: '#000' }}>
           + Nova
         </Link>
       </header>
@@ -47,38 +46,36 @@ export default async function TurmasPage() {
       <main className="px-6 pt-6 space-y-2 pb-10">
         {!turmas?.length ? (
           <div className="text-center py-16">
-            <p className="text-white/30 text-sm uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-sm uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhuma turma cadastrada
             </p>
             <Link href="/turmas/nova"
-              className="inline-block mt-4 px-6 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+              className="inline-block mt-4 px-6 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--brand-gold)', color: '#000' }}>
               Criar primeira turma
             </Link>
           </div>
         ) : (
           turmas.map((turma) => (
             <Link key={turma.id} href={`/turmas/${turma.id}`}
-              className="block px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
-              <p className="text-white font-bold uppercase tracking-wider"
-                style={{ fontFamily: 'var(--font-oswald)' }}>
+              className="block px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
                 {turma.nome}
               </p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {(turma.dias_semana as string[] | null)?.map((d) => (
-                  <span key={d} className="text-xs text-white/50 bg-white/10 px-2 py-0.5 rounded">
+                  <span key={d} className="text-xs px-2 py-0.5 rounded" style={{ color: 'var(--brand-texto-sec)', background: 'var(--brand-surf-2)' }}>
                     {DIAS_ABBR[d] ?? d}
                   </span>
                 ))}
                 {turma.horario && (
-                  <span className="text-xs text-white/40">
+                  <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
                     · {(turma.horario as string).substring(0, 5)}
                   </span>
                 )}
                 {!turma.ativa && (
-                  <span className="text-xs text-white/20 ml-auto uppercase tracking-wider"
-                    style={{ fontFamily: 'var(--font-oswald)' }}>
+                  <span className="text-xs ml-auto uppercase tracking-wider" style={{ color: 'var(--brand-texto-muted)' }}>
                     Inativa
                   </span>
                 )}
