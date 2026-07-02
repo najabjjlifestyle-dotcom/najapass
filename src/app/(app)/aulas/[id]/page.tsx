@@ -33,7 +33,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   // Parallel: presencas, todas as aula_tecnicas, posições disponíveis
   const [presencasResult, aulaTecnicasResult, todasTecnicasResult] = await Promise.all([
-    supabase.from('presencas').select('aluno_id').eq('aula_id', id),
+    supabase.from('presencas').select('id, aluno_id, nome_visitante').eq('aula_id', id),
     supabase
       .from('aula_tecnicas')
       .select('tipo, reforco, tecnicas(id, nome, categoria_id, categorias_tecnicas(nome))')
@@ -45,18 +45,46 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
       .order('nome'),
   ])
 
+  const presencas = (presencasResult.data ?? []) as unknown as
+    { id: string; aluno_id: string | null; nome_visitante: string | null }[]
+  const presencaAlunoIds = presencas.map(p => p.aluno_id).filter((v): v is string => Boolean(v))
+  const visitantesIniciais = presencas
+    .filter(p => p.nome_visitante)
+    .map(p => ({ id: p.id, nome: p.nome_visitante as string }))
+
   // Alunos da aula
   let alunos: AlunoRow[] = []
+  let outrosAlunos: AlunoRow[] = []
   if (aula.turma_id) {
     const { data: turmaAlunos } = await supabase
       .from('alunos_turmas')
       .select('alunos(id, nome, faixa, grau)')
       .eq('turma_id', aula.turma_id)
       .eq('ativo', true)
-    alunos = ((turmaAlunos ?? [])
+    alunos = (turmaAlunos ?? [])
       .map(ta => ta.alunos as unknown as AlunoRow | null)
-      .filter(Boolean) as AlunoRow[])
-      .sort((a, b) => a.nome.localeCompare(b.nome))
+      .filter(Boolean) as AlunoRow[]
+
+    // Alunos avulsos: presença registrada mas não matriculados nessa turma
+    const turmaAlunoIds = new Set(alunos.map(a => a.id))
+    const avulsoIds = presencaAlunoIds.filter(alunoId => !turmaAlunoIds.has(alunoId))
+    if (avulsoIds.length > 0) {
+      const { data: avulsosData } = await supabase
+        .from('alunos')
+        .select('id, nome, faixa, grau')
+        .in('id', avulsoIds)
+      alunos = [...alunos, ...((avulsosData as AlunoRow[]) ?? [])]
+    }
+    alunos.sort((a, b) => a.nome.localeCompare(b.nome))
+
+    const { data: todosDaAcademia } = await supabase
+      .from('alunos')
+      .select('id, nome, faixa, grau')
+      .eq('academia_id', professor.academia_id)
+      .eq('ativo', true)
+      .order('nome')
+    const jaNaLista = new Set(alunos.map(a => a.id))
+    outrosAlunos = ((todosDaAcademia as AlunoRow[]) ?? []).filter(a => !jaNaLista.has(a.id))
   } else {
     const { data } = await supabase
       .from('alunos')
@@ -67,9 +95,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     alunos = (data as AlunoRow[]) ?? []
   }
 
-  const presencasIniciais = ((presencasResult.data ?? [])
-    .map(p => p.aluno_id)
-    .filter(Boolean)) as string[]
+  const presencasIniciais = presencaAlunoIds
 
   type RawAT = {
     tipo: string
@@ -157,6 +183,8 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         aulaId={id}
         alunos={alunos}
         presencasIniciais={presencasIniciais}
+        visitantesIniciais={visitantesIniciais}
+        outrosAlunos={outrosAlunos}
         status={aula.status}
       />
     </div>

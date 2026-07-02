@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { togglePresenca, finalizarAula } from '../actions'
+import { togglePresenca, finalizarAula, adicionarVisitante, removerVisitante } from '../actions'
 
 type Aluno = { id: string; nome: string; faixa: string; grau: number }
 
@@ -18,15 +18,21 @@ const FAIXA_COR: Record<string, string> = {
   preta: 'bg-gray-800 border border-white/20',
 }
 
+type Visitante = { id: string; nome: string }
+
 export default function AttendanceList({
   aulaId,
   alunos,
   presencasIniciais,
+  visitantesIniciais,
+  outrosAlunos,
   status,
 }: {
   aulaId: string
   alunos: Aluno[]
   presencasIniciais: string[]
+  visitantesIniciais: Visitante[]
+  outrosAlunos: Aluno[]
   status: string
 }) {
   const router = useRouter()
@@ -34,7 +40,46 @@ export default function AttendanceList({
   const [, startTransition] = useTransition()
   const [finalizando, setFinalizando] = useState(false)
 
+  const [visitantes, setVisitantes] = useState<Visitante[]>(visitantesIniciais)
+  const [showVisitanteForm, setShowVisitanteForm] = useState(false)
+  const [novoVisitante, setNovoVisitante] = useState('')
+  const [addingVisitante, setAddingVisitante] = useState(false)
+
+  const [showAvulsoForm, setShowAvulsoForm] = useState(false)
+  const [avulsoId, setAvulsoId] = useState('')
+  const [addingAvulso, setAddingAvulso] = useState(false)
+
   const isFinished = status === 'finalizada'
+
+  async function handleAddVisitante() {
+    const nome = novoVisitante.trim()
+    if (!nome) return
+    setAddingVisitante(true)
+    const result = await adicionarVisitante(aulaId, nome)
+    if (result?.success && result.id) {
+      setVisitantes(prev => [...prev, { id: result.id!, nome }])
+      setNovoVisitante('')
+      setShowVisitanteForm(false)
+    }
+    setAddingVisitante(false)
+  }
+
+  async function handleRemoveVisitante(visitanteId: string) {
+    setVisitantes(prev => prev.filter(v => v.id !== visitanteId))
+    await removerVisitante(visitanteId, aulaId)
+  }
+
+  async function handleAddAvulso() {
+    if (!avulsoId) return
+    setAddingAvulso(true)
+    const result = await togglePresenca(aulaId, avulsoId)
+    setAddingAvulso(false)
+    if (result?.success) {
+      setAvulsoId('')
+      setShowAvulsoForm(false)
+      router.refresh()
+    }
+  }
 
   function toggle(alunoId: string) {
     if (isFinished) return
@@ -92,6 +137,75 @@ export default function AttendanceList({
           </span>
         )}
       </div>
+
+      {!isFinished && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button onClick={() => setShowVisitanteForm(v => !v)}
+            className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg border border-white/20 text-white/70 hover:border-white/40"
+            style={{ fontFamily: 'var(--font-oswald)' }}>
+            + Visitante
+          </button>
+          {outrosAlunos.length > 0 && (
+            <button onClick={() => setShowAvulsoForm(v => !v)}
+              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg border border-white/20 text-white/70 hover:border-white/40"
+              style={{ fontFamily: 'var(--font-oswald)' }}>
+              + Aluno de outra turma
+            </button>
+          )}
+        </div>
+      )}
+
+      {showVisitanteForm && (
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={novoVisitante}
+            onChange={e => setNovoVisitante(e.target.value)}
+            placeholder="Nome do visitante"
+            autoFocus
+            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/20 text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/40"
+          />
+          <button onClick={handleAddVisitante} disabled={addingVisitante || !novoVisitante.trim()}
+            className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40"
+            style={{ fontFamily: 'var(--font-oswald)' }}>
+            {addingVisitante ? '...' : 'Add'}
+          </button>
+        </div>
+      )}
+
+      {showAvulsoForm && (
+        <div className="flex gap-2 mb-4">
+          <select
+            value={avulsoId}
+            onChange={e => setAvulsoId(e.target.value)}
+            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/20 text-white text-sm focus:outline-none focus:border-white/40">
+            <option value="" className="bg-black">Selecione o aluno</option>
+            {outrosAlunos.map(a => (
+              <option key={a.id} value={a.id} className="bg-black">{a.nome}</option>
+            ))}
+          </select>
+          <button onClick={handleAddAvulso} disabled={addingAvulso || !avulsoId}
+            className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40"
+            style={{ fontFamily: 'var(--font-oswald)' }}>
+            {addingAvulso ? '...' : 'Add'}
+          </button>
+        </div>
+      )}
+
+      {visitantes.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {visitantes.map(v => (
+            <span key={v.id}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
+              style={{ color: 'var(--brand-gold, #C8A96E)', border: '1px solid rgba(200,169,110,0.3)', background: 'rgba(200,169,110,0.1)' }}>
+              {v.nome} <span className="opacity-60">(visitante)</span>
+              {!isFinished && (
+                <button onClick={() => handleRemoveVisitante(v.id)} className="ml-1 opacity-60 hover:opacity-100">×</button>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-2">
         {alunos.length === 0 ? (
