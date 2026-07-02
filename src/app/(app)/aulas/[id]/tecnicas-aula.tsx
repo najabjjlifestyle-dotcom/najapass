@@ -10,11 +10,13 @@ export default function TecnicasAula({
   ensinadas,
   disponiveis,
   aulaAberta,
+  temaNome,
 }: {
   aulaId: string
   ensinadas: Tecnica[]
   disponiveis: Tecnica[]
   aulaAberta: boolean
+  temaNome?: string | null
 }) {
   const [selecionada, setSelecionada] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -37,7 +39,7 @@ export default function TecnicasAula({
     <div className="px-5 py-4 space-y-3"
       style={{ borderTop: '1px solid var(--brand-border)' }}>
       <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
-        Posições ensinadas
+        Posições ensinadas{temaNome ? ` — ${temaNome}` : ''}
       </p>
 
       {ensinadas.length === 0 ? (

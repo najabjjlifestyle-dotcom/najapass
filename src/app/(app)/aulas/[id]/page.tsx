@@ -23,28 +23,30 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   const { data: aula } = await supabase
     .from('aulas')
-    .select('id, data, tema, status, hora_inicio, turma_id, video_url, turmas(nome)')
+    .select('id, data, status, hora_inicio, turma_id, video_url, tema_id, turmas(nome), tema:categorias_tecnicas(nome)')
     .eq('id', id)
     .single()
 
   if (!aula) redirect('/aulas')
 
-  // Parallel: presencas, técnicas da aula, todas técnicas da academia
+  const temaNome = (aula.tema as unknown as { nome: string } | null)?.nome ?? null
+
+  // Parallel: presencas, posições da aula, todas posições da academia
   const [presencasResult, tecnicasAulaResult, todasTecnicasResult] = await Promise.all([
     supabase.from('presencas').select('aluno_id').eq('aula_id', id),
     supabase
       .from('aula_tecnicas')
-      .select('tecnica_id, tecnicas(id, nome, categorias_tecnicas(nome))')
+      .select('tecnicas(id, nome, categoria_id, categorias_tecnicas(nome))')
       .eq('aula_id', id)
       .eq('tipo', 'ensinada'),
     supabase
       .from('tecnicas')
-      .select('id, nome, categorias_tecnicas(nome)')
+      .select('id, nome, categoria_id, categorias_tecnicas(nome)')
       .eq('academia_id', professor.academia_id)
       .order('nome'),
   ])
 
-  // Alunos — sequential after checking turma_id to avoid TS union confusion
+  // Alunos — sequential to avoid TS union confusion with the ternary
   let alunos: AlunoRow[] = []
   if (aula.turma_id) {
     const { data: turmaAlunos } = await supabase
@@ -71,8 +73,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     .filter(Boolean)) as string[]
 
   type RawTecnicaAula = {
-    tecnica_id: string
-    tecnicas: { id: string; nome: string; categorias_tecnicas: { nome: string } | null } | null
+    tecnicas: { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null } | null
   }
   const ensinadas: TecnicaRow[] = ((tecnicasAulaResult.data ?? []) as unknown as RawTecnicaAula[])
     .filter(t => t.tecnicas)
@@ -83,10 +84,13 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     }))
 
   const ensinadasIds = new Set(ensinadas.map(t => t.id))
+  const aulaTemaid = aula.tema_id as string | null
 
-  type RawTecnica = { id: string; nome: string; categorias_tecnicas: { nome: string } | null }
+  type RawTecnica = { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null }
   const disponiveis: TecnicaRow[] = ((todasTecnicasResult.data ?? []) as unknown as RawTecnica[])
     .filter(t => !ensinadasIds.has(t.id))
+    // filter to the aula's tema when set — show only posições of that tema
+    .filter(t => !aulaTemaid || t.categoria_id === aulaTemaid)
     .map(t => ({ id: t.id, nome: t.nome, categoria: t.categorias_tecnicas?.nome ?? null }))
 
   const turma = aula.turmas as unknown as { nome: string } | null
@@ -122,12 +126,14 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
             {dataFormatada}
             {aula.hora_inicio ? ` · ${(aula.hora_inicio as string).substring(0, 5)}` : ''}
           </p>
-          {aula.tema && (
-            <p className="text-sm mt-1 italic" style={{ color: 'var(--brand-texto-sec)' }}>"{aula.tema}"</p>
+          {temaNome && (
+            <p className="text-sm font-bold mt-1" style={{ color: 'var(--brand-gold)' }}>
+              Tema: {temaNome}
+            </p>
           )}
           {aula.video_url && (
             <a href={aula.video_url as string} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs mt-2 underline underline-offset-2"
+              className="inline-flex items-center gap-1 text-xs mt-1.5 underline underline-offset-2"
               style={{ color: 'var(--brand-gold)' }}>
               ▶ Link de estudo
             </a>
@@ -142,6 +148,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
           ensinadas={ensinadas}
           disponiveis={disponiveis}
           aulaAberta={aula.status === 'aberta'}
+          temaNome={temaNome}
         />
       </div>
 

@@ -6,9 +6,9 @@ import Link from 'next/link'
 import { abrirAula } from '../actions'
 
 type Turma = { id: string; nome: string }
-type TecnicaOpt = { id: string; nome: string; categoria: string | null }
+type Tema = { id: string; nome: string }
 
-export default function NovaAulaForm({ turmas, tecnicas }: { turmas: Turma[]; tecnicas: TecnicaOpt[] }) {
+export default function NovaAulaForm({ turmas, temas }: { turmas: Turma[]; temas: Tema[] }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -76,13 +76,11 @@ export default function NovaAulaForm({ turmas, tecnicas }: { turmas: Turma[]; te
           <div>
             <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
               style={{ fontFamily: 'var(--font-oswald)' }}>Tema da aula</label>
-            <select name="tema"
+            <select name="tema_id"
               className="w-full px-4 py-3 rounded-xl bg-black border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors">
               <option value="" className="bg-black">Sem tema específico</option>
-              {tecnicas.map(t => (
-                <option key={t.id} value={t.nome} className="bg-black">
-                  {t.categoria ? `[${t.categoria}] ` : ''}{t.nome}
-                </option>
+              {temas.map(t => (
+                <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
               ))}
             </select>
           </div>

@@ -18,7 +18,7 @@ export async function abrirAula(formData: FormData) {
 
   const turma_id = (formData.get('turma_id') as string | null) || null
   const data_aula = formData.get('data') as string
-  const tema = (formData.get('tema') as string | null)?.trim() || null
+  const tema_id = (formData.get('tema_id') as string | null) || null
   const hora_inicio = (formData.get('hora_inicio') as string | null) || null
   const video_url = (formData.get('video_url') as string | null)?.trim() || null
 
@@ -30,7 +30,7 @@ export async function abrirAula(formData: FormData) {
       turma_id: turma_id || null,
       data: data_aula,
       hora_inicio: hora_inicio || null,
-      tema,
+      tema_id: tema_id || null,
       video_url,
       status: 'aberta',
     })
