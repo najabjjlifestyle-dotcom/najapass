@@ -5,7 +5,6 @@ import AttendanceList from './attendance-list'
 import TecnicasAula from './tecnicas-aula'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number }
-type TecnicaRow = { id: string; nome: string; categoria: string | null }
 
 export default async function AulaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -30,15 +29,15 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   if (!aula) redirect('/aulas')
 
   const temaNome = (aula.tema as unknown as { nome: string } | null)?.nome ?? null
+  const aulaTemaid = aula.tema_id as string | null
 
-  // Parallel: presencas, posições da aula, todas posições da academia
-  const [presencasResult, tecnicasAulaResult, todasTecnicasResult] = await Promise.all([
+  // Parallel: presencas, todas as aula_tecnicas, posições disponíveis
+  const [presencasResult, aulaTecnicasResult, todasTecnicasResult] = await Promise.all([
     supabase.from('presencas').select('aluno_id').eq('aula_id', id),
     supabase
       .from('aula_tecnicas')
-      .select('tecnicas(id, nome, categoria_id, categorias_tecnicas(nome))')
-      .eq('aula_id', id)
-      .eq('tipo', 'ensinada'),
+      .select('tipo, reforco, tecnicas(id, nome, categoria_id, categorias_tecnicas(nome))')
+      .eq('aula_id', id),
     supabase
       .from('tecnicas')
       .select('id, nome, categoria_id, categorias_tecnicas(nome)')
@@ -46,7 +45,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
       .order('nome'),
   ])
 
-  // Alunos — sequential to avoid TS union confusion with the ternary
+  // Alunos da aula
   let alunos: AlunoRow[] = []
   if (aula.turma_id) {
     const { data: turmaAlunos } = await supabase
@@ -72,24 +71,26 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     .map(p => p.aluno_id)
     .filter(Boolean)) as string[]
 
-  type RawTecnicaAula = {
+  type RawAT = {
+    tipo: string
+    reforco: boolean
     tecnicas: { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null } | null
   }
-  const ensinadas: TecnicaRow[] = ((tecnicasAulaResult.data ?? []) as unknown as RawTecnicaAula[])
-    .filter(t => t.tecnicas)
-    .map(t => ({
-      id: t.tecnicas!.id,
-      nome: t.tecnicas!.nome,
-      categoria: t.tecnicas!.categorias_tecnicas?.nome ?? null,
-    }))
+  const aulaTecnicas = ((aulaTecnicasResult.data ?? []) as unknown as RawAT[]).filter(r => r.tecnicas)
 
-  const ensinadasIds = new Set(ensinadas.map(t => t.id))
-  const aulaTemaid = aula.tema_id as string | null
+  const tecnicasNaAula = aulaTecnicas.map(r => ({
+    id: r.tecnicas!.id,
+    nome: r.tecnicas!.nome,
+    categoria: r.tecnicas!.categorias_tecnicas?.nome ?? null,
+    tipo: r.tipo as 'planejada' | 'ensinada' | 'nao_ensinada',
+    reforco: r.reforco,
+  }))
 
-  type RawTecnica = { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null }
-  const disponiveis: TecnicaRow[] = ((todasTecnicasResult.data ?? []) as unknown as RawTecnica[])
-    .filter(t => !ensinadasIds.has(t.id))
-    // filter to the aula's tema when set — show only posições of that tema
+  const naAulaIds = new Set(tecnicasNaAula.map(t => t.id))
+
+  type RawTec = { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null }
+  const disponiveis = ((todasTecnicasResult.data ?? []) as unknown as RawTec[])
+    .filter(t => !naAulaIds.has(t.id))
     .filter(t => !aulaTemaid || t.categoria_id === aulaTemaid)
     .map(t => ({ id: t.id, nome: t.nome, categoria: t.categorias_tecnicas?.nome ?? null }))
 
@@ -145,7 +146,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
         <TecnicasAula
           aulaId={id}
-          ensinadas={ensinadas}
+          tecnicas={tecnicasNaAula}
           disponiveis={disponiveis}
           aulaAberta={aula.status === 'aberta'}
           temaNome={temaNome}

@@ -16,11 +16,13 @@ export async function criarTecnica(formData: FormData) {
   const nome = (formData.get('nome') as string).trim()
   const categoria_id = (formData.get('categoria_id') as string) || null
   const descricao = (formData.get('descricao') as string | null)?.trim() || null
+  const faixas = formData.getAll('faixas[]') as string[]
 
   if (!nome) return { error: 'Nome é obrigatório.' }
 
   const { error } = await supabase.from('tecnicas').insert({
     academia_id: professor.academia_id, nome, categoria_id, descricao,
+    faixas: faixas.length > 0 ? faixas : [],
   })
 
   if (error) return { error: 'Erro ao salvar técnica.' }

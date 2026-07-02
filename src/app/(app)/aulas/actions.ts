@@ -22,6 +22,8 @@ export async function abrirAula(formData: FormData) {
   const hora_inicio = (formData.get('hora_inicio') as string | null) || null
   const video_url = (formData.get('video_url') as string | null)?.trim() || null
 
+  const planejadas = formData.getAll('planejadas[]') as string[]
+
   const { data: aula, error } = await supabase
     .from('aulas')
     .insert({
@@ -38,6 +40,18 @@ export async function abrirAula(formData: FormData) {
     .single()
 
   if (error || !aula) return { error: 'Erro ao abrir aula.' }
+
+  // Salva as posições planejadas pelo professor
+  if (planejadas.length > 0) {
+    await supabase.from('aula_tecnicas').insert(
+      planejadas.map(tecnica_id => ({
+        aula_id: aula.id,
+        tecnica_id,
+        tipo: 'planejada',
+        reforco: false,
+      }))
+    )
+  }
 
   revalidatePath('/aulas')
   return { success: true, id: aula.id }
@@ -75,6 +89,13 @@ export async function finalizarAula(aulaId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sessão expirada.' }
+
+  // Posições planejadas não confirmadas → marcar como não ensinadas
+  await supabase
+    .from('aula_tecnicas')
+    .update({ tipo: 'nao_ensinada' })
+    .eq('aula_id', aulaId)
+    .eq('tipo', 'planejada')
 
   const horaFim = new Date().toTimeString().slice(0, 8)
 
