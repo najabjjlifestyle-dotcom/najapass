@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import EnrollmentManager from './enrollment'
 import EditarTurmaForm from './editar'
+import BackButton from '@/components/back-button'
 
 const DIAS_ABBR: Record<string, string> = {
   domingo: 'Dom', segunda: 'Seg', terca: 'Ter', quarta: 'Qua',
@@ -71,7 +72,7 @@ export default async function TurmaPage({ params }: { params: Promise<{ id: stri
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
       <header className="px-5 pt-12 pb-5 flex items-start gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <Link href="/turmas" className="text-xl mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
+        <BackButton href="/turmas" />
         <div className="flex-1">
           <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
             {turma.nome}

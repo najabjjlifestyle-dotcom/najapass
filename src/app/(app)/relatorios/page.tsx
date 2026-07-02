@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import Filtros from './filtros'
+import BackButton from '@/components/back-button'
 
 const FAIXA_COR: Record<string, string> = {
   branca: '#fff', cinza: '#9CA3AF', amarela: '#FBBF24', laranja: '#F97316',
@@ -75,7 +76,7 @@ export default async function RelatoriosPage({
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
       <header className="px-5 pt-12 pb-5 flex items-center gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <Link href="/dashboard" className="text-xl" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
+        <BackButton href="/dashboard" />
         <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
           Relatórios
         </h1>

@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import NovoAvisoForm from './form'
 import { ArquivarAvisoButton } from './buttons'
+import BackButton from '@/components/back-button'
 
 export default async function AvisosPage() {
   const supabase = await createClient()
@@ -28,7 +28,7 @@ export default async function AvisosPage() {
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
       <header className="px-5 pt-12 pb-5 flex items-center gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <Link href="/dashboard" className="text-xl" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
+        <BackButton href="/dashboard" />
         <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
           Avisos
         </h1>

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import BackButton from '@/components/back-button'
 
 const DIAS_PT: Record<number, string> = {
   0: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta',
@@ -86,7 +87,7 @@ export default async function SemanaPage() {
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
       <header className="px-5 pt-12 pb-5 flex items-center gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <Link href="/dashboard" className="text-xl" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
+        <BackButton href="/dashboard" />
         <div>
           <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
             Semana

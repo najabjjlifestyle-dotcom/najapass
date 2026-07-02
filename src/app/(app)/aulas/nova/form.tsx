@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { abrirAula } from '../actions'
 import { criarTema } from '../../tecnicas/actions'
+import BackButton from '@/components/back-button'
 
 type Turma = { id: string; nome: string }
 type Tema = { id: string; nome: string }
@@ -101,7 +102,7 @@ export default function NovaAulaForm({
   return (
     <div className="min-h-screen bg-black">
       <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
-        <Link href="/dashboard" className="text-white/40 hover:text-white transition-colors text-xl">←</Link>
+        <BackButton href="/dashboard" />
         <h1 className="text-white font-bold text-xl uppercase tracking-wider"
           style={{ fontFamily: 'var(--font-oswald)' }}>
           Planejar Aula

@@ -1,8 +1,8 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import Link from 'next/link'
 import { criarTecnica, criarTema } from '../actions'
+import BackButton from '@/components/back-button'
 
 type Categoria = { id: string; nome: string }
 
@@ -59,7 +59,7 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
       <header className="px-5 pt-12 pb-5 flex items-center gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <Link href="/tecnicas" className="text-xl" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
+        <BackButton href="/tecnicas" />
         <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
           Nova Posição
         </h1>

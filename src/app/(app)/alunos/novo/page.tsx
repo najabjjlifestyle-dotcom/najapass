@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { cadastrarAluno } from '../actions'
+import BackButton from '@/components/back-button'
 
 const FAIXAS = ['branca', 'cinza', 'amarela', 'laranja', 'verde', 'azul', 'roxa', 'marrom', 'preta']
 
@@ -31,7 +31,7 @@ export default function NovoAlunoPage() {
   return (
     <div className="min-h-screen bg-black">
       <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
-        <Link href="/alunos" className="text-white/40 hover:text-white transition-colors text-xl">←</Link>
+        <BackButton href="/alunos" />
         <h1 className="text-white font-bold text-xl uppercase tracking-wider"
           style={{ fontFamily: 'var(--font-oswald)' }}>
           Novo Aluno

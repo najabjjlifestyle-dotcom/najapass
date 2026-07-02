@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import Avatar from '@/components/avatar'
+import BackButton from '@/components/back-button'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white',
@@ -38,7 +39,7 @@ export default async function AlunosPage() {
     <div className="min-h-screen bg-black">
       <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-white/40 hover:text-white transition-colors text-xl">←</Link>
+          <BackButton href="/dashboard" />
           <h1 className="text-white font-bold text-xl uppercase tracking-wider"
             style={{ fontFamily: 'var(--font-oswald)' }}>
             Alunos

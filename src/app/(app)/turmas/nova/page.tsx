@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { criarTurma } from '../actions'
+import BackButton from '@/components/back-button'
 
 const DIAS = [
   { value: 'segunda', label: 'Seg' },
@@ -47,7 +47,7 @@ export default function NovaTurmaPage() {
   return (
     <div className="min-h-screen bg-black">
       <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
-        <Link href="/turmas" className="text-white/40 hover:text-white transition-colors text-xl">←</Link>
+        <BackButton href="/turmas" />
         <h1 className="text-white font-bold text-xl uppercase tracking-wider"
           style={{ fontFamily: 'var(--font-oswald)' }}>
           Nova Turma

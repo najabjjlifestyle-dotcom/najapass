@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-02 (v1.3 — branch `feat/sprint7-pendencias`, todos os cards pendentes resolvidos)
+**Atualizado em:** 2026-07-02 (v1.4 — EP-12 adicionado: B-037 a B-042 no backlog)
 
 ---
 
@@ -55,9 +55,23 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ---
 
+## 📋 Backlog (EP-12 — próxima sprint)
+
+| ID | Card | Prioridade |
+|---|---|---|
+| B-037 | Banho de loja — consistência visual e mobile-first | P1 |
+| B-038 | Foto de perfil do professor | P1 |
+| B-039 | Tela de Insights (`/relatorios`) | P1 |
+| B-040 | Insight dinâmico no dashboard | P2 |
+| B-042 | Candidatos a graduação | P2 |
+
+> B-041 (integração com Claude chat) descartado — o app deve ser autossuficiente.
+
+---
+
 ## 🟡 Em Progresso
 
-*Nenhum card em progresso no momento.*
+*B-037 em execução pelo Claude Code (branch `feat/sprint8-mobile-makeover`).*
 
 ---
 

@@ -5,6 +5,7 @@ import GraduacaoForm from './graduacao'
 import EditarAlunoForm from './editar'
 import AvatarUpload from '@/components/avatar-upload'
 import { updateFotoAluno } from './actions'
+import BackButton from '@/components/back-button'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -64,7 +65,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
   return (
     <div className="min-h-screen bg-black">
       <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
-        <Link href="/alunos" className="text-white/40 hover:text-white transition-colors text-xl">←</Link>
+        <BackButton href="/alunos" />
         <h1 className="text-white font-bold text-xl uppercase tracking-wider"
           style={{ fontFamily: 'var(--font-oswald)' }}>
           Perfil

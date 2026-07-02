@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import BackButton from '@/components/back-button'
 
 type Tecnica = {
   id: string
@@ -39,7 +40,7 @@ export default async function TecnicasPage() {
       <header className="px-5 pt-12 pb-5 flex items-center justify-between"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-xl" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
+          <BackButton href="/dashboard" />
           <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
             Posições
           </h1>
