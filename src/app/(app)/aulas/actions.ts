@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendPushToAll } from '@/lib/push'
 
 export async function abrirAula(formData: FormData) {
   const supabase = await createClient()
@@ -53,6 +54,19 @@ export async function abrirAula(formData: FormData) {
     )
   }
 
+  // Notifica os alunos da turma que a aula abriu (best-effort, não bloqueia o fluxo)
+  if (turma_id) {
+    const { data: turma } = await supabase.from('turmas').select('nome').eq('id', turma_id).maybeSingle()
+    const { data: subs } = await supabase.rpc('subscricoes_da_turma', { p_turma_id: turma_id })
+    if (subs && subs.length > 0) {
+      await sendPushToAll(subs, {
+        title: '🥋 Aula aberta!',
+        body: `${turma?.nome ?? 'Sua turma'} — confirme sua presença`,
+        url: '/aluno',
+      })
+    }
+  }
+
   revalidatePath('/aulas')
   return { success: true, id: aula.id }
 }
@@ -82,6 +96,38 @@ export async function togglePresenca(aulaId: string, alunoId: string) {
     if (error) return { error: 'Erro ao registrar presença.' }
   }
 
+  return { success: true }
+}
+
+export async function adicionarVisitante(aulaId: string, nome: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const nomeTrim = nome.trim()
+  if (!nomeTrim) return { error: 'Nome é obrigatório.' }
+
+  const { data, error } = await supabase
+    .from('presencas')
+    .insert({ aula_id: aulaId, nome_visitante: nomeTrim, origem: 'professor' })
+    .select('id')
+    .single()
+
+  if (error || !data) return { error: 'Erro ao adicionar visitante.' }
+
+  revalidatePath(`/aulas/${aulaId}`)
+  return { success: true, id: data.id }
+}
+
+export async function removerVisitante(presencaId: string, aulaId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.from('presencas').delete().eq('id', presencaId)
+  if (error) return { error: 'Erro ao remover visitante.' }
+
+  revalidatePath(`/aulas/${aulaId}`)
   return { success: true }
 }
 

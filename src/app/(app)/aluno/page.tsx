@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import CheckinCard from './checkin'
+import AvatarUpload from '@/components/avatar-upload'
+import { updateFotoPropria } from './actions'
+import PushSubscribeButton from './push-subscribe'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -29,7 +32,7 @@ export default async function AlunoPortalPage() {
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, academia_id')
+    .select('id, nome, faixa, grau, academia_id, foto_url')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -50,14 +53,42 @@ export default async function AlunoPortalPage() {
   }
 
   // Active classes in this academia
-  const { data: aulasAtivas } = await supabase
+  const { data: aulasAtivasData } = await supabase
     .from('aulas')
-    .select('id, tema, turmas(nome)')
+    .select('id, video_url, turmas(nome), tema:categorias_tecnicas(nome)')
     .eq('academia_id', aluno.academia_id)
     .eq('status', 'aberta')
 
+  type AulaAtivaRow = {
+    id: string
+    video_url: string | null
+    turmas: { nome: string } | null
+    tema: { nome: string } | null
+  }
+  const aulasAtivasRows = (aulasAtivasData ?? []) as unknown as AulaAtivaRow[]
+
+  // Quem vai + técnicas planejadas de cada aula ao vivo
+  const aulasAtivas = await Promise.all(aulasAtivasRows.map(async (aula) => {
+    const [{ data: quemVaiData }, { data: planejadasData }] = await Promise.all([
+      supabase.rpc('quem_vai', { p_aula_id: aula.id }),
+      supabase.from('aula_tecnicas').select('tecnicas(nome)').eq('aula_id', aula.id).eq('tipo', 'planejada'),
+    ])
+    const confirmados = (quemVaiData ?? []) as { nome: string; visitante: boolean }[]
+    const planejadas = ((planejadasData ?? []) as unknown as { tecnicas: { nome: string } | null }[])
+      .map(p => p.tecnicas?.nome)
+      .filter((n): n is string => Boolean(n))
+    return {
+      id: aula.id,
+      video_url: aula.video_url,
+      turma_nome: aula.turmas?.nome ?? null,
+      tema: aula.tema?.nome ?? null,
+      confirmados,
+      planejadas,
+    }
+  }))
+
   // Check existing check-ins
-  const aulaIds = (aulasAtivas ?? []).map(a => a.id)
+  const aulaIds = aulasAtivas.map(a => a.id)
   const { data: checkins } = aulaIds.length > 0
     ? await supabase
         .from('presencas')
@@ -79,6 +110,19 @@ export default async function AlunoPortalPage() {
     .map(t => t.turmas as unknown as { id: string; nome: string; dias_semana: string[] | null; horario: string | null } | null)
     .filter(Boolean) as { id: string; nome: string; dias_semana: string[] | null; horario: string | null }[]
 
+  // Avisos ativos: da academia toda ou das turmas do aluno
+  const turmaIdsDoAluno = turmas.map(t => t.id)
+  const avisosFiltro = turmaIdsDoAluno.length > 0
+    ? `turma_id.is.null,turma_id.in.(${turmaIdsDoAluno.join(',')})`
+    : 'turma_id.is.null'
+  const { data: avisosData } = await supabase
+    .from('avisos')
+    .select('id, titulo, corpo, criado_em, turmas(nome)')
+    .eq('academia_id', aluno.academia_id)
+    .eq('ativo', true)
+    .or(avisosFiltro)
+    .order('criado_em', { ascending: false })
+
   // Recent presences
   const { data: presencasData } = await supabase
     .from('presencas')
@@ -86,6 +130,23 @@ export default async function AlunoPortalPage() {
     .eq('aluno_id', aluno.id)
     .order('registrado_em', { ascending: false })
     .limit(10)
+
+  // Frequência: últimos 30/90 dias + última presença
+  const trintaDias = new Date(); trintaDias.setDate(trintaDias.getDate() - 30)
+  const noventaDias = new Date(); noventaDias.setDate(noventaDias.getDate() - 90)
+
+  const [{ count: presencas30 }, { count: presencas90 }, { data: ultimaPresenca }] = await Promise.all([
+    supabase.from('presencas').select('id', { count: 'exact', head: true })
+      .eq('aluno_id', aluno.id).gte('registrado_em', trintaDias.toISOString()),
+    supabase.from('presencas').select('id', { count: 'exact', head: true })
+      .eq('aluno_id', aluno.id).gte('registrado_em', noventaDias.toISOString()),
+    supabase.from('presencas').select('registrado_em')
+      .eq('aluno_id', aluno.id).order('registrado_em', { ascending: false }).limit(1).maybeSingle(),
+  ])
+
+  const diasDesdeUltima = ultimaPresenca?.registrado_em
+    ? Math.floor((Date.now() - new Date(ultimaPresenca.registrado_em).getTime()) / 86400000)
+    : null
 
   // Técnicas da Semana — posições desta semana filtradas pela faixa do aluno
   type PosicaoSemana = { data: string; turma_nome: string | null; posicoes: string[] }
@@ -140,7 +201,7 @@ export default async function AlunoPortalPage() {
       <header className="px-6 pt-12 pb-6 border-b border-white/10">
         <div className="flex items-center gap-4">
           <div className={`w-4 h-14 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
-          <div>
+          <div className="flex-1">
             <p className="text-white/40 text-xs uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-oswald)' }}>
               Faixa {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
@@ -150,28 +211,56 @@ export default async function AlunoPortalPage() {
               {aluno.nome.split(' ')[0]}
             </h1>
           </div>
+          <AvatarUpload
+            alunoId={aluno.id}
+            nome={aluno.nome}
+            fotoUrlAtual={aluno.foto_url}
+            persist={updateFotoPropria}
+            size={56}
+          />
+        </div>
+        <div className="mt-3">
+          <PushSubscribeButton />
         </div>
       </header>
 
       <main className="px-6 pt-6 pb-10 space-y-6">
 
+        {/* Avisos */}
+        {(avisosData ?? []).length > 0 && (
+          <div className="space-y-2">
+            {(avisosData ?? []).map(a => {
+              const turma = a.turmas as unknown as { nome: string } | null
+              return (
+                <div key={a.id} className="rounded-2xl p-4"
+                  style={{ background: 'rgba(200,169,110,0.1)', border: '1px solid rgba(200,169,110,0.3)' }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold text-white">{a.titulo}</p>
+                    <span className="text-[9px] uppercase tracking-widest flex-shrink-0" style={{ color: '#C8A96E' }}>
+                      {turma?.nome ?? 'Geral'}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-1 text-white/60">{a.corpo}</p>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         {/* Active classes — check-in */}
-        {(aulasAtivas ?? []).length > 0 && (
+        {aulasAtivas.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-widest text-white/40"
               style={{ fontFamily: 'var(--font-oswald)' }}>
               Fazer check-in
             </p>
-            {(aulasAtivas ?? []).map(aula => {
-              const turma = aula.turmas as unknown as { nome: string } | null
-              return (
-                <CheckinCard
-                  key={aula.id}
-                  aula={{ id: aula.id, turma_nome: turma?.nome ?? null, tema: aula.tema }}
-                  jaFezCheckin={checkinSet.has(aula.id)}
-                />
-              )
-            })}
+            {aulasAtivas.map(aula => (
+              <CheckinCard
+                key={aula.id}
+                aula={aula}
+                jaFezCheckin={checkinSet.has(aula.id)}
+              />
+            ))}
           </div>
         )}
 
@@ -243,6 +332,35 @@ export default async function AlunoPortalPage() {
           </div>
         )}
 
+        {/* Frequência */}
+        {(presencas30 ?? 0) > 0 || (presencas90 ?? 0) > 0 ? (
+          <div>
+            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
+              style={{ fontFamily: 'var(--font-oswald)' }}>
+              Meu histórico
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-center">
+                <p className="text-white font-bold text-2xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+                  {presencas30 ?? 0}
+                </p>
+                <p className="text-white/40 text-[10px] uppercase tracking-widest mt-1">Últimos 30 dias</p>
+              </div>
+              <div className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-center">
+                <p className="text-white font-bold text-2xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+                  {presencas90 ?? 0}
+                </p>
+                <p className="text-white/40 text-[10px] uppercase tracking-widest mt-1">Últimos 90 dias</p>
+              </div>
+            </div>
+            {diasDesdeUltima !== null && (
+              <p className="text-white/30 text-xs mt-2">
+                Última presença: {diasDesdeUltima === 0 ? 'hoje' : diasDesdeUltima === 1 ? 'ontem' : `${diasDesdeUltima} dias atrás`}
+              </p>
+            )}
+          </div>
+        ) : null}
+
         {/* Recent presences */}
         {(presencasData ?? []).length > 0 && (
           <div>
@@ -272,7 +390,7 @@ export default async function AlunoPortalPage() {
           </div>
         )}
 
-        {(aulasAtivas ?? []).length === 0 && turmas.length === 0 && (presencasData ?? []).length === 0 && (
+        {aulasAtivas.length === 0 && turmas.length === 0 && (presencasData ?? []).length === 0 && (
           <div className="text-center py-16">
             <p className="text-white/30 text-sm uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-oswald)' }}>

@@ -22,3 +22,65 @@ export async function graduarAluno(alunoId: string, faixa: string, grau: number)
   revalidatePath(`/alunos/${alunoId}`)
   return { success: true }
 }
+
+export async function updateAluno(alunoId: string, nome: string, email: string, telefone: string) {
+  const nomeTrim = nome.trim()
+  if (!nomeTrim) return { error: 'Nome é obrigatório.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase
+    .from('alunos')
+    .update({
+      nome: nomeTrim,
+      email: email.trim() || null,
+      telefone: telefone.trim() || null,
+    })
+    .eq('id', alunoId)
+
+  if (error) return { error: 'Erro ao atualizar aluno.' }
+  revalidatePath(`/alunos/${alunoId}`)
+  revalidatePath('/alunos')
+  return { success: true }
+}
+
+export async function inativarAluno(alunoId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.from('alunos').update({ ativo: false }).eq('id', alunoId)
+  if (error) return { error: 'Erro ao inativar aluno.' }
+
+  revalidatePath(`/alunos/${alunoId}`)
+  revalidatePath('/alunos')
+  return { success: true }
+}
+
+export async function updateFotoAluno(alunoId: string, fotoUrl: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.from('alunos').update({ foto_url: fotoUrl }).eq('id', alunoId)
+  if (error) return { error: 'Erro ao salvar foto.' }
+
+  revalidatePath(`/alunos/${alunoId}`)
+  revalidatePath('/alunos')
+  return { success: true }
+}
+
+export async function reativarAluno(alunoId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.from('alunos').update({ ativo: true }).eq('id', alunoId)
+  if (error) return { error: 'Erro ao reativar aluno.' }
+
+  revalidatePath(`/alunos/${alunoId}`)
+  revalidatePath('/alunos')
+  return { success: true }
+}

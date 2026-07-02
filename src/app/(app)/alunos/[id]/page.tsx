@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import GraduacaoForm from './graduacao'
+import EditarAlunoForm from './editar'
+import AvatarUpload from '@/components/avatar-upload'
+import { updateFotoAluno } from './actions'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -22,7 +25,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em')
+    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url')
     .eq('id', id)
     .single()
 
@@ -70,6 +73,15 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
       <main className="px-6 pt-6 pb-10 space-y-6">
 
+        {/* Foto */}
+        <AvatarUpload
+          alunoId={aluno.id}
+          nome={aluno.nome}
+          fotoUrlAtual={aluno.foto_url}
+          persist={updateFotoAluno.bind(null, aluno.id)}
+          size={72}
+        />
+
         {/* Student card */}
         <div className="flex items-center gap-4 p-5 rounded-2xl border border-white/10 bg-white/5">
           <div className={`w-4 h-16 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
@@ -83,6 +95,12 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
             </p>
             {matriculadoEm && (
               <p className="text-white/30 text-xs mt-1">Desde {matriculadoEm}</p>
+            )}
+            {!aluno.ativo && (
+              <span className="inline-block mt-1.5 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
+                style={{ color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+                Inativo
+              </span>
             )}
           </div>
         </div>
@@ -146,6 +164,15 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
         {/* Graduação */}
         <GraduacaoForm alunoId={aluno.id} faixaAtual={aluno.faixa ?? 'branca'} grauAtual={aluno.grau ?? 0} />
+
+        {/* Editar dados / inativar */}
+        <EditarAlunoForm
+          alunoId={aluno.id}
+          nomeAtual={aluno.nome}
+          emailAtual={aluno.email}
+          telefoneAtual={aluno.telefone}
+          ativo={aluno.ativo ?? true}
+        />
 
         {/* Attendance history */}
         {presencas.length > 0 && (

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import EnrollmentManager from './enrollment'
+import EditarTurmaForm from './editar'
 
 const DIAS_ABBR: Record<string, string> = {
   domingo: 'Dom', segunda: 'Seg', terca: 'Ter', quarta: 'Qua',
@@ -92,6 +93,13 @@ export default async function TurmaPage({ params }: { params: Promise<{ id: stri
       </header>
 
       <main className="px-5 pt-5 pb-10 space-y-8">
+        <EditarTurmaForm
+          turmaId={id}
+          nomeAtual={turma.nome}
+          diasAtuais={(turma.dias_semana as string[] | null) ?? []}
+          horarioAtual={turma.horario as string | null}
+        />
+
         <EnrollmentManager
           turmaId={id}
           matriculados={alunosMatriculados}

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import Avatar from '@/components/avatar'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white',
@@ -29,7 +30,7 @@ export default async function AlunosPage() {
 
   const { data: alunos } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, ativo')
+    .select('id, nome, faixa, grau, ativo, foto_url')
     .eq('academia_id', professor.academia_id)
     .order('nome')
 
@@ -66,8 +67,9 @@ export default async function AlunosPage() {
         ) : (
           alunos.map((aluno) => (
             <Link key={aluno.id} href={`/alunos/${aluno.id}`}
-              className="flex items-center gap-4 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
-              <div className={`w-3 h-10 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
+              <Avatar nome={aluno.nome} fotoUrl={aluno.foto_url} size={36} />
+              <div className={`w-1.5 h-10 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-bold uppercase tracking-wider truncate"
                   style={{ fontFamily: 'var(--font-oswald)' }}>

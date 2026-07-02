@@ -63,6 +63,7 @@ export default async function DashboardPage() {
     solicitacoesRes,
     { data: ultimasAulas },
     { data: ultimaAula },
+    { data: aulaAberta },
   ] = await Promise.all([
     supabase.from('alunos').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativo', true),
     supabase.from('turmas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativa', true),
@@ -70,17 +71,21 @@ export default async function DashboardPage() {
     supabase.from('solicitacoes').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('status', 'pendente').then(r => r.error ? { count: 0 } : r),
     supabase.from('aulas').select('id, data, status, turmas(nome), presencas(id)').eq('academia_id', acadId).order('data', { ascending: false }).order('hora_inicio', { ascending: false }).limit(3),
     supabase.from('aulas').select('data').eq('academia_id', acadId).order('data', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('aulas').select('id, turmas(nome), presencas(id)').eq('academia_id', acadId).eq('status', 'aberta').order('data', { ascending: false }).limit(1).maybeSingle(),
   ])
 
   const pendentes = solicitacoesRes.count ?? 0
   const nome = professor.nome
+  const turmaAulaAberta = aulaAberta?.turmas as unknown as { nome: string } | null
+  const presentesAulaAberta = (aulaAberta?.presencas as unknown as { id: string }[] | null)?.length ?? 0
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
 
       {/* ── Header ── */}
       <header className="flex items-center justify-between px-5 pt-5 pb-2">
-        <div
+        <Link
+          href="/perfil"
           className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold"
           style={{
             border: '1px solid var(--brand-gold)',
@@ -88,7 +93,7 @@ export default async function DashboardPage() {
             color: 'var(--brand-gold)',
           }}>
           {iniciais(nome)}
-        </div>
+        </Link>
         <div className="text-right">
           <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
             {academia?.nome?.split(' ')[0] ?? 'Naja BJJ'}
@@ -108,6 +113,33 @@ export default async function DashboardPage() {
           Olá, <span style={{ color: 'var(--brand-gold)' }}>{primeiroNome(nome)}</span>
         </h1>
       </div>
+
+      {/* ── Banner: aula aberta agora ── */}
+      {aulaAberta && (
+        <div className="px-4 mb-3">
+          <Link
+            href={`/aulas/${aulaAberta.id}`}
+            className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-gold-border)' }}>
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse" style={{ background: 'var(--brand-gold)' }} />
+              <div>
+                <p className="text-[13px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
+                  Aula em andamento
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  {turmaAulaAberta?.nome ?? 'Aula avulsa'} · {presentesAulaAberta} presente{presentesAulaAberta !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
+              style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)' }}>
+              →
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* ── CTA Abrir Aula ── */}
       <div className="px-4 mb-3">
@@ -212,6 +244,23 @@ export default async function DashboardPage() {
             </div>
           </Link>
         ))}
+      </div>
+
+      {/* ── Avisos ── */}
+      <div className="px-4 mb-3">
+        <Link href="/avisos"
+          className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <div>
+            <p className="text-[13px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
+              Avisos
+            </p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+              Comunicados para os alunos
+            </p>
+          </div>
+          <span style={{ color: 'var(--brand-gold)', fontSize: '18px' }}>📣</span>
+        </Link>
       </div>
 
       {/* ── Técnicas da Semana ── */}

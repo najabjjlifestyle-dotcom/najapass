@@ -29,6 +29,43 @@ export async function fazerCheckin(aulaId: string) {
   return { success: true }
 }
 
+export async function salvarPushSubscription(sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .upsert(
+      { user_id: user.id, endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+      { onConflict: 'endpoint' }
+    )
+
+  if (error) return { error: 'Erro ao ativar notificações.' }
+  return { success: true }
+}
+
+export async function removerPushSubscription(endpoint: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint).eq('user_id', user.id)
+  return { success: true }
+}
+
+export async function updateFotoPropria(fotoUrl: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.rpc('atualizar_foto_propria', { p_foto_url: fotoUrl })
+  if (error) return { error: 'Erro ao salvar foto.' }
+
+  revalidatePath('/aluno')
+  return { success: true }
+}
+
 export async function cancelarCheckin(aulaId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

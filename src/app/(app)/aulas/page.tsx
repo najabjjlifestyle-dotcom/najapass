@@ -2,7 +2,12 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function AulasPage() {
+export default async function AulasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ turma?: string; mes?: string }>
+}) {
+  const { turma: turmaFiltro, mes: mesFiltro } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -15,12 +20,28 @@ export default async function AulasPage() {
 
   if (!professor?.academia_id) redirect('/onboarding')
 
-  const { data: aulas } = await supabase
+  const { data: turmasData } = await supabase
+    .from('turmas')
+    .select('id, nome')
+    .eq('academia_id', professor.academia_id)
+    .order('nome')
+
+  let query = supabase
     .from('aulas')
     .select('id, data, tema, status, turmas(nome)')
     .eq('academia_id', professor.academia_id)
     .order('data', { ascending: false })
     .limit(50)
+
+  if (turmaFiltro) query = query.eq('turma_id', turmaFiltro)
+  if (mesFiltro) {
+    const [ano, mes] = mesFiltro.split('-').map(Number)
+    const inicio = `${mesFiltro}-01`
+    const fim = new Date(ano, mes, 0).toISOString().split('T')[0]
+    query = query.gte('data', inicio).lte('data', fim)
+  }
+
+  const { data: aulas } = await query
 
   return (
     <div className="min-h-screen bg-black">
@@ -39,7 +60,23 @@ export default async function AulasPage() {
         </Link>
       </header>
 
-      <main className="px-6 pt-6 space-y-2 pb-10">
+      <form method="get" className="flex gap-2 px-6 pt-4">
+        <select name="turma" defaultValue={turmaFiltro ?? ''}
+          className="flex-1 px-3 py-2 rounded-xl bg-transparent border border-white/20 text-white text-sm focus:outline-none">
+          <option value="" className="bg-black">Todas as turmas</option>
+          {(turmasData ?? []).map(t => (
+            <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
+          ))}
+        </select>
+        <input type="month" name="mes" defaultValue={mesFiltro ?? ''}
+          className="px-3 py-2 rounded-xl bg-transparent border border-white/20 text-white text-sm focus:outline-none" />
+        <button type="submit"
+          className="px-4 py-2 rounded-xl border border-white/20 text-white text-sm font-bold uppercase tracking-wider">
+          Filtrar
+        </button>
+      </form>
+
+      <main className="px-6 pt-4 space-y-2 pb-10">
         {!aulas?.length ? (
           <div className="text-center py-16">
             <p className="text-white/30 text-sm uppercase tracking-widest"

@@ -38,6 +38,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Exclude static files (public folder assets) and Next.js internals
-  matcher: ['/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|mp4|pdf)).*)'],
+  // Exclude static files (public folder assets, PWA manifest/service worker) and Next.js internals
+  matcher: ['/((?!_next/static|_next/image|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|mp4|pdf|json|js)).*)'],
 }
