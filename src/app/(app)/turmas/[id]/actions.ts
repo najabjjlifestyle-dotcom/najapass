@@ -19,6 +19,29 @@ export async function matricularAluno(turmaId: string, alunoId: string) {
   return { success: true }
 }
 
+export async function updateTurma(turmaId: string, nome: string, diasSemana: string[], horario: string) {
+  const nomeTrim = nome.trim()
+  if (!nomeTrim) return { error: 'Nome é obrigatório.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase
+    .from('turmas')
+    .update({
+      nome: nomeTrim,
+      dias_semana: diasSemana,
+      horario: horario || null,
+    })
+    .eq('id', turmaId)
+
+  if (error) return { error: 'Erro ao atualizar turma.' }
+  revalidatePath(`/turmas/${turmaId}`)
+  revalidatePath('/turmas')
+  return { success: true }
+}
+
 export async function removerDaTurma(turmaId: string, alunoId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

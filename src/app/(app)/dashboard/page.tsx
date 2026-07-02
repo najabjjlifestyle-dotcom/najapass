@@ -84,7 +84,8 @@ export default async function DashboardPage() {
 
       {/* ── Header ── */}
       <header className="flex items-center justify-between px-5 pt-5 pb-2">
-        <div
+        <Link
+          href="/perfil"
           className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold"
           style={{
             border: '1px solid var(--brand-gold)',
@@ -92,7 +93,7 @@ export default async function DashboardPage() {
             color: 'var(--brand-gold)',
           }}>
           {iniciais(nome)}
-        </div>
+        </Link>
         <div className="text-right">
           <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
             {academia?.nome?.split(' ')[0] ?? 'Naja BJJ'}

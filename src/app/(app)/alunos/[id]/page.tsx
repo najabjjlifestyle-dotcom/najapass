@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import GraduacaoForm from './graduacao'
+import EditarAlunoForm from './editar'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -84,6 +85,12 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
             {matriculadoEm && (
               <p className="text-white/30 text-xs mt-1">Desde {matriculadoEm}</p>
             )}
+            {!aluno.ativo && (
+              <span className="inline-block mt-1.5 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
+                style={{ color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+                Inativo
+              </span>
+            )}
           </div>
         </div>
 
@@ -146,6 +153,15 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
         {/* Graduação */}
         <GraduacaoForm alunoId={aluno.id} faixaAtual={aluno.faixa ?? 'branca'} grauAtual={aluno.grau ?? 0} />
+
+        {/* Editar dados / inativar */}
+        <EditarAlunoForm
+          alunoId={aluno.id}
+          nomeAtual={aluno.nome}
+          emailAtual={aluno.email}
+          telefoneAtual={aluno.telefone}
+          ativo={aluno.ativo ?? true}
+        />
 
         {/* Attendance history */}
         {presencas.length > 0 && (
