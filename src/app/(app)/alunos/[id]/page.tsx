@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import GraduacaoForm from './graduacao'
 import EditarAlunoForm from './editar'
+import AvatarUpload from '@/components/avatar-upload'
+import { updateFotoAluno } from './actions'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -23,7 +25,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em')
+    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url')
     .eq('id', id)
     .single()
 
@@ -70,6 +72,15 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
       </header>
 
       <main className="px-6 pt-6 pb-10 space-y-6">
+
+        {/* Foto */}
+        <AvatarUpload
+          alunoId={aluno.id}
+          nome={aluno.nome}
+          fotoUrlAtual={aluno.foto_url}
+          persist={updateFotoAluno.bind(null, aluno.id)}
+          size={72}
+        />
 
         {/* Student card */}
         <div className="flex items-center gap-4 p-5 rounded-2xl border border-white/10 bg-white/5">

@@ -59,6 +59,19 @@ export async function inativarAluno(alunoId: string) {
   return { success: true }
 }
 
+export async function updateFotoAluno(alunoId: string, fotoUrl: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.from('alunos').update({ foto_url: fotoUrl }).eq('id', alunoId)
+  if (error) return { error: 'Erro ao salvar foto.' }
+
+  revalidatePath(`/alunos/${alunoId}`)
+  revalidatePath('/alunos')
+  return { success: true }
+}
+
 export async function reativarAluno(alunoId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

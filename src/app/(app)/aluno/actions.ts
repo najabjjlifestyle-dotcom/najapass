@@ -29,6 +29,18 @@ export async function fazerCheckin(aulaId: string) {
   return { success: true }
 }
 
+export async function updateFotoPropria(fotoUrl: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.rpc('atualizar_foto_propria', { p_foto_url: fotoUrl })
+  if (error) return { error: 'Erro ao salvar foto.' }
+
+  revalidatePath('/aluno')
+  return { success: true }
+}
+
 export async function cancelarCheckin(aulaId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

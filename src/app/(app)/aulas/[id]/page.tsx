@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import AttendanceList from './attendance-list'
 import TecnicasAula from './tecnicas-aula'
 
-type AlunoRow = { id: string; nome: string; faixa: string; grau: number }
+type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
 export default async function AulaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -58,7 +58,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   if (aula.turma_id) {
     const { data: turmaAlunos } = await supabase
       .from('alunos_turmas')
-      .select('alunos(id, nome, faixa, grau)')
+      .select('alunos(id, nome, faixa, grau, foto_url)')
       .eq('turma_id', aula.turma_id)
       .eq('ativo', true)
     alunos = (turmaAlunos ?? [])
@@ -71,7 +71,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     if (avulsoIds.length > 0) {
       const { data: avulsosData } = await supabase
         .from('alunos')
-        .select('id, nome, faixa, grau')
+        .select('id, nome, faixa, grau, foto_url')
         .in('id', avulsoIds)
       alunos = [...alunos, ...((avulsosData as AlunoRow[]) ?? [])]
     }
@@ -79,7 +79,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
     const { data: todosDaAcademia } = await supabase
       .from('alunos')
-      .select('id, nome, faixa, grau')
+      .select('id, nome, faixa, grau, foto_url')
       .eq('academia_id', professor.academia_id)
       .eq('ativo', true)
       .order('nome')
@@ -88,7 +88,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   } else {
     const { data } = await supabase
       .from('alunos')
-      .select('id, nome, faixa, grau')
+      .select('id, nome, faixa, grau, foto_url')
       .eq('academia_id', professor.academia_id)
       .eq('ativo', true)
       .order('nome')

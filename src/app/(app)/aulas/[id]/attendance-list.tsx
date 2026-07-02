@@ -3,8 +3,9 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { togglePresenca, finalizarAula, adicionarVisitante, removerVisitante } from '../actions'
+import Avatar from '@/components/avatar'
 
-type Aluno = { id: string; nome: string; faixa: string; grau: number }
+type Aluno = { id: string; nome: string; faixa: string; grau: number; foto_url?: string | null }
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white',
@@ -233,7 +234,8 @@ export default function AttendanceList({
                     : 'bg-transparent border-white/10 hover:border-white/30'
                 } ${isFinished ? 'cursor-default' : 'cursor-pointer'}`}
               >
-                <div className={`w-3 h-10 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'} ${presente ? 'opacity-100' : 'opacity-30'}`} />
+                <Avatar nome={aluno.nome} fotoUrl={aluno.foto_url} size={36} />
+                <div className={`w-1.5 h-10 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'} ${presente ? 'opacity-100' : 'opacity-30'}`} />
                 <div className="flex-1">
                   <p className={`font-bold uppercase tracking-wider text-sm ${presente ? 'text-black' : 'text-white'}`}
                     style={{ fontFamily: 'var(--font-oswald)' }}>

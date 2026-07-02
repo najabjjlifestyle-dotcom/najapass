@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import CheckinCard from './checkin'
+import AvatarUpload from '@/components/avatar-upload'
+import { updateFotoPropria } from './actions'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -29,7 +31,7 @@ export default async function AlunoPortalPage() {
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, academia_id')
+    .select('id, nome, faixa, grau, academia_id, foto_url')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -185,7 +187,7 @@ export default async function AlunoPortalPage() {
       <header className="px-6 pt-12 pb-6 border-b border-white/10">
         <div className="flex items-center gap-4">
           <div className={`w-4 h-14 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
-          <div>
+          <div className="flex-1">
             <p className="text-white/40 text-xs uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-oswald)' }}>
               Faixa {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
@@ -195,6 +197,13 @@ export default async function AlunoPortalPage() {
               {aluno.nome.split(' ')[0]}
             </h1>
           </div>
+          <AvatarUpload
+            alunoId={aluno.id}
+            nome={aluno.nome}
+            fotoUrlAtual={aluno.foto_url}
+            persist={updateFotoPropria}
+            size={56}
+          />
         </div>
       </header>
 
