@@ -120,20 +120,18 @@ export default function AttendanceList({
   return (
     <div className="px-6 pt-6 pb-10">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-white/40 text-xs uppercase tracking-widest"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+        <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
           {presentes.size} presente{presentes.size !== 1 ? 's' : ''} de {alunos.length}
         </p>
         {!isFinished && (
           <button onClick={handleFinalizar} disabled={finalizando}
-            className="px-4 py-2 border border-white/30 text-white text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-colors hover:bg-white hover:text-black"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+            className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
+            style={{ border: '1px solid var(--brand-gold-border)', color: 'var(--brand-gold)', background: 'transparent' }}>
             {finalizando ? 'Finalizando...' : 'Finalizar Aula'}
           </button>
         )}
         {isFinished && (
-          <span className="text-xs text-green-400 uppercase tracking-widest border border-green-400/30 px-2 py-1 rounded"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <span className="text-xs uppercase tracking-widest px-2 py-1 rounded" style={{ color: '#4ADE80', border: '1px solid rgba(74,222,128,0.3)' }}>
             Finalizada ✓
           </span>
         )}
@@ -142,14 +140,14 @@ export default function AttendanceList({
       {!isFinished && (
         <div className="flex flex-wrap gap-2 mb-4">
           <button onClick={() => setShowVisitanteForm(v => !v)}
-            className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg border border-white/20 text-white/70 hover:border-white/40"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+            className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg active:scale-[0.98] transition-transform"
+            style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto-sec)' }}>
             + Visitante
           </button>
           {outrosAlunos.length > 0 && (
             <button onClick={() => setShowAvulsoForm(v => !v)}
-              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg border border-white/20 text-white/70 hover:border-white/40"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg active:scale-[0.98] transition-transform"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto-sec)' }}>
               + Aluno de outra turma
             </button>
           )}
@@ -164,11 +162,12 @@ export default function AttendanceList({
             onChange={e => setNovoVisitante(e.target.value)}
             placeholder="Nome do visitante"
             autoFocus
-            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/20 text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/40"
+            className="flex-1 px-3 py-2 rounded-xl text-sm placeholder-white/30 focus:outline-none"
+            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}
           />
           <button onClick={handleAddVisitante} disabled={addingVisitante || !novoVisitante.trim()}
-            className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+            className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
+            style={{ background: 'var(--brand-gold)', color: '#000' }}>
             {addingVisitante ? '...' : 'Add'}
           </button>
         </div>
@@ -179,15 +178,16 @@ export default function AttendanceList({
           <select
             value={avulsoId}
             onChange={e => setAvulsoId(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/20 text-white text-sm focus:outline-none focus:border-white/40">
+            className="flex-1 px-3 py-2 rounded-xl text-sm focus:outline-none"
+            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
             <option value="" className="bg-black">Selecione o aluno</option>
             {outrosAlunos.map(a => (
               <option key={a.id} value={a.id} className="bg-black">{a.nome}</option>
             ))}
           </select>
           <button onClick={handleAddAvulso} disabled={addingAvulso || !avulsoId}
-            className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+            className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
+            style={{ background: 'var(--brand-gold)', color: '#000' }}>
             {addingAvulso ? '...' : 'Add'}
           </button>
         </div>
@@ -198,10 +198,10 @@ export default function AttendanceList({
           {visitantes.map(v => (
             <span key={v.id}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
-              style={{ color: 'var(--brand-gold, #C8A96E)', border: '1px solid rgba(200,169,110,0.3)', background: 'rgba(200,169,110,0.1)' }}>
+              style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)', background: 'var(--brand-gold-dim)' }}>
               {v.nome} <span className="opacity-60">(visitante)</span>
               {!isFinished && (
-                <button onClick={() => handleRemoveVisitante(v.id)} className="ml-1 opacity-60 hover:opacity-100">×</button>
+                <button onClick={() => handleRemoveVisitante(v.id)} className="ml-1 opacity-60 active:opacity-100 transition-opacity">×</button>
               )}
             </span>
           ))}
@@ -211,12 +211,11 @@ export default function AttendanceList({
       <div className="space-y-2">
         {alunos.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-white/30 text-sm uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-sm uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhum aluno cadastrado
             </p>
             <a href="/alunos/novo"
-              className="inline-block mt-3 text-xs text-white/40 underline">
+              className="inline-block mt-3 text-xs underline" style={{ color: 'var(--brand-texto-muted)' }}>
               Cadastrar aluno
             </a>
           </div>
@@ -228,27 +227,25 @@ export default function AttendanceList({
                 key={aluno.id}
                 onClick={() => toggle(aluno.id)}
                 disabled={isFinished}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl border transition-all text-left ${
-                  presente
-                    ? 'bg-white border-white'
-                    : 'bg-transparent border-white/10 hover:border-white/30'
-                } ${isFinished ? 'cursor-default' : 'cursor-pointer'}`}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-left ${isFinished ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'}`}
+                style={{
+                  background: presente ? 'var(--brand-gold)' : 'var(--brand-surf)',
+                  border: `1px solid ${presente ? 'var(--brand-gold)' : 'var(--brand-border)'}`,
+                }}
               >
                 <Avatar nome={aluno.nome} fotoUrl={aluno.foto_url} size={36} />
                 <div className={`w-1.5 h-10 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'} ${presente ? 'opacity-100' : 'opacity-30'}`} />
                 <div className="flex-1">
-                  <p className={`font-bold uppercase tracking-wider text-sm ${presente ? 'text-black' : 'text-white'}`}
-                    style={{ fontFamily: 'var(--font-oswald)' }}>
+                  <p className="font-bold uppercase tracking-wider text-sm" style={{ color: presente ? '#000' : 'var(--brand-texto)' }}>
                     {aluno.nome}
                   </p>
-                  <p className={`text-xs capitalize ${presente ? 'text-black/50' : 'text-white/30'}`}>
+                  <p className="text-xs capitalize" style={{ color: presente ? 'rgba(0,0,0,0.5)' : 'var(--brand-texto-muted)' }}>
                     {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º` : ''}
                   </p>
                 </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                  presente ? 'border-black bg-black' : 'border-white/20'
-                }`}>
-                  {presente && <span className="text-white text-xs font-bold">✓</span>}
+                <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                  style={{ borderColor: presente ? '#000' : 'var(--brand-border-str)', background: presente ? '#000' : 'transparent' }}>
+                  {presente && <span className="text-xs font-bold" style={{ color: 'var(--brand-gold)' }}>✓</span>}
                 </div>
               </button>
             )
