@@ -15,12 +15,18 @@ export default async function NovaAulaPage() {
 
   if (!professor?.academia_id) redirect('/onboarding')
 
-  const { data: turmas } = await supabase
-    .from('turmas')
-    .select('id, nome')
-    .eq('academia_id', professor.academia_id)
-    .eq('ativa', true)
-    .order('nome')
+  const [turmasResult, temasResult] = await Promise.all([
+    supabase
+      .from('turmas')
+      .select('id, nome')
+      .eq('academia_id', professor.academia_id)
+      .eq('ativa', true)
+      .order('nome'),
+    supabase
+      .from('categorias_tecnicas')
+      .select('id, nome')
+      .order('nome'),
+  ])
 
-  return <NovaAulaForm turmas={turmas ?? []} />
+  return <NovaAulaForm turmas={turmasResult.data ?? []} temas={temasResult.data ?? []} />
 }

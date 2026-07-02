@@ -41,7 +41,7 @@ export default async function TecnicasPage() {
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="text-xl" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
           <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-            Técnicas
+            Posições
           </h1>
         </div>
         <Link href="/tecnicas/nova"
@@ -56,12 +56,12 @@ export default async function TecnicasPage() {
           <div className="text-center py-16">
             <p className="text-2xl mb-2">🥋</p>
             <p className="font-bold uppercase tracking-wider text-sm" style={{ color: 'var(--brand-texto-muted)' }}>
-              Nenhuma técnica cadastrada
+              Nenhuma posição cadastrada
             </p>
             <Link href="/tecnicas/nova"
               className="inline-block mt-4 text-sm font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl"
               style={{ background: 'var(--brand-gold)', color: 'black' }}>
-              Cadastrar primeira técnica
+              Cadastrar primeira posição
             </Link>
           </div>
         ) : (

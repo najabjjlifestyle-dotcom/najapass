@@ -18,7 +18,7 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <Link href="/tecnicas" className="text-xl" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
         <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-          Nova Técnica
+          Nova Posição
         </h1>
       </header>
 
@@ -29,7 +29,7 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
               style={{ color: 'var(--brand-texto-muted)' }}>
               Nome *
             </label>
-            <input name="nome" required placeholder="Ex: Triângulo pela guarda fechada"
+            <input name="nome" required placeholder="Ex: Raspagem da Meia - Faxinha"
               className="w-full px-4 py-3 rounded-xl text-sm"
               style={{
                 background: 'var(--brand-surf)',
@@ -41,7 +41,7 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-widest mb-2"
               style={{ color: 'var(--brand-texto-muted)' }}>
-              Categoria
+              Tema
             </label>
             <select name="categoria_id"
               className="w-full px-4 py-3 rounded-xl text-sm"
@@ -50,7 +50,7 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
                 border: '1px solid var(--brand-border)',
                 color: 'var(--brand-texto)',
               }}>
-              <option value="">Sem categoria</option>
+              <option value="">Sem tema</option>
               {categorias.map(c => (
                 <option key={c.id} value={c.id}>{c.nome}</option>
               ))}
@@ -81,7 +81,7 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
           <button type="submit" disabled={pending}
             className="w-full py-3.5 rounded-xl font-bold text-sm uppercase tracking-widest disabled:opacity-40"
             style={{ background: 'var(--brand-gold)', color: 'black' }}>
-            {pending ? 'Salvando...' : 'Salvar técnica'}
+            {pending ? 'Salvando...' : 'Salvar posição'}
           </button>
         </form>
       </main>
