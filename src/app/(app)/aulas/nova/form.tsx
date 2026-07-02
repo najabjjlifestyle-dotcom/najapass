@@ -100,11 +100,10 @@ export default function NovaAulaForm({
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-12 pb-6 flex items-center gap-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/dashboard" />
-        <h1 className="text-white font-bold text-xl uppercase tracking-wider"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+        <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
           Planejar Aula
         </h1>
       </header>
@@ -114,11 +113,11 @@ export default function NovaAulaForm({
 
           {turmas.length > 0 && (
             <div>
-              <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-                style={{ fontFamily: 'var(--font-oswald)' }}>Turma</label>
+              <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Turma</label>
               <select name="turma_id" value={turmaId}
                 onChange={e => handleTurmaChange(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-black border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors">
+                className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
+                style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
                 <option value="" className="bg-black">Sem turma específica</option>
                 {turmas.map(t => (
                   <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
@@ -133,31 +132,31 @@ export default function NovaAulaForm({
           )}
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Data</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Data</label>
             <input name="data" type="date" defaultValue={hoje} required
-              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors" />
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Hora de início</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Hora de início</label>
             <input name="hora_inicio" type="time" defaultValue={horaAtual}
-              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors" />
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs uppercase tracking-widest text-white/50"
-                style={{ fontFamily: 'var(--font-oswald)' }}>Tema da aula</label>
+              <label className="block text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Tema da aula</label>
               <button type="button" onClick={() => setShowNovoTema(v => !v)}
-                className="text-xs text-white/40 underline underline-offset-2">
+                className="text-xs underline underline-offset-2" style={{ color: 'var(--brand-texto-muted)' }}>
                 + Novo tema
               </button>
             </div>
             <select name="tema_id" value={temaId}
               onChange={e => setTemaId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-black border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors">
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
               <option value="" className="bg-black">Sem tema específico</option>
               {temasList.map(t => (
                 <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
@@ -168,33 +167,34 @@ export default function NovaAulaForm({
               <div className="flex gap-2 mt-2">
                 <input type="text" value={novoTemaNome} onChange={e => setNovoTemaNome(e.target.value)}
                   placeholder="Nome do tema" autoFocus
-                  className="flex-1 px-3 py-2 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white" />
+                  className="flex-1 px-3 py-2 rounded-xl bg-transparent placeholder-white/30 text-sm focus:outline-none"
+                  style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
                 <button type="button" onClick={handleCriarTema}
                   disabled={criandoTema || !novoTemaNome.trim()}
-                  className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40">
+                  className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 active:scale-[0.98] transition-transform"
+                  style={{ background: 'var(--brand-gold)', color: '#000' }}>
                   {criandoTema ? '...' : 'Criar'}
                 </button>
               </div>
             )}
-            {temaError && <p className="text-red-400 text-xs mt-1.5">{temaError}</p>}
+            {temaError && <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{temaError}</p>}
           </div>
 
           {/* Posições planejadas — aparece após selecionar tema */}
           {temaId && (
             <div>
-              <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-                style={{ fontFamily: 'var(--font-oswald)' }}>
+              <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
                 Posições a ensinar
                 {planejadas.size > 0 && (
-                  <span className="ml-2 normal-case font-normal text-white/40">
+                  <span className="ml-2 normal-case font-normal" style={{ color: 'var(--brand-texto-muted)' }}>
                     ({planejadas.size} selecionada{planejadas.size > 1 ? 's' : ''})
                   </span>
                 )}
               </label>
               {tecnicasDoTema.length === 0 ? (
-                <p className="text-xs text-white/30 py-2">
+                <p className="text-xs py-2" style={{ color: 'var(--brand-texto-muted)' }}>
                   Nenhuma posição cadastrada para este tema.{' '}
-                  <a href="/tecnicas/nova" className="underline text-white/50">Cadastrar</a>
+                  <a href="/tecnicas/nova" className="underline" style={{ color: 'var(--brand-texto-sec)' }}>Cadastrar</a>
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -206,11 +206,11 @@ export default function NovaAulaForm({
                         key={t.id}
                         type="button"
                         onClick={() => togglePlanejada(t.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all border"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] border"
                         style={{
-                          background: selecionada ? 'rgba(200,169,110,0.2)' : 'rgba(255,255,255,0.05)',
-                          borderColor: selecionada ? '#C8A96E' : 'rgba(255,255,255,0.15)',
-                          color: selecionada ? '#C8A96E' : 'rgba(255,255,255,0.5)',
+                          background: selecionada ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
+                          borderColor: selecionada ? 'var(--brand-gold)' : 'var(--brand-border-str)',
+                          color: selecionada ? 'var(--brand-gold)' : 'var(--brand-texto-muted)',
                         }}>
                         {isReforco && <span title="Reforço">🔁</span>}
                         {t.nome}
@@ -224,7 +224,7 @@ export default function NovaAulaForm({
               {/* Reforços de outro tema (não no tema atual) */}
               {reforcosComNome.filter(t => t.categoria_id !== temaId).length > 0 && (
                 <div className="mt-3">
-                  <p className="text-[10px] uppercase tracking-widest text-white/30 mb-1.5">
+                  <p className="text-[10px] uppercase tracking-widest mb-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
                     Reforços de outros temas
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -235,11 +235,11 @@ export default function NovaAulaForm({
                           key={t.id}
                           type="button"
                           onClick={() => togglePlanejada(t.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all border"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] border"
                           style={{
-                            background: selecionada ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.03)',
-                            borderColor: selecionada ? '#FBBF24' : 'rgba(255,255,255,0.1)',
-                            color: selecionada ? '#FBBF24' : 'rgba(255,255,255,0.35)',
+                            background: selecionada ? 'rgba(251,191,36,0.15)' : 'var(--brand-surf)',
+                            borderColor: selecionada ? '#FBBF24' : 'var(--brand-border-str)',
+                            color: selecionada ? '#FBBF24' : 'var(--brand-texto-muted)',
                           }}>
                           🔁 {t.nome}
                         </button>
@@ -252,17 +252,17 @@ export default function NovaAulaForm({
           )}
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Link de estudo (YouTube, etc)</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Link de estudo (YouTube, etc)</label>
             <input name="video_url" type="url" placeholder="https://youtube.com/..."
-              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors" />
+              className="w-full px-4 py-3 rounded-xl bg-transparent placeholder-white/30 text-base focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
 
           <button type="submit" disabled={loading}
-            className="w-full py-4 rounded-xl bg-white hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-lg uppercase tracking-widest transition-colors mt-2"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+            className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98] mt-2"
+            style={{ background: 'var(--brand-gold)', color: '#000' }}>
             {loading ? 'Abrindo...' : 'Abrir Aula'}
           </button>
         </form>

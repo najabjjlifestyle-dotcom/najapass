@@ -45,34 +45,36 @@ export default async function AulasPage({
   const { data: aulas } = await query
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center justify-between">
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-3">
           <BackButton href="/dashboard" />
-          <h1 className="text-white font-bold text-xl uppercase tracking-wider"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
             Histórico
           </h1>
         </div>
         <Link href="/aulas/nova"
-          className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+          className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--brand-gold)', color: '#000' }}>
           + Aula
         </Link>
       </header>
 
       <form method="get" className="flex gap-2 px-6 pt-4">
         <select name="turma" defaultValue={turmaFiltro ?? ''}
-          className="flex-1 px-3 py-2 rounded-xl bg-transparent border border-white/20 text-white text-sm focus:outline-none">
+          className="flex-1 px-3 py-2 rounded-xl bg-transparent text-sm focus:outline-none"
+          style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
           <option value="" className="bg-black">Todas as turmas</option>
           {(turmasData ?? []).map(t => (
             <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
           ))}
         </select>
         <input type="month" name="mes" defaultValue={mesFiltro ?? ''}
-          className="px-3 py-2 rounded-xl bg-transparent border border-white/20 text-white text-sm focus:outline-none" />
+          className="px-3 py-2 rounded-xl bg-transparent text-sm focus:outline-none"
+          style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
         <button type="submit"
-          className="px-4 py-2 rounded-xl border border-white/20 text-white text-sm font-bold uppercase tracking-wider">
+          className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
+          style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
           Filtrar
         </button>
       </form>
@@ -80,8 +82,7 @@ export default async function AulasPage({
       <main className="px-6 pt-4 space-y-2 pb-10">
         {!aulas?.length ? (
           <div className="text-center py-16">
-            <p className="text-white/30 text-sm uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-sm uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhuma aula registrada
             </p>
           </div>
@@ -93,21 +94,19 @@ export default async function AulasPage({
             })
             return (
               <Link key={aula.id} href={`/aulas/${aula.id}`}
-                className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
+                className="flex items-center justify-between px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
+                style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
                 <div>
-                  <p className="text-white font-bold uppercase tracking-wider text-sm"
-                    style={{ fontFamily: 'var(--font-oswald)' }}>
+                  <p className="font-bold uppercase tracking-wider text-sm" style={{ color: 'var(--brand-texto)' }}>
                     {turma?.nome ?? 'Aula Avulsa'}
                   </p>
-                  <p className="text-white/40 text-xs mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
                     {dataFormatada}
                     {aula.tema ? ` · ${aula.tema}` : ''}
                   </p>
                 </div>
-                <span className={`text-xs uppercase tracking-widest flex-shrink-0 ${
-                  aula.status === 'finalizada' ? 'text-green-400' :
-                  aula.status === 'aberta' ? 'text-yellow-400' : 'text-white/30'
-                }`} style={{ fontFamily: 'var(--font-oswald)' }}>
+                <span className="text-xs uppercase tracking-widest flex-shrink-0"
+                  style={{ color: aula.status === 'finalizada' ? '#4ADE80' : aula.status === 'aberta' ? 'var(--brand-gold)' : 'var(--brand-texto-muted)' }}>
                   {aula.status === 'finalizada' ? 'Finalizada' :
                    aula.status === 'aberta' ? 'Ao vivo' : 'Agendada'}
                 </span>

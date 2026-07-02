@@ -32,17 +32,15 @@ export default async function SolicitacoesPage() {
     .limit(10)
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-12 pb-6 flex items-center gap-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/dashboard" />
         <div>
-          <h1 className="text-white font-bold text-xl uppercase tracking-wider"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
             Solicitações
           </h1>
           {(pendentes?.length ?? 0) > 0 && (
-            <p className="text-yellow-400 text-xs uppercase tracking-widest mt-0.5"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mt-0.5" style={{ color: 'var(--brand-gold)' }}>
               {pendentes!.length} pendente{pendentes!.length !== 1 ? 's' : ''}
             </p>
           )}
@@ -54,21 +52,19 @@ export default async function SolicitacoesPage() {
         {/* Pendentes */}
         <div>
           {!pendentes?.length ? (
-            <p className="text-center text-white/20 text-sm py-8 uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-center text-sm py-8 uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhuma solicitação pendente
             </p>
           ) : (
             <div className="space-y-3">
               {pendentes.map(sol => (
                 <div key={sol.id}
-                  className="px-5 py-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/5">
-                  <p className="text-white font-bold uppercase tracking-wider"
-                    style={{ fontFamily: 'var(--font-oswald)' }}>
+                  className="px-5 py-4 rounded-2xl" style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+                  <p className="font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
                     {sol.nome}
                   </p>
-                  <p className="text-white/40 text-xs mt-0.5">{sol.email}</p>
-                  <p className="text-white/20 text-xs mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>{sol.email}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
                     {new Date(sol.criado_em).toLocaleDateString('pt-BR', {
                       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                     })}
@@ -83,24 +79,21 @@ export default async function SolicitacoesPage() {
         {/* Histórico */}
         {(historico?.length ?? 0) > 0 && (
           <div>
-            <p className="text-xs uppercase tracking-widest text-white/30 mb-3"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--brand-texto-muted)' }}>
               Histórico
             </p>
             <div className="space-y-2">
               {historico!.map(sol => (
                 <div key={sol.id}
-                  className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/5">
+                  className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ border: '1px solid var(--brand-border)' }}>
                   <div>
-                    <p className="text-white/60 text-sm font-bold uppercase tracking-wider"
-                      style={{ fontFamily: 'var(--font-oswald)' }}>
+                    <p className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto-sec)' }}>
                       {sol.nome}
                     </p>
-                    <p className="text-white/20 text-xs">{sol.email}</p>
+                    <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>{sol.email}</p>
                   </div>
-                  <span className={`text-xs uppercase tracking-widest flex-shrink-0 ${
-                    sol.status === 'aprovado' ? 'text-green-400' : 'text-red-400/60'
-                  }`} style={{ fontFamily: 'var(--font-oswald)' }}>
+                  <span className="text-xs uppercase tracking-widest flex-shrink-0"
+                    style={{ color: sol.status === 'aprovado' ? '#4ADE80' : 'rgba(248,113,113,0.6)' }}>
                     {sol.status === 'aprovado' ? 'Aprovado' : 'Rejeitado'}
                   </span>
                 </div>
