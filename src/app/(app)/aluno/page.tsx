@@ -209,7 +209,7 @@ export default async function AlunoPortalPage() {
             </h1>
           </div>
           <AvatarUpload
-            alunoId={aluno.id}
+            entityId={aluno.id}
             nome={aluno.nome}
             fotoUrlAtual={aluno.foto_url}
             persist={updateFotoPropria}

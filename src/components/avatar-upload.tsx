@@ -9,13 +9,13 @@ function iniciais(nome: string) {
 }
 
 export default function AvatarUpload({
-  alunoId,
+  entityId,
   nome,
   fotoUrlAtual,
   persist,
   size = 64,
 }: {
-  alunoId: string
+  entityId: string
   nome: string
   fotoUrlAtual: string | null
   persist: (fotoUrl: string) => Promise<{ error?: string; success?: boolean } | undefined>
@@ -35,7 +35,7 @@ export default function AvatarUpload({
     setError('')
 
     const ext = file.name.split('.').pop() || 'jpg'
-    const path = `${alunoId}.${ext}`
+    const path = `${entityId}.${ext}`
     const supabase = createClient()
 
     const { error: uploadError } = await supabase.storage

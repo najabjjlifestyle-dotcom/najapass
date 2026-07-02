@@ -75,7 +75,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
         {/* Foto */}
         <AvatarUpload
-          alunoId={aluno.id}
+          entityId={aluno.id}
           nome={aluno.nome}
           fotoUrlAtual={aluno.foto_url}
           persist={updateFotoAluno.bind(null, aluno.id)}

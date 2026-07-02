@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import PerfilForm from './form'
 import BackButton from '@/components/back-button'
+import AvatarUpload from '@/components/avatar-upload'
+import { updateFotoProfessor } from './actions'
 
 export default async function PerfilPage() {
   const supabase = await createClient()
@@ -10,7 +12,7 @@ export default async function PerfilPage() {
 
   const { data: professor } = await supabase
     .from('professores')
-    .select('nome, faixa, email')
+    .select('id, nome, faixa, email, foto_url')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -27,6 +29,13 @@ export default async function PerfilPage() {
       </header>
 
       <main className="px-5 pt-5 pb-10 space-y-4">
+        <AvatarUpload
+          entityId={professor.id}
+          nome={professor.nome}
+          fotoUrlAtual={professor.foto_url}
+          persist={updateFotoProfessor}
+          size={72}
+        />
         <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>{professor.email}</p>
         <PerfilForm nomeAtual={professor.nome} faixaAtual={professor.faixa ?? 'branca'} />
       </main>

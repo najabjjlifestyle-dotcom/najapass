@@ -24,3 +24,16 @@ export async function updatePerfilProfessor(nome: string, faixa: string) {
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+export async function updateFotoProfessor(fotoUrl: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase.from('professores').update({ foto_url: fotoUrl }).eq('user_id', user.id)
+  if (error) return { error: 'Erro ao salvar foto.' }
+
+  revalidatePath('/perfil')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
