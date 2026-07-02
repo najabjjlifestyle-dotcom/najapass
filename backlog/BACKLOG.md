@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-06-29 (v1.1)  
+**Última atualização:** 2026-07-02 (v1.2)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v1.2: Branch `feat/sprint7-pendencias` fecha todos os cards P0/P1 pendentes (B-005, B-008, B-009, B-011, B-015, B-017, B-021, B-025, B-028, B-030, B-031, B-032, B-034, B-035, B-036). Ver `backlog/KANBAN.md` para detalhes e pendências operacionais (migrations a aplicar, chaves VAPID a configurar na Vercel).
 - v1.1: Adicionado EP-11 (Aluno — App), novos cards B-027 a B-033. Atualizado EP-01 (autenticação dual). EP-06 atualizado com visitantes. EP-05 atualizado com tema/vídeo.
 
 ---
