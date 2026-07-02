@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { Users, LayoutGrid, ClipboardList, Inbox, Megaphone, CalendarDays } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -185,28 +186,28 @@ export default async function DashboardPage() {
         {[
           {
             href: '/alunos',
-            icon: '👥',
+            Icon: Users,
             label: 'Alunos',
             sub: `${totalAlunos ?? 0} ativos`,
             pendente: false,
           },
           {
             href: '/turmas',
-            icon: '📋',
+            Icon: LayoutGrid,
             label: 'Turmas',
             sub: `${turmasAtivas ?? 0} turmas`,
             pendente: false,
           },
           {
             href: '/aulas',
-            icon: '📅',
+            Icon: ClipboardList,
             label: 'Histórico',
             sub: ultimaAulaLabel(ultimaAula?.data ?? null),
             pendente: false,
           },
           {
             href: '/solicitacoes',
-            icon: '📨',
+            Icon: Inbox,
             label: 'Solicitações',
             sub: pendentes > 0 ? `${pendentes} pendente${pendentes !== 1 ? 's' : ''}` : 'nenhuma pendente',
             pendente: pendentes > 0,
@@ -215,7 +216,7 @@ export default async function DashboardPage() {
           <Link
             key={card.href}
             href={card.href}
-            className="relative rounded-2xl p-3.5 flex flex-col gap-2.5"
+            className="relative rounded-2xl p-3.5 flex flex-col gap-2.5 active:scale-[0.98] transition-transform"
             style={{
               background: card.pendente ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
               border: `1px solid ${card.pendente ? 'var(--brand-gold-border)' : 'var(--brand-border)'}`,
@@ -227,12 +228,13 @@ export default async function DashboardPage() {
               />
             )}
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-base"
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{
                 background: card.pendente ? 'var(--brand-gold-dim)' : '#1a1a1a',
                 border: `1px solid ${card.pendente ? 'var(--brand-gold-border)' : '#222'}`,
+                color: card.pendente ? 'var(--brand-gold)' : 'var(--brand-texto-sec)',
               }}>
-              {card.icon}
+              <card.Icon size={15} />
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
@@ -259,7 +261,7 @@ export default async function DashboardPage() {
               Comunicados para os alunos
             </p>
           </div>
-          <span style={{ color: 'var(--brand-gold)', fontSize: '18px' }}>📣</span>
+          <Megaphone size={18} style={{ color: 'var(--brand-gold)' }} />
         </Link>
       </div>
 
@@ -276,7 +278,7 @@ export default async function DashboardPage() {
               Aulas e posições planejadas
             </p>
           </div>
-          <span style={{ color: 'var(--brand-gold)', fontSize: '18px' }}>📋</span>
+          <CalendarDays size={18} style={{ color: 'var(--brand-gold)' }} />
         </Link>
       </div>
 
