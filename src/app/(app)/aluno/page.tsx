@@ -109,6 +109,19 @@ export default async function AlunoPortalPage() {
     .map(t => t.turmas as unknown as { id: string; nome: string; dias_semana: string[] | null; horario: string | null } | null)
     .filter(Boolean) as { id: string; nome: string; dias_semana: string[] | null; horario: string | null }[]
 
+  // Avisos ativos: da academia toda ou das turmas do aluno
+  const turmaIdsDoAluno = turmas.map(t => t.id)
+  const avisosFiltro = turmaIdsDoAluno.length > 0
+    ? `turma_id.is.null,turma_id.in.(${turmaIdsDoAluno.join(',')})`
+    : 'turma_id.is.null'
+  const { data: avisosData } = await supabase
+    .from('avisos')
+    .select('id, titulo, corpo, criado_em, turmas(nome)')
+    .eq('academia_id', aluno.academia_id)
+    .eq('ativo', true)
+    .or(avisosFiltro)
+    .order('criado_em', { ascending: false })
+
   // Recent presences
   const { data: presencasData } = await supabase
     .from('presencas')
@@ -208,6 +221,27 @@ export default async function AlunoPortalPage() {
       </header>
 
       <main className="px-6 pt-6 pb-10 space-y-6">
+
+        {/* Avisos */}
+        {(avisosData ?? []).length > 0 && (
+          <div className="space-y-2">
+            {(avisosData ?? []).map(a => {
+              const turma = a.turmas as unknown as { nome: string } | null
+              return (
+                <div key={a.id} className="rounded-2xl p-4"
+                  style={{ background: 'rgba(200,169,110,0.1)', border: '1px solid rgba(200,169,110,0.3)' }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold text-white">{a.titulo}</p>
+                    <span className="text-[9px] uppercase tracking-widest flex-shrink-0" style={{ color: '#C8A96E' }}>
+                      {turma?.nome ?? 'Geral'}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-1 text-white/60">{a.corpo}</p>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* Active classes — check-in */}
         {aulasAtivas.length > 0 && (

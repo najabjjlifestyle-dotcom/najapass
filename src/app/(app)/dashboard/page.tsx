@@ -246,6 +246,23 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* ── Avisos ── */}
+      <div className="px-4 mb-3">
+        <Link href="/avisos"
+          className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <div>
+            <p className="text-[13px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
+              Avisos
+            </p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+              Comunicados para os alunos
+            </p>
+          </div>
+          <span style={{ color: 'var(--brand-gold)', fontSize: '18px' }}>📣</span>
+        </Link>
+      </div>
+
       {/* ── Técnicas da Semana ── */}
       <div className="px-4 mb-3">
         <Link href="/semana"
