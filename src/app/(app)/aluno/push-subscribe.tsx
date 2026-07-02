@@ -74,7 +74,7 @@ export default function PushSubscribeButton() {
 
   if (status === 'denied') {
     return (
-      <p className="text-[10px] text-white/30">Notificações bloqueadas no navegador.</p>
+      <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>Notificações bloqueadas no navegador.</p>
     )
   }
 
@@ -82,7 +82,8 @@ export default function PushSubscribeButton() {
     <button
       onClick={status === 'subscribed' ? desativar : ativar}
       disabled={loading}
-      className="text-[10px] uppercase tracking-widest underline underline-offset-2 disabled:opacity-40 text-white/40">
+      className="text-[10px] uppercase tracking-widest underline underline-offset-2 disabled:opacity-40"
+      style={{ color: 'var(--brand-texto-muted)' }}>
       {loading ? '...' : status === 'subscribed' ? 'Desativar notificações' : 'Ativar notificações'}
     </button>
   )
