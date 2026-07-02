@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendPushToAll } from '@/lib/push'
 
 export async function abrirAula(formData: FormData) {
   const supabase = await createClient()
@@ -51,6 +52,19 @@ export async function abrirAula(formData: FormData) {
         reforco: false,
       }))
     )
+  }
+
+  // Notifica os alunos da turma que a aula abriu (best-effort, não bloqueia o fluxo)
+  if (turma_id) {
+    const { data: turma } = await supabase.from('turmas').select('nome').eq('id', turma_id).maybeSingle()
+    const { data: subs } = await supabase.rpc('subscricoes_da_turma', { p_turma_id: turma_id })
+    if (subs && subs.length > 0) {
+      await sendPushToAll(subs, {
+        title: '🥋 Aula aberta!',
+        body: `${turma?.nome ?? 'Sua turma'} — confirme sua presença`,
+        url: '/aluno',
+      })
+    }
   }
 
   revalidatePath('/aulas')

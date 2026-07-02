@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import CheckinCard from './checkin'
 import AvatarUpload from '@/components/avatar-upload'
 import { updateFotoPropria } from './actions'
+import PushSubscribeButton from './push-subscribe'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
@@ -217,6 +218,9 @@ export default async function AlunoPortalPage() {
             persist={updateFotoPropria}
             size={56}
           />
+        </div>
+        <div className="mt-3">
+          <PushSubscribeButton />
         </div>
       </header>
 

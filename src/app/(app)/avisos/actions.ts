@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendPushToAll } from '@/lib/push'
 
 export async function criarAviso(formData: FormData) {
   const supabase = await createClient()
@@ -33,6 +34,14 @@ export async function criarAviso(formData: FormData) {
     })
 
   if (error) return { error: 'Erro ao criar aviso.' }
+
+  // Notifica os alunos impactados (best-effort, não bloqueia o fluxo)
+  const { data: subs } = turma_id
+    ? await supabase.rpc('subscricoes_da_turma', { p_turma_id: turma_id })
+    : await supabase.rpc('subscricoes_da_academia')
+  if (subs && subs.length > 0) {
+    await sendPushToAll(subs, { title: `📣 ${titulo}`, body: corpo, url: '/aluno' })
+  }
 
   revalidatePath('/avisos')
   revalidatePath('/aluno')
