@@ -214,6 +214,23 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* ── Técnicas da Semana ── */}
+      <div className="px-4 mb-3">
+        <Link href="/semana"
+          className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <div>
+            <p className="text-[13px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
+              Técnicas da Semana
+            </p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+              Aulas e posições planejadas
+            </p>
+          </div>
+          <span style={{ color: 'var(--brand-gold)', fontSize: '18px' }}>📋</span>
+        </Link>
+      </div>
+
       {/* ── Feed: Últimas Aulas ── */}
       {(ultimasAulas?.length ?? 0) > 0 && (
         <section className="px-4 pt-1 pb-8">
