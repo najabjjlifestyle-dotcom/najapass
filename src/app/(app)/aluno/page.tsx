@@ -50,14 +50,42 @@ export default async function AlunoPortalPage() {
   }
 
   // Active classes in this academia
-  const { data: aulasAtivas } = await supabase
+  const { data: aulasAtivasData } = await supabase
     .from('aulas')
-    .select('id, tema, turmas(nome)')
+    .select('id, video_url, turmas(nome), tema:categorias_tecnicas(nome)')
     .eq('academia_id', aluno.academia_id)
     .eq('status', 'aberta')
 
+  type AulaAtivaRow = {
+    id: string
+    video_url: string | null
+    turmas: { nome: string } | null
+    tema: { nome: string } | null
+  }
+  const aulasAtivasRows = (aulasAtivasData ?? []) as unknown as AulaAtivaRow[]
+
+  // Quem vai + técnicas planejadas de cada aula ao vivo
+  const aulasAtivas = await Promise.all(aulasAtivasRows.map(async (aula) => {
+    const [{ data: quemVaiData }, { data: planejadasData }] = await Promise.all([
+      supabase.rpc('quem_vai', { p_aula_id: aula.id }),
+      supabase.from('aula_tecnicas').select('tecnicas(nome)').eq('aula_id', aula.id).eq('tipo', 'planejada'),
+    ])
+    const confirmados = (quemVaiData ?? []) as { nome: string; visitante: boolean }[]
+    const planejadas = ((planejadasData ?? []) as unknown as { tecnicas: { nome: string } | null }[])
+      .map(p => p.tecnicas?.nome)
+      .filter((n): n is string => Boolean(n))
+    return {
+      id: aula.id,
+      video_url: aula.video_url,
+      turma_nome: aula.turmas?.nome ?? null,
+      tema: aula.tema?.nome ?? null,
+      confirmados,
+      planejadas,
+    }
+  }))
+
   // Check existing check-ins
-  const aulaIds = (aulasAtivas ?? []).map(a => a.id)
+  const aulaIds = aulasAtivas.map(a => a.id)
   const { data: checkins } = aulaIds.length > 0
     ? await supabase
         .from('presencas')
@@ -156,22 +184,19 @@ export default async function AlunoPortalPage() {
       <main className="px-6 pt-6 pb-10 space-y-6">
 
         {/* Active classes — check-in */}
-        {(aulasAtivas ?? []).length > 0 && (
+        {aulasAtivas.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-widest text-white/40"
               style={{ fontFamily: 'var(--font-oswald)' }}>
               Fazer check-in
             </p>
-            {(aulasAtivas ?? []).map(aula => {
-              const turma = aula.turmas as unknown as { nome: string } | null
-              return (
-                <CheckinCard
-                  key={aula.id}
-                  aula={{ id: aula.id, turma_nome: turma?.nome ?? null, tema: aula.tema }}
-                  jaFezCheckin={checkinSet.has(aula.id)}
-                />
-              )
-            })}
+            {aulasAtivas.map(aula => (
+              <CheckinCard
+                key={aula.id}
+                aula={aula}
+                jaFezCheckin={checkinSet.has(aula.id)}
+              />
+            ))}
           </div>
         )}
 
@@ -272,7 +297,7 @@ export default async function AlunoPortalPage() {
           </div>
         )}
 
-        {(aulasAtivas ?? []).length === 0 && turmas.length === 0 && (presencasData ?? []).length === 0 && (
+        {aulasAtivas.length === 0 && turmas.length === 0 && (presencasData ?? []).length === 0 && (
           <div className="text-center py-16">
             <p className="text-white/30 text-sm uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-oswald)' }}>
