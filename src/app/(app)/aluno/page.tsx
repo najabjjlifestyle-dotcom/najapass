@@ -87,6 +87,54 @@ export default async function AlunoPortalPage() {
     .order('registrado_em', { ascending: false })
     .limit(10)
 
+  // Técnicas da Semana — posições desta semana filtradas pela faixa do aluno
+  type PosicaoSemana = { data: string; turma_nome: string | null; posicoes: string[] }
+  let tecnicasDaSemana: PosicaoSemana[] = []
+  const turmaIds = turmas.map(t => t.id)
+  if (turmaIds.length > 0) {
+    const today = new Date()
+    const dow = today.getDay()
+    const monday = new Date(today)
+    monday.setDate(today.getDate() + (dow === 0 ? -6 : 1 - dow))
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    const weekStart = monday.toISOString().split('T')[0]
+    const weekEnd = sunday.toISOString().split('T')[0]
+
+    const { data: aulasSemanaisData } = await supabase
+      .from('aulas')
+      .select('id, data, turma_id, turmas(nome)')
+      .in('turma_id', turmaIds)
+      .gte('data', weekStart)
+      .lte('data', weekEnd)
+      .order('data')
+
+    const aulasSemanais = (aulasSemanaisData ?? []) as {
+      id: string; data: string; turma_id: string; turmas: { nome: string } | null
+    }[]
+
+    if (aulasSemanais.length > 0) {
+      const aulaSemanaisIds = aulasSemanais.map(a => a.id)
+      const { data: atData } = await supabase
+        .from('aula_tecnicas')
+        .select('aula_id, tecnicas(nome, faixas)')
+        .in('aula_id', aulaSemanaisIds)
+        .in('tipo', ['planejada', 'ensinada'])
+
+      const faixaAluno = aluno.faixa
+      tecnicasDaSemana = aulasSemanais.map(a => {
+        const turmaObj = a.turmas as unknown as { nome: string } | null
+        const ats = (atData ?? []).filter(at => at.aula_id === a.id)
+        const posicoes = ats
+          .map(at => at.tecnicas as unknown as { nome: string; faixas: string[] } | null)
+          .filter((t): t is { nome: string; faixas: string[] } => Boolean(t))
+          .filter(t => t.faixas.length === 0 || t.faixas.includes(faixaAluno))
+          .map(t => t.nome)
+        return { data: a.data, turma_nome: turmaObj?.nome ?? null, posicoes }
+      }).filter(a => a.posicoes.length > 0)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black">
       <header className="px-6 pt-12 pb-6 border-b border-white/10">
@@ -153,6 +201,44 @@ export default async function AlunoPortalPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Técnicas da Semana */}
+        {tecnicasDaSemana.length > 0 && (
+          <div>
+            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
+              style={{ fontFamily: 'var(--font-oswald)' }}>
+              Técnicas da semana
+            </p>
+            <div className="space-y-2">
+              {tecnicasDaSemana.map((item, i) => {
+                const d = new Date(item.data + 'T12:00:00')
+                const dataFmt = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+                return (
+                  <div key={i} className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-white/60 text-xs font-medium capitalize">{dataFmt}</p>
+                      {item.turma_nome && (
+                        <p className="text-[10px] uppercase tracking-wide"
+                          style={{ color: '#C8A96E' }}>
+                          {item.turma_nome}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.posicoes.map((pos, j) => (
+                        <span key={j}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold"
+                          style={{ background: 'rgba(200,169,110,0.15)', color: '#C8A96E', border: '1px solid rgba(200,169,110,0.3)' }}>
+                          {pos}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
