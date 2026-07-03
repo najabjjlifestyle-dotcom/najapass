@@ -129,7 +129,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-5 pt-12 pb-5 flex items-start gap-3"
+      <header className="px-5 pt-safe pb-5 flex items-start gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/aulas" />
         <div className="flex-1">

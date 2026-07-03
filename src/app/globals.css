@@ -37,3 +37,14 @@ body {
   color: var(--brand-texto);
   font-family: var(--font-inter), system-ui, sans-serif;
 }
+
+/* iOS safe areas */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+.pt-safe {
+  padding-top: max(3rem, env(safe-area-inset-top));
+}

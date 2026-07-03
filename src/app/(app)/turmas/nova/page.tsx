@@ -46,7 +46,7 @@ export default function NovaTurmaPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-6 pt-12 pb-6 flex items-center gap-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+      <header className="px-6 pt-safe pb-6 flex items-center gap-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/turmas" />
         <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
           Nova Turma

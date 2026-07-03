@@ -37,7 +37,7 @@ export default async function TecnicasPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-5 pt-12 pb-5 flex items-center justify-between"
+      <header className="px-5 pt-safe pb-5 flex items-center justify-between"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-3">
           <BackButton href="/dashboard" />

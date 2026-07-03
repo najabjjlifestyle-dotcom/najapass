@@ -57,7 +57,7 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-5 pt-12 pb-5 flex items-center gap-3"
+      <header className="px-5 pt-safe pb-5 flex items-center gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/tecnicas" />
         <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>

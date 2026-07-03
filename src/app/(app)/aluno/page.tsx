@@ -197,7 +197,7 @@ export default async function AlunoPortalPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-6 pt-12 pb-6" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+      <header className="px-6 pt-safe pb-6" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-4">
           <div className={`w-4 h-14 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
           <div className="flex-1">

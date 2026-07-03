@@ -85,7 +85,7 @@ export default async function SemanaPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-5 pt-12 pb-5 flex items-center gap-3"
+      <header className="px-5 pt-safe pb-5 flex items-center gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/dashboard" />
         <div>

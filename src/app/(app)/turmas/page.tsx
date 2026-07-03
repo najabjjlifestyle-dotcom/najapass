@@ -29,7 +29,7 @@ export default async function TurmasPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-6 pt-12 pb-6 flex items-center justify-between" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+      <header className="px-6 pt-safe pb-6 flex items-center justify-between" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-3">
           <BackButton href="/dashboard" />
           <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
