@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
-import { criarTecnica } from '../actions'
+import { criarTecnica, criarTema } from '../actions'
 
 type Categoria = { id: string; nome: string }
 
@@ -20,6 +20,12 @@ const FAIXAS = [
 
 export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
   const [faixas, setFaixas] = useState<string[]>([])
+  const [categoriasList, setCategoriasList] = useState<Categoria[]>(categorias)
+  const [categoriaId, setCategoriaId] = useState('')
+  const [showNovoTema, setShowNovoTema] = useState(false)
+  const [novoTemaNome, setNovoTemaNome] = useState('')
+  const [criandoTema, setCriandoTema] = useState(false)
+  const [temaError, setTemaError] = useState('')
   const [state, action, pending] = useActionState(
     async (_: unknown, formData: FormData) => {
       faixas.forEach(f => formData.append('faixas[]', f))
@@ -30,6 +36,23 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
 
   function toggleFaixa(id: string) {
     setFaixas(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id])
+  }
+
+  async function handleCriarTema() {
+    const nome = novoTemaNome.trim()
+    if (!nome) return
+    setCriandoTema(true)
+    setTemaError('')
+    const result = await criarTema(nome)
+    setCriandoTema(false)
+
+    if (result?.error) { setTemaError(result.error); return }
+    if (result?.tema) {
+      setCategoriasList(prev => [...prev, result.tema!].sort((a, b) => a.nome.localeCompare(b.nome)))
+      setCategoriaId(result.tema.id)
+    }
+    setNovoTemaNome('')
+    setShowNovoTema(false)
   }
 
   return (
@@ -59,11 +82,18 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: 'var(--brand-texto-muted)' }}>
-              Tema
-            </label>
-            <select name="categoria_id"
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: 'var(--brand-texto-muted)' }}>
+                Tema
+              </label>
+              <button type="button" onClick={() => setShowNovoTema(v => !v)}
+                className="text-[10px] uppercase tracking-widest underline underline-offset-2"
+                style={{ color: 'var(--brand-texto-muted)' }}>
+                + Novo tema
+              </button>
+            </div>
+            <select name="categoria_id" value={categoriaId} onChange={e => setCategoriaId(e.target.value)}
               className="w-full px-4 py-3 rounded-xl text-sm"
               style={{
                 background: 'var(--brand-surf)',
@@ -71,10 +101,26 @@ export default function NovaForm({ categorias }: { categorias: Categoria[] }) {
                 color: 'var(--brand-texto)',
               }}>
               <option value="">Sem tema</option>
-              {categorias.map(c => (
+              {categoriasList.map(c => (
                 <option key={c.id} value={c.id}>{c.nome}</option>
               ))}
             </select>
+
+            {showNovoTema && (
+              <div className="flex gap-2 mt-2">
+                <input type="text" value={novoTemaNome} onChange={e => setNovoTemaNome(e.target.value)}
+                  placeholder="Nome do tema" autoFocus
+                  className="flex-1 px-3 py-2 rounded-xl text-sm focus:outline-none"
+                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
+                <button type="button" onClick={handleCriarTema}
+                  disabled={criandoTema || !novoTemaNome.trim()}
+                  className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider disabled:opacity-40"
+                  style={{ background: 'var(--brand-gold)', color: 'black' }}>
+                  {criandoTema ? '...' : 'Criar'}
+                </button>
+              </div>
+            )}
+            {temaError && <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{temaError}</p>}
           </div>
 
           <div>

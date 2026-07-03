@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { abrirAula } from '../actions'
+import { criarTema } from '../../tecnicas/actions'
 
 type Turma = { id: string; nome: string }
 type Tema = { id: string; nome: string }
@@ -26,6 +27,11 @@ export default function NovaAulaForm({
   const [turmaId, setTurmaId] = useState('')
   const [temaId, setTemaId] = useState('')
   const [planejadas, setPlanejadas] = useState<Set<string>>(new Set())
+  const [temasList, setTemasList] = useState<Tema[]>(temas)
+  const [showNovoTema, setShowNovoTema] = useState(false)
+  const [novoTemaNome, setNovoTemaNome] = useState('')
+  const [criandoTema, setCriandoTema] = useState(false)
+  const [temaError, setTemaError] = useState('')
 
   const hoje = new Date().toISOString().split('T')[0]
   const horaAtual = new Date().toTimeString().slice(0, 5)
@@ -48,6 +54,23 @@ export default function NovaAulaForm({
       else next.add(id)
       return next
     })
+  }
+
+  async function handleCriarTema() {
+    const nome = novoTemaNome.trim()
+    if (!nome) return
+    setCriandoTema(true)
+    setTemaError('')
+    const result = await criarTema(nome)
+    setCriandoTema(false)
+
+    if (result?.error) { setTemaError(result.error); return }
+    if (result?.tema) {
+      setTemasList(prev => [...prev, result.tema!].sort((a, b) => a.nome.localeCompare(b.nome)))
+      setTemaId(result.tema.id)
+    }
+    setNovoTemaNome('')
+    setShowNovoTema(false)
   }
 
   function handleTurmaChange(id: string) {
@@ -123,16 +146,36 @@ export default function NovaAulaForm({
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Tema da aula</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs uppercase tracking-widest text-white/50"
+                style={{ fontFamily: 'var(--font-oswald)' }}>Tema da aula</label>
+              <button type="button" onClick={() => setShowNovoTema(v => !v)}
+                className="text-xs text-white/40 underline underline-offset-2">
+                + Novo tema
+              </button>
+            </div>
             <select name="tema_id" value={temaId}
               onChange={e => setTemaId(e.target.value)}
               className="w-full px-4 py-3 rounded-xl bg-black border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors">
               <option value="" className="bg-black">Sem tema específico</option>
-              {temas.map(t => (
+              {temasList.map(t => (
                 <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
               ))}
             </select>
+
+            {showNovoTema && (
+              <div className="flex gap-2 mt-2">
+                <input type="text" value={novoTemaNome} onChange={e => setNovoTemaNome(e.target.value)}
+                  placeholder="Nome do tema" autoFocus
+                  className="flex-1 px-3 py-2 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white" />
+                <button type="button" onClick={handleCriarTema}
+                  disabled={criandoTema || !novoTemaNome.trim()}
+                  className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40">
+                  {criandoTema ? '...' : 'Criar'}
+                </button>
+              </div>
+            )}
+            {temaError && <p className="text-red-400 text-xs mt-1.5">{temaError}</p>}
           </div>
 
           {/* Posições planejadas — aparece após selecionar tema */}
