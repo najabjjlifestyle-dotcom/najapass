@@ -35,6 +35,64 @@ function ultimaAulaLabel(dataStr: string | null) {
   return `última: ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`
 }
 
+type Insight =
+  | { tipo: 'ausente'; nome: string; dias: number; alunoId: string }
+  | { tipo: 'lacuna_categoria'; categoria: string; dias: number }
+  | { tipo: 'reforco'; tecnica: string }
+  | null
+
+async function calcularInsight(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  data: {
+    alunoMaisAusente: { aluno_id: string; nome: string; dias_ausente: number } | null
+    ultimasEnsinadas: { tecnicas: { categorias_tecnicas: { nome: string } | null } | null; aulas: { data: string } | null }[]
+    ultimaAulaFinalizadaId: string | null
+  }
+): Promise<Insight> {
+  const { alunoMaisAusente, ultimasEnsinadas, ultimaAulaFinalizadaId } = data
+
+  // 1. Aluno ausente há +14 dias?
+  if (alunoMaisAusente && alunoMaisAusente.dias_ausente >= 14) {
+    return { tipo: 'ausente', nome: alunoMaisAusente.nome, dias: alunoMaisAusente.dias_ausente, alunoId: alunoMaisAusente.aluno_id }
+  }
+
+  // 2. Alguma categoria ensinada nos últimos 90 dias, mas há +21 dias sem repetir?
+  const ultimaPorCategoria = new Map<string, string>()
+  for (const r of ultimasEnsinadas) {
+    const categoria = r.tecnicas?.categorias_tecnicas?.nome
+    const dataAula = r.aulas?.data
+    if (!categoria || !dataAula) continue
+    const atual = ultimaPorCategoria.get(categoria)
+    if (!atual || dataAula > atual) ultimaPorCategoria.set(categoria, dataAula)
+  }
+  let categoriaLacuna: { nome: string; dias: number } | null = null
+  for (const [categoria, dataStr] of ultimaPorCategoria) {
+    const dias = Math.floor((Date.now() - new Date(dataStr + 'T12:00:00').getTime()) / 86400000)
+    if (dias >= 21 && (!categoriaLacuna || dias > categoriaLacuna.dias)) {
+      categoriaLacuna = { nome: categoria, dias }
+    }
+  }
+  if (categoriaLacuna) {
+    return { tipo: 'lacuna_categoria', categoria: categoriaLacuna.nome, dias: categoriaLacuna.dias }
+  }
+
+  // 3. Reforço pendente da última aula finalizada?
+  if (ultimaAulaFinalizadaId) {
+    const { data: reforcosData } = await supabase
+      .from('aula_tecnicas')
+      .select('tecnicas(nome)')
+      .eq('aula_id', ultimaAulaFinalizadaId)
+      .eq('reforco', true)
+      .limit(1)
+    const reforco = (reforcosData as unknown as { tecnicas: { nome: string } | null }[] | null)?.[0]
+    if (reforco?.tecnicas) {
+      return { tipo: 'reforco', tecnica: reforco.tecnicas.nome }
+    }
+  }
+
+  return null
+}
+
 // ── page ─────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
@@ -65,6 +123,9 @@ export default async function DashboardPage() {
     { data: ultimasAulas },
     { data: ultimaAula },
     { data: aulaAberta },
+    { data: alunoMaisAusenteData },
+    { data: ultimasEnsinadasData },
+    { data: ultimaAulaFinalizada },
   ] = await Promise.all([
     supabase.from('alunos').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativo', true),
     supabase.from('turmas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativa', true),
@@ -73,12 +134,32 @@ export default async function DashboardPage() {
     supabase.from('aulas').select('id, data, status, turmas(nome), presencas(id)').eq('academia_id', acadId).order('data', { ascending: false }).order('hora_inicio', { ascending: false }).limit(3),
     supabase.from('aulas').select('data').eq('academia_id', acadId).order('data', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('aulas').select('id, turmas(nome), presencas(id)').eq('academia_id', acadId).eq('status', 'aberta').order('data', { ascending: false }).limit(1).maybeSingle(),
+    supabase.rpc('aluno_mais_ausente', { p_academia_id: acadId }).then(r => r.error ? { data: [] } : r),
+    // .order()/.limit() não reordenam pela tabela referenciada (aulas) — postgrest só
+    // reordena o array aninhado, não a seleção externa. Em vez de "últimas 50", filtra
+    // por janela de data (90 dias) e processa tudo em JS.
+    supabase
+      .from('aula_tecnicas')
+      .select('tecnicas!inner(categorias_tecnicas(nome)), aulas!inner(data, academia_id)')
+      .eq('aulas.academia_id', acadId)
+      .eq('tipo', 'ensinada')
+      .gte('aulas.data', new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0]),
+    supabase.from('aulas').select('id').eq('academia_id', acadId).eq('status', 'finalizada').order('data', { ascending: false }).limit(1).maybeSingle(),
   ])
 
   const pendentes = solicitacoesRes.count ?? 0
   const nome = professor.nome
   const turmaAulaAberta = aulaAberta?.turmas as unknown as { nome: string } | null
   const presentesAulaAberta = (aulaAberta?.presencas as unknown as { id: string }[] | null)?.length ?? 0
+
+  const insight = await calcularInsight(supabase, {
+    alunoMaisAusente: (alunoMaisAusenteData as { aluno_id: string; nome: string; dias_ausente: number }[] | null)?.[0] ?? null,
+    ultimasEnsinadas: (ultimasEnsinadasData ?? []) as unknown as {
+      tecnicas: { categorias_tecnicas: { nome: string } | null } | null
+      aulas: { data: string } | null
+    }[],
+    ultimaAulaFinalizadaId: ultimaAulaFinalizada?.id ?? null,
+  })
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
@@ -180,6 +261,33 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Insight dinâmico ── */}
+      {insight && (
+        <div className="px-4 mb-3">
+          <Link
+            href={insight.tipo === 'ausente' ? `/alunos/${insight.alunoId}` : '/relatorios'}
+            className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-gold-border)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-8 rounded-full flex-shrink-0" style={{ background: 'var(--brand-gold)' }} />
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
+                  {insight.tipo === 'ausente' && `${insight.nome} — ${insight.dias}d sem treinar`}
+                  {insight.tipo === 'lacuna_categoria' && `${insight.categoria} — ${insight.dias}d sem ensinar`}
+                  {insight.tipo === 'reforco' && 'Reforço pendente'}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  {insight.tipo === 'ausente' && 'Ver perfil do aluno'}
+                  {insight.tipo === 'lacuna_categoria' && 'Ver insights da academia'}
+                  {insight.tipo === 'reforco' && insight.tecnica}
+                </p>
+              </div>
+            </div>
+            <span style={{ color: 'var(--brand-gold)', fontSize: 18 }}>→</span>
+          </Link>
+        </div>
+      )}
 
       {/* ── Grid de Ações ── */}
       <div className="grid grid-cols-2 gap-2 px-4 mb-4">
