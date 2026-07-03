@@ -228,9 +228,10 @@ FROM (VALUES
 ) AS v(categoria_nome, nome, faixas)
 JOIN categorias_tecnicas c ON c.nome = v.categoria_nome;
 
--- RLS: SELECT liberado pra qualquer autenticado quando global = true.
--- INSERT/UPDATE/DELETE continuam restritos por "tecnicas_professor"
--- (academia_id = academia_do_professor()) — profesor não consegue
--- criar suas próprias entradas globais, só a curadoria via migration.
-CREATE POLICY "tecnicas_global_select" ON tecnicas FOR SELECT
-  TO authenticated USING (global = true);
+-- A policy de RLS (tecnicas_global_select) foi movida pra
+-- 20260703000002_tecnicas_global_select.sql — CREATE POLICY pede
+-- AccessExclusiveLock na tabela, e rodar isso na mesma transação
+-- dos INSERTs grandes acima aumenta a chance de deadlock se algo
+-- mais (outra aba do SQL Editor, introspecção do Studio/PostgREST)
+-- estiver segurando lock em categorias_tecnicas/tecnicas ao mesmo
+-- tempo. Rodar em dois passos separados evita isso.
