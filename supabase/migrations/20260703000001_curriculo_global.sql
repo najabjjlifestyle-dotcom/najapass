@@ -226,7 +226,14 @@ FROM (VALUES
   ('Chaves de Pé', 'Inside Sankaku', ARRAY['marrom','preta']),
   ('Chaves de Pé', '50/50 ofensiva', ARRAY['marrom','preta'])
 ) AS v(categoria_nome, nome, faixas)
-JOIN categorias_tecnicas c ON c.nome = v.categoria_nome;
+JOIN categorias_tecnicas c ON c.nome = v.categoria_nome
+-- Sem UNIQUE em tecnicas(categoria_id, nome) — sem esse WHERE, rodar
+-- a migration duas vezes duplica as ~168 sugestões silenciosamente
+-- (o INSERT não tem ON CONFLICT pra reclamar).
+WHERE NOT EXISTS (
+  SELECT 1 FROM tecnicas t
+  WHERE t.global = true AND t.categoria_id = c.id AND t.nome = v.nome
+);
 
 -- A policy de RLS (tecnicas_global_select) foi movida pra
 -- 20260703000002_tecnicas_global_select.sql — CREATE POLICY pede

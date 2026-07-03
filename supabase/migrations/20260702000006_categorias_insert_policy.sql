@@ -6,6 +6,7 @@
 -- SELECT já era; alunos continuam sem poder escrever).
 -- ============================================================
 
+DROP POLICY IF EXISTS "categorias_insert_professor" ON categorias_tecnicas;
 CREATE POLICY "categorias_insert_professor" ON categorias_tecnicas FOR INSERT
   TO authenticated
   WITH CHECK (EXISTS (SELECT 1 FROM professores WHERE user_id = auth.uid()));

@@ -8,10 +8,12 @@ VALUES ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Leitura pública (fotos não são dado sensível)
+DROP POLICY IF EXISTS "avatars_select_public" ON storage.objects;
 CREATE POLICY "avatars_select_public" ON storage.objects FOR SELECT
   USING (bucket_id = 'avatars');
 
 -- Professor pode enviar/atualizar/remover foto de aluno da própria academia
+DROP POLICY IF EXISTS "avatars_professor_insert" ON storage.objects;
 CREATE POLICY "avatars_professor_insert" ON storage.objects FOR INSERT
   WITH CHECK (
     bucket_id = 'avatars'
@@ -20,6 +22,7 @@ CREATE POLICY "avatars_professor_insert" ON storage.objects FOR INSERT
     )
   );
 
+DROP POLICY IF EXISTS "avatars_professor_update" ON storage.objects;
 CREATE POLICY "avatars_professor_update" ON storage.objects FOR UPDATE
   USING (
     bucket_id = 'avatars'
@@ -28,6 +31,7 @@ CREATE POLICY "avatars_professor_update" ON storage.objects FOR UPDATE
     )
   );
 
+DROP POLICY IF EXISTS "avatars_professor_delete" ON storage.objects;
 CREATE POLICY "avatars_professor_delete" ON storage.objects FOR DELETE
   USING (
     bucket_id = 'avatars'
@@ -37,12 +41,14 @@ CREATE POLICY "avatars_professor_delete" ON storage.objects FOR DELETE
   );
 
 -- Aluno pode enviar/atualizar a própria foto
+DROP POLICY IF EXISTS "avatars_aluno_insert" ON storage.objects;
 CREATE POLICY "avatars_aluno_insert" ON storage.objects FOR INSERT
   WITH CHECK (
     bucket_id = 'avatars'
     AND (regexp_match(name, '^([0-9a-f-]{36})\.'))[1]::uuid = id_do_aluno()
   );
 
+DROP POLICY IF EXISTS "avatars_aluno_update" ON storage.objects;
 CREATE POLICY "avatars_aluno_update" ON storage.objects FOR UPDATE
   USING (
     bucket_id = 'avatars'

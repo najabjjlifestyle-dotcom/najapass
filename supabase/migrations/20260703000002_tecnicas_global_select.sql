@@ -8,5 +8,6 @@
 -- INSERT/UPDATE/DELETE continuam restritos por "tecnicas_professor"
 -- (academia_id = academia_do_professor()) — professor não consegue
 -- criar suas próprias entradas globais, só a curadoria via migration.
+DROP POLICY IF EXISTS "tecnicas_global_select" ON tecnicas;
 CREATE POLICY "tecnicas_global_select" ON tecnicas FOR SELECT
   TO authenticated USING (global = true);
