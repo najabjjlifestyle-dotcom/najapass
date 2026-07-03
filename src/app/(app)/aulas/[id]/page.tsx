@@ -42,7 +42,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     supabase
       .from('tecnicas')
       .select('id, nome, categoria_id, categorias_tecnicas(nome)')
-      .eq('academia_id', professor.academia_id)
+      .or(`academia_id.eq.${professor.academia_id},global.eq.true`)
       .order('nome'),
   ])
 
