@@ -71,7 +71,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--brand-fundo)' }}>
 
       {/* Hero — cobra */}
       <div className="flex justify-center pt-14 relative">
@@ -82,7 +82,7 @@ export default function LoginPage() {
             alt="Naja"
             className="w-44 object-contain select-none"
           />
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black via-black/80 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-24" style={{ background: 'linear-gradient(to top, var(--brand-fundo), rgba(8,8,8,0.8), transparent)' }} />
         </div>
       </div>
 
@@ -90,16 +90,10 @@ export default function LoginPage() {
       <div className="px-6 pb-10 pt-4">
 
         <div className="text-center mb-6">
-          <h1
-            className="text-4xl font-bold uppercase tracking-widest text-white"
-            style={{ fontFamily: 'var(--font-oswald)' }}
-          >
+          <h1 className="text-4xl font-bold uppercase tracking-widest" style={{ color: 'var(--brand-texto)' }}>
             Naja BJJ
           </h1>
-          <p
-            className="text-xs uppercase tracking-[0.35em] text-white/40 mt-1"
-            style={{ fontFamily: 'var(--font-oswald)' }}
-          >
+          <p className="text-xs uppercase tracking-[0.35em] mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
             Lifestyle
           </p>
         </div>
@@ -112,28 +106,28 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
               required
-              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-transparent placeholder-white/30 text-base focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}
             />
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
             <button
               type="submit"
               disabled={loading || !email}
-              className="w-full py-3 rounded-xl bg-white hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-base uppercase tracking-widest transition-colors"
-              style={{ fontFamily: 'var(--font-oswald)' }}
+              className="w-full py-3 rounded-xl font-bold text-base uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98]"
+              style={{ background: 'var(--brand-gold)', color: '#000' }}
             >
               {loading ? 'Enviando...' : 'Receber código'}
             </button>
-            <p className="text-center text-white/30 text-xs pt-1 uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-center text-xs pt-1 uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Não tem conta? Fale com seu professor.
             </p>
           </form>
 
         ) : (
           <form onSubmit={handleVerifyCode} className="space-y-3">
-            <p className="text-center text-white/50 text-sm mb-4">
+            <p className="text-center text-sm mb-4" style={{ color: 'var(--brand-texto-sec)' }}>
               Código enviado para{' '}
-              <span className="text-white font-medium">{email}</span>
+              <span className="font-medium" style={{ color: 'var(--brand-texto)' }}>{email}</span>
             </p>
             <input
               type="text"
@@ -145,22 +139,23 @@ export default function LoginPage() {
               placeholder="_ _ _ _ _ _"
               required
               autoFocus
-              className="w-full px-4 py-4 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/20 focus:outline-none focus:border-white text-3xl text-center tracking-[0.5em] font-bold transition-colors"
+              className="w-full px-4 py-4 rounded-xl bg-transparent placeholder-white/20 text-3xl text-center tracking-[0.5em] font-bold focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}
             />
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+            {error && <p className="text-sm text-center" style={{ color: '#f87171' }}>{error}</p>}
             <button
               type="submit"
               disabled={loading || code.length !== 6}
-              className="w-full py-3 rounded-xl bg-white hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-base uppercase tracking-widest transition-colors"
-              style={{ fontFamily: 'var(--font-oswald)' }}
+              className="w-full py-3 rounded-xl font-bold text-base uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98]"
+              style={{ background: 'var(--brand-gold)', color: '#000' }}
             >
               {loading ? 'Verificando...' : 'Entrar'}
             </button>
             <button
               type="button"
               onClick={() => { setStep('email'); setCode(''); setError('') }}
-              className="w-full text-xs text-white/30 uppercase tracking-widest pt-1"
-              style={{ fontFamily: 'var(--font-oswald)' }}
+              className="w-full text-xs uppercase tracking-widest py-2 active:opacity-60 transition-opacity"
+              style={{ color: 'var(--brand-texto-muted)' }}
             >
               ← Usar outro e-mail
             </button>

@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-02 (v1.2)  
+**Última atualização:** 2026-07-02 (v1.3)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v1.3: Adicionados EP-12 (Insights) com cards B-037 a B-042 (exceto B-041, descartado). B-037/B-038 são UX (banho de loja), B-039/B-040/B-042 são Insights.
 - v1.2: Branch `feat/sprint7-pendencias` fecha todos os cards P0/P1 pendentes (B-005, B-008, B-009, B-011, B-015, B-017, B-021, B-025, B-028, B-030, B-031, B-032, B-034, B-035, B-036). Ver `backlog/KANBAN.md` para detalhes e pendências operacionais (migrations a aplicar, chaves VAPID a configurar na Vercel).
 - v1.1: Adicionado EP-11 (Aluno — App), novos cards B-027 a B-033. Atualizado EP-01 (autenticação dual). EP-06 atualizado com visitantes. EP-05 atualizado com tema/vídeo.
 
@@ -25,6 +26,7 @@
 | EP-09 | Dashboard | 🟢 P2 |
 | EP-10 | PWA & Deploy | 🔴 P0 |
 | EP-11 | Aluno — App (check-in, aula, histórico) | 🔴 P0 |
+| EP-12 | Insights & UX Mobile | 🟡 P1 |
 
 ---
 
@@ -367,6 +369,87 @@ Como professor, quero postar avisos para os alunos diretamente no app, sem depen
 - Professor pode arquivar/remover aviso quando não for mais relevante
 - Novo aviso dispara push notification para os alunos impactados
 - Lista de avisos ativos visível no painel do professor
+
+---
+
+---
+
+### EP-12 · Insights & UX Mobile
+
+#### B-037 · Banho de loja — consistência visual e mobile-first
+**Prioridade:** P1 | **Estimativa:** L  
+Estender o design system (tokens `--brand-*`) a todas as páginas e resolver problemas estruturais de UX mobile.
+
+**Critérios de aceite:**
+- Fonte corrigida para Inter (não Arial) em `globals.css`
+- `layout.tsx` usa tokens de cor, não `bg-black` hardcoded
+- Ícones Lucide em todo lugar que hoje usa emoji de interface
+- Bottom nav bar (Início / Alunos / Histórico / Perfil) fixo no layout do professor
+- Back buttons com touch target mínimo de 44px (componente `BackButton`)
+- Botões primários usam `--brand-gold`, não branco
+- Safe area insets aplicados no iOS PWA
+- Zero ocorrências de `fontFamily: 'var(--font-oswald)'` no codebase
+
+**Referência:** `HANDOFF-004-banho-de-loja.md` na raiz do projeto.
+
+---
+
+#### B-038 · Foto de perfil do professor
+**Prioridade:** P1 | **Estimativa:** S  
+Como professor, quero ter foto no meu perfil, igual ao aluno já tem.
+
+**Critérios de aceite:**
+- Migration: `ALTER TABLE professores ADD COLUMN foto_url TEXT`
+- Storage policies espelhando as do bucket `avatars` (RLS por `user_id`)
+- `perfil/page.tsx` exibe `AvatarUpload` (mesmo componente reaproveitado do aluno)
+- Foto aparece no header do dashboard (substitui o avatar de iniciais quando preenchida)
+
+---
+
+#### B-039 · Tela de Insights (`/relatorios`)
+**Prioridade:** P1 | **Estimativa:** L  
+Como professor, quero uma tela dedicada que me mostre padrões da academia: o que estou ensinando demais, o que estou esquecendo, quem está sumindo.
+
+**Critérios de aceite:**
+- Três abas: **Técnicas** / **Alunos** / **Frequência**
+- Filtro de período: Mês / 3 meses / Ano
+- **Aba Técnicas:**
+  - Ranking das 5+ técnicas mais ensinadas (barra horizontal proporcional)
+  - Lista de técnicas com flag `reforco = true` na última aula
+  - Contagem de técnicas cadastradas mas nunca ensinadas ("lacunas")
+- **Aba Alunos:**
+  - Alertas: alunos sem treinar há mais de 14 dias
+  - Ranking de presença no período
+- **Aba Frequência:**
+  - Total de aulas no período
+  - Média de presentes por aula
+  - Gráfico de barras: presentes por dia da semana
+- Rota `/relatorios` já existe — implementar o conteúdo real
+
+---
+
+#### B-040 · Insight dinâmico no dashboard
+**Prioridade:** P2 | **Estimativa:** S  
+Como professor, quero ver um alerta contextual no dashboard que me faça agir — não só números estáticos.
+
+**Critérios de aceite:**
+- Um único card de insight abaixo do stats strip
+- Lógica de prioridade (em ordem): aluno ausente há +14 dias → categoria não ensinada há +3 semanas → técnica com reforço pendente
+- Exibe apenas o insight mais urgente
+- Toque no card leva para a rota relevante (`/relatorios` ou perfil do aluno)
+- Se não há nenhum alerta, o card não aparece (não mostrar "tudo certo" forçado)
+
+---
+
+#### B-042 · Candidatos a graduação
+**Prioridade:** P2 | **Estimativa:** M  
+Como professor, quero saber quais alunos têm presença suficiente para uma potencial graduação.
+
+**Critérios de aceite:**
+- Seção na aba Alunos de `/relatorios` ou dentro do perfil de cada aluno
+- Exibe alunos com X+ presenças desde o último registro de faixa/grau (threshold configurável por professor)
+- Não toma decisão de graduar — apenas sinaliza candidatos
+- Threshold padrão sugerido: 50 presenças para subir de grau, 120 para subir de faixa (ajustável)
 
 ---
 

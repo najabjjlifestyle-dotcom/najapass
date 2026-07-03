@@ -38,13 +38,12 @@ export default async function AlunoPortalPage() {
 
   if (!aluno) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center px-6">
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--brand-fundo)' }}>
         <div className="text-center">
-          <p className="text-white font-bold text-xl uppercase tracking-wider mb-2"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <p className="font-bold text-xl uppercase tracking-wider mb-2" style={{ color: 'var(--brand-texto)' }}>
             Conta não vinculada
           </p>
-          <p className="text-white/40 text-sm">
+          <p className="text-sm" style={{ color: 'var(--brand-texto-muted)' }}>
             Peça ao seu professor para cadastrar seu e-mail no sistema.
           </p>
         </div>
@@ -197,22 +196,20 @@ export default async function AlunoPortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10">
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-safe pb-6" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-4">
           <div className={`w-4 h-14 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
           <div className="flex-1">
-            <p className="text-white/40 text-xs uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Faixa {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
             </p>
-            <h1 className="text-white font-bold text-2xl uppercase tracking-wider"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <h1 className="font-bold text-2xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
               {aluno.nome.split(' ')[0]}
             </h1>
           </div>
           <AvatarUpload
-            alunoId={aluno.id}
+            entityId={aluno.id}
             nome={aluno.nome}
             fotoUrlAtual={aluno.foto_url}
             persist={updateFotoPropria}
@@ -233,14 +230,14 @@ export default async function AlunoPortalPage() {
               const turma = a.turmas as unknown as { nome: string } | null
               return (
                 <div key={a.id} className="rounded-2xl p-4"
-                  style={{ background: 'rgba(200,169,110,0.1)', border: '1px solid rgba(200,169,110,0.3)' }}>
+                  style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-bold text-white">{a.titulo}</p>
-                    <span className="text-[9px] uppercase tracking-widest flex-shrink-0" style={{ color: '#C8A96E' }}>
+                    <p className="text-sm font-bold" style={{ color: 'var(--brand-texto)' }}>{a.titulo}</p>
+                    <span className="text-[9px] uppercase tracking-widest flex-shrink-0" style={{ color: 'var(--brand-gold)' }}>
                       {turma?.nome ?? 'Geral'}
                     </span>
                   </div>
-                  <p className="text-xs mt-1 text-white/60">{a.corpo}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--brand-texto-sec)' }}>{a.corpo}</p>
                 </div>
               )
             })}
@@ -250,8 +247,7 @@ export default async function AlunoPortalPage() {
         {/* Active classes — check-in */}
         {aulasAtivas.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-widest text-white/40"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Fazer check-in
             </p>
             {aulasAtivas.map(aula => (
@@ -267,25 +263,23 @@ export default async function AlunoPortalPage() {
         {/* Turmas */}
         {turmas.length > 0 && (
           <div>
-            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
               Minhas turmas
             </p>
             <div className="space-y-2">
               {turmas.map(t => (
-                <div key={t.id} className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5">
-                  <p className="text-white font-bold uppercase tracking-wider text-sm"
-                    style={{ fontFamily: 'var(--font-oswald)' }}>
+                <div key={t.id} className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <p className="font-bold uppercase tracking-wider text-sm" style={{ color: 'var(--brand-texto)' }}>
                     {t.nome}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     {t.dias_semana?.map(d => (
-                      <span key={d} className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded">
+                      <span key={d} className="text-xs px-2 py-0.5 rounded" style={{ color: 'var(--brand-texto-muted)', background: 'var(--brand-surf-2)' }}>
                         {DIAS_ABBR[d] ?? d}
                       </span>
                     ))}
                     {t.horario && (
-                      <span className="text-xs text-white/30">· {t.horario.substring(0, 5)}</span>
+                      <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>· {t.horario.substring(0, 5)}</span>
                     )}
                   </div>
                 </div>
@@ -297,8 +291,7 @@ export default async function AlunoPortalPage() {
         {/* Técnicas da Semana */}
         {tecnicasDaSemana.length > 0 && (
           <div>
-            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
               Técnicas da semana
             </p>
             <div className="space-y-2">
@@ -306,12 +299,11 @@ export default async function AlunoPortalPage() {
                 const d = new Date(item.data + 'T12:00:00')
                 const dataFmt = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
                 return (
-                  <div key={i} className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5">
+                  <div key={i} className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-white/60 text-xs font-medium capitalize">{dataFmt}</p>
+                      <p className="text-xs font-medium capitalize" style={{ color: 'var(--brand-texto-sec)' }}>{dataFmt}</p>
                       {item.turma_nome && (
-                        <p className="text-[10px] uppercase tracking-wide"
-                          style={{ color: '#C8A96E' }}>
+                        <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--brand-gold)' }}>
                           {item.turma_nome}
                         </p>
                       )}
@@ -320,7 +312,7 @@ export default async function AlunoPortalPage() {
                       {item.posicoes.map((pos, j) => (
                         <span key={j}
                           className="px-2.5 py-1 rounded-lg text-xs font-bold"
-                          style={{ background: 'rgba(200,169,110,0.15)', color: '#C8A96E', border: '1px solid rgba(200,169,110,0.3)' }}>
+                          style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
                           {pos}
                         </span>
                       ))}
@@ -335,26 +327,25 @@ export default async function AlunoPortalPage() {
         {/* Frequência */}
         {(presencas30 ?? 0) > 0 || (presencas90 ?? 0) > 0 ? (
           <div>
-            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
               Meu histórico
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-center">
-                <p className="text-white font-bold text-2xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+              <div className="px-4 py-3 rounded-2xl text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="font-bold text-2xl" style={{ color: 'var(--brand-texto)' }}>
                   {presencas30 ?? 0}
                 </p>
-                <p className="text-white/40 text-[10px] uppercase tracking-widest mt-1">Últimos 30 dias</p>
+                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: 'var(--brand-texto-muted)' }}>Últimos 30 dias</p>
               </div>
-              <div className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-center">
-                <p className="text-white font-bold text-2xl" style={{ fontFamily: 'var(--font-oswald)' }}>
+              <div className="px-4 py-3 rounded-2xl text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="font-bold text-2xl" style={{ color: 'var(--brand-texto)' }}>
                   {presencas90 ?? 0}
                 </p>
-                <p className="text-white/40 text-[10px] uppercase tracking-widest mt-1">Últimos 90 dias</p>
+                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: 'var(--brand-texto-muted)' }}>Últimos 90 dias</p>
               </div>
             </div>
             {diasDesdeUltima !== null && (
-              <p className="text-white/30 text-xs mt-2">
+              <p className="text-xs mt-2" style={{ color: 'var(--brand-texto-muted)' }}>
                 Última presença: {diasDesdeUltima === 0 ? 'hoje' : diasDesdeUltima === 1 ? 'ontem' : `${diasDesdeUltima} dias atrás`}
               </p>
             )}
@@ -364,8 +355,7 @@ export default async function AlunoPortalPage() {
         {/* Recent presences */}
         {(presencasData ?? []).length > 0 && (
           <div>
-            <p className="text-xs uppercase tracking-widest text-white/40 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
               Presenças recentes
             </p>
             <div className="space-y-1">
@@ -377,12 +367,12 @@ export default async function AlunoPortalPage() {
                   weekday: 'short', day: '2-digit', month: 'short',
                 })
                 return (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl border border-white/5">
-                    <p className="text-white/60 text-xs">
+                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ border: '1px solid var(--brand-border)' }}>
+                    <p className="text-xs" style={{ color: 'var(--brand-texto-sec)' }}>
                       {turma?.nome ?? 'Aula avulsa'}
                       {aula.tema ? ` · ${aula.tema}` : ''}
                     </p>
-                    <p className="text-white/30 text-xs flex-shrink-0 ml-2 capitalize">{data}</p>
+                    <p className="text-xs flex-shrink-0 ml-2 capitalize" style={{ color: 'var(--brand-texto-muted)' }}>{data}</p>
                   </div>
                 )
               })}
@@ -392,8 +382,7 @@ export default async function AlunoPortalPage() {
 
         {aulasAtivas.length === 0 && turmas.length === 0 && (presencasData ?? []).length === 0 && (
           <div className="text-center py-16">
-            <p className="text-white/30 text-sm uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-sm uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhuma aula ativa no momento
             </p>
           </div>

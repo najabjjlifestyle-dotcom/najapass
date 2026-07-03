@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import Avatar from '@/components/avatar'
+import BackButton from '@/components/back-button'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white',
@@ -35,18 +36,18 @@ export default async function AlunosPage() {
     .order('nome')
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center justify-between">
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-safe pb-6 flex items-center justify-between"
+        style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-white/40 hover:text-white transition-colors text-xl">←</Link>
-          <h1 className="text-white font-bold text-xl uppercase tracking-wider"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <BackButton href="/dashboard" />
+          <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
             Alunos
           </h1>
         </div>
         <Link href="/alunos/novo"
-          className="px-4 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+          className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--brand-gold)', color: '#000' }}>
           + Novo
         </Link>
       </header>
@@ -54,34 +55,32 @@ export default async function AlunosPage() {
       <main className="px-6 pt-6 space-y-2 pb-10">
         {!alunos?.length ? (
           <div className="text-center py-16">
-            <p className="text-white/30 text-sm uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-sm uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhum aluno cadastrado
             </p>
             <Link href="/alunos/novo"
-              className="inline-block mt-4 px-6 py-2 bg-white text-black text-sm font-bold uppercase tracking-wider rounded-xl"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+              className="inline-block mt-4 px-6 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--brand-gold)', color: '#000' }}>
               Cadastrar primeiro aluno
             </Link>
           </div>
         ) : (
           alunos.map((aluno) => (
             <Link key={aluno.id} href={`/alunos/${aluno.id}`}
-              className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
               <Avatar nome={aluno.nome} fotoUrl={aluno.foto_url} size={36} />
               <div className={`w-1.5 h-10 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold uppercase tracking-wider truncate"
-                  style={{ fontFamily: 'var(--font-oswald)' }}>
+                <p className="font-bold uppercase tracking-wider truncate" style={{ color: 'var(--brand-texto)' }}>
                   {aluno.nome}
                 </p>
-                <p className="text-white/40 text-xs capitalize">
+                <p className="text-xs capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
                   {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
                 </p>
               </div>
               {!aluno.ativo && (
-                <span className="text-xs text-white/30 uppercase tracking-wider flex-shrink-0"
-                  style={{ fontFamily: 'var(--font-oswald)' }}>
+                <span className="text-xs uppercase tracking-wider flex-shrink-0" style={{ color: 'var(--brand-texto-muted)' }}>
                   Inativo
                 </span>
               )}

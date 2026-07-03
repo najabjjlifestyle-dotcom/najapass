@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AttendanceList from './attendance-list'
 import TecnicasAula from './tecnicas-aula'
+import BackButton from '@/components/back-button'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
@@ -128,9 +129,9 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-5 pt-12 pb-5 flex items-start gap-3"
+      <header className="px-5 pt-safe pb-5 flex items-start gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <Link href="/aulas" className="text-xl mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>←</Link>
+        <BackButton href="/aulas" />
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>

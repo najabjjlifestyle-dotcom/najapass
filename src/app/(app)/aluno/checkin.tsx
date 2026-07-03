@@ -40,28 +40,31 @@ export default function CheckinCard({
   }
 
   return (
-    <div className={`p-5 rounded-2xl border transition-all ${
-      checked ? 'bg-white border-white' : 'bg-white/5 border-white/20'
-    }`}>
+    <div className="p-5 rounded-2xl transition-all"
+      style={{
+        background: checked ? 'var(--brand-gold)' : 'var(--brand-surf)',
+        border: `1px solid ${checked ? 'var(--brand-gold)' : 'var(--brand-border)'}`,
+      }}>
       <div className="flex items-center justify-between">
         <div>
-          <p className={`text-xs uppercase tracking-widest mb-1 ${checked ? 'text-black/50' : 'text-white/40'}`}
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <p className="text-xs uppercase tracking-widest mb-1"
+            style={{ color: checked ? 'rgba(0,0,0,0.5)' : 'var(--brand-texto-muted)' }}>
             Aula ao vivo
           </p>
-          <p className={`font-bold uppercase tracking-wider text-lg ${checked ? 'text-black' : 'text-white'}`}
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <p className="font-bold uppercase tracking-wider text-lg"
+            style={{ color: checked ? '#000' : 'var(--brand-texto)' }}>
             {aula.turma_nome ?? 'Aula Avulsa'}
           </p>
           {aula.tema && (
-            <p className={`text-sm italic mt-0.5 ${checked ? 'text-black/60' : 'text-white/50'}`}>
+            <p className="text-sm italic mt-0.5" style={{ color: checked ? 'rgba(0,0,0,0.6)' : 'var(--brand-texto-sec)' }}>
               "{aula.tema}"
             </p>
           )}
           {aula.video_url && (
             <a href={aula.video_url} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
-              className={`inline-flex items-center gap-1 text-xs mt-1 underline underline-offset-2 ${checked ? 'text-black/60' : 'text-white/50'}`}>
+              className="inline-flex items-center gap-1 text-xs mt-1 underline underline-offset-2"
+              style={{ color: checked ? 'rgba(0,0,0,0.6)' : 'var(--brand-texto-sec)' }}>
               ▶ Link de estudo
             </a>
           )}
@@ -69,9 +72,11 @@ export default function CheckinCard({
             <div className="flex flex-wrap gap-1 mt-2">
               {aula.planejadas.map((p, i) => (
                 <span key={i}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
-                    checked ? 'bg-black/10 text-black/70' : 'bg-white/10 text-white/60'
-                  }`}>
+                  className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide"
+                  style={{
+                    background: checked ? 'rgba(0,0,0,0.1)' : 'var(--brand-surf-2)',
+                    color: checked ? 'rgba(0,0,0,0.7)' : 'var(--brand-texto-sec)',
+                  }}>
                   {p}
                 </span>
               ))}
@@ -81,36 +86,34 @@ export default function CheckinCard({
         <button
           onClick={toggle}
           disabled={loading}
-          className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all disabled:opacity-50 flex-shrink-0 ${
-            checked
-              ? 'bg-black text-white'
-              : 'border-2 border-white/30 text-white/30 hover:border-white hover:text-white'
-          }`}>
+          className="w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all disabled:opacity-50 flex-shrink-0 active:scale-90"
+          style={checked
+            ? { background: '#000', color: 'var(--brand-gold)' }
+            : { border: '2px solid var(--brand-border-str)', color: 'var(--brand-texto-muted)' }}>
           {loading ? '⟳' : checked ? '✓' : '○'}
         </button>
       </div>
 
       {checked && (
-        <p className="text-black/50 text-xs mt-3 uppercase tracking-widest"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+        <p className="text-xs mt-3 uppercase tracking-widest" style={{ color: 'rgba(0,0,0,0.5)' }}>
           Check-in confirmado · toque para cancelar
         </p>
       )}
 
       <button
         onClick={() => setShowQuemVai(v => !v)}
-        className={`text-xs mt-3 uppercase tracking-widest underline underline-offset-2 ${checked ? 'text-black/50' : 'text-white/40'}`}
-        style={{ fontFamily: 'var(--font-oswald)' }}>
+        className="text-xs mt-3 uppercase tracking-widest underline underline-offset-2"
+        style={{ color: checked ? 'rgba(0,0,0,0.5)' : 'var(--brand-texto-muted)' }}>
         {aula.confirmados.length} confirmado{aula.confirmados.length !== 1 ? 's' : ''} · ver quem vai
       </button>
 
       {showQuemVai && (
         <div className="mt-2 space-y-1">
           {aula.confirmados.length === 0 ? (
-            <p className={`text-xs ${checked ? 'text-black/40' : 'text-white/30'}`}>Ninguém confirmou ainda.</p>
+            <p className="text-xs" style={{ color: checked ? 'rgba(0,0,0,0.4)' : 'var(--brand-texto-muted)' }}>Ninguém confirmou ainda.</p>
           ) : (
             aula.confirmados.map((c, i) => (
-              <p key={i} className={`text-xs ${checked ? 'text-black/60' : 'text-white/50'}`}>
+              <p key={i} className="text-xs" style={{ color: checked ? 'rgba(0,0,0,0.6)' : 'var(--brand-texto-sec)' }}>
                 {c.nome}{c.visitante ? ' (visitante)' : ''}
               </p>
             ))

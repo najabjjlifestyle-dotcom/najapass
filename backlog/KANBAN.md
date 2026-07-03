@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-02 (v1.3 — branch `feat/sprint7-pendencias`, todos os cards pendentes resolvidos)
+**Atualizado em:** 2026-07-02 (v1.5 — B-037 e B-038 concluídos na branch `feat/sprint8-mobile-makeover`)
 
 ---
 
@@ -44,8 +44,11 @@
 | B-034 | Foto de perfil do aluno | Alunos |
 | B-035 | Push Notification — aula aberta | Notificações |
 | B-036 | Avisos da academia | Avisos |
+| B-037 | Banho de loja — consistência visual e mobile-first | Design/UX |
+| B-038 | Foto de perfil do professor | Alunos/Academia |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
+> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover` — ver seção de detalhes abaixo.
 
 ---
 
@@ -55,9 +58,41 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ---
 
+## 🔍 Detalhes B-037 / B-038 (branch `feat/sprint8-mobile-makeover`)
+
+**B-037 — Banho de loja**, seguindo `HANDOFF-004-banho-de-loja.md` + auditoria própria pedida pelo usuário:
+- BUG-01/02/03 do handoff corrigidos, mais dois problemas achados na investigação que não estavam listados: `--font-geist-sans` no fix sugerido do BUG-01 era referência morta (nunca existiu Geist no projeto, só Oswald/Inter) — usei `var(--font-inter)`; e o **root** `layout.tsx` também tinha `bg-black` hardcoded, um nível acima do `(app)/layout.tsx` que o handoff mencionava.
+- Bottom nav (Início/Alunos/Histórico/Perfil) só pro professor — portal do aluno continua single-page por design, conforme o handoff pediu.
+- Back buttons com touch target 44px em ~17 páginas (achei mais ocorrências do que o grep exato do handoff listava).
+- Consistência de tokens `--brand-*` + `active:scale` em todas as páginas secundárias (alunos, turmas, aulas, solicitações, onboarding, boas-vindas, login).
+- Estado "presente"/"check-in feito" trocou de branco pra gold em `attendance-list.tsx` e `checkin.tsx`.
+- Removidas 97 ocorrências de `fontFamily: var(--font-oswald)` em 14 arquivos + o import do Oswald no root layout (não sobrou nenhum uso).
+- Safe-area (`.pt-safe`) aplicada nos 18 headers que usavam `pt-12`.
+- **Gap real encontrado na auditoria pedida:** professor não tinha como subir foto de perfil (só aluno tinha) → virou o card B-038.
+- **3 rotas órfãs encontradas** (`/tecnicas`, `/professores`, `/relatorios` — existiam e funcionavam mas sem link nenhum na UI): resolvidas com uma seção "Mais" dentro de `/perfil`.
+
+**B-038 — Foto de perfil do professor:** `professores.foto_url` + policies de storage no bucket `avatars` já existente (mesmo mecanismo do aluno). Aproveitei pra renomear o prop `alunoId` do componente `AvatarUpload` pra `entityId`, já que ele virou genérico (usado por aluno e professor).
+
+⚠️ **Descoberta durante a implementação:** apareceu `HANDOFF-005-insights.md` no repo (cards B-039/B-040/B-042) que assume um item **"Insights" direto no bottom nav** apontando pra `/relatorios` — diferente da solução "Mais em /perfil" que usei aqui pra essas 3 rotas órfãs. Vale reavaliar o bottom nav quando o B-039 entrar em execução.
+
+---
+
+## 📋 Backlog (EP-12 — próxima sprint)
+
+| ID | Card | Prioridade |
+|---|---|---|
+| B-039 | Tela de Insights (`/relatorios`) | P1 |
+| B-040 | Insight dinâmico no dashboard | P2 |
+| B-042 | Candidatos a graduação | P2 |
+
+> B-041 (integração com Claude chat) descartado — o app deve ser autossuficiente.
+> HANDOFF-005 já está no repo pronto pra implementação, mas depende do B-037 estar mergeado antes.
+
+---
+
 ## 🟡 Em Progresso
 
-*Nenhum card em progresso no momento.*
+*Nenhum card em progresso no momento — B-037/B-038 concluídos, aguardando push/PR/merge.*
 
 ---
 
@@ -69,7 +104,7 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ## ⚠️ Pendências operacionais (não são cards, mas bloqueiam funcionamento pleno)
 
-1. **Migrations não aplicadas.** As migrations novas desta branch (`20260702000002_quem_vai.sql`, `20260702000003_avatars_storage.sql`, `20260702000004_push_subscriptions.sql`) não foram aplicadas ao banco — o projeto Supabase do NajaPass não estava linkado no Supabase CLI desta máquina (só apareciam outros projetos não relacionados). Rodar `supabase link` + `supabase db push`, ou aplicar via SQL Editor do painel Supabase.
+1. **Migrations não aplicadas.** Nenhuma migration criada nas branches `feat/sprint7-pendencias` e `feat/sprint8-mobile-makeover` foi aplicada ao banco — o projeto Supabase do NajaPass não estava linkado no Supabase CLI desta máquina (só apareciam outros projetos não relacionados). Rodar `supabase link` + `supabase db push`, ou aplicar via SQL Editor do painel Supabase, na ordem: `quem_vai.sql`, `avatars_storage.sql`, `push_subscriptions.sql`, `dedupe_categorias.sql`, `categorias_insert_policy.sql`, `foto_professor.sql` (todas com timestamp `202607020000XX`).
 2. **Chaves VAPID.** Geradas localmente e adicionadas ao `.env.local` (gitignored). Para push funcionar em produção, adicionar `NEXT_PUBLIC_VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` nas env vars do projeto na Vercel.
 3. **Sem suíte de testes.** O CLAUDE.md cita Vitest como parte da stack, mas não há `vitest` no `package.json` nem testes escritos. Fora do escopo desta branch.
 

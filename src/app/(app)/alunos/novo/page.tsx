@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { cadastrarAluno } from '../actions'
+import BackButton from '@/components/back-button'
 
 const FAIXAS = ['branca', 'cinza', 'amarela', 'laranja', 'verde', 'azul', 'roxa', 'marrom', 'preta']
 
@@ -29,11 +29,10 @@ export default function NovoAlunoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="px-6 pt-12 pb-6 border-b border-white/10 flex items-center gap-3">
-        <Link href="/alunos" className="text-white/40 hover:text-white transition-colors text-xl">←</Link>
-        <h1 className="text-white font-bold text-xl uppercase tracking-wider"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
+      <header className="px-6 pt-safe pb-6 flex items-center gap-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+        <BackButton href="/alunos" />
+        <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
           Novo Aluno
         </h1>
       </header>
@@ -42,31 +41,31 @@ export default function NovoAlunoPage() {
         <form onSubmit={handleSubmit} className="space-y-4 max-w-sm">
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Nome *</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Nome *</label>
             <input name="nome" type="text" required placeholder="Nome completo"
-              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors" />
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base placeholder-white/30 focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>E-mail</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>E-mail</label>
             <input name="email" type="email" placeholder="email@exemplo.com"
-              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors" />
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base placeholder-white/30 focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Telefone</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Telefone</label>
             <input name="telefone" type="tel" placeholder="(11) 99999-9999"
-              className="w-full px-4 py-3 rounded-xl bg-transparent border border-white/30 text-white placeholder-white/30 focus:outline-none focus:border-white text-base transition-colors" />
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base placeholder-white/30 focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Faixa</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Faixa</label>
             <select name="faixa" defaultValue="branca"
-              className="w-full px-4 py-3 rounded-xl bg-black border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors">
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
               {FAIXAS.map(f => (
                 <option key={f} value={f} className="bg-black">
                   {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -76,10 +75,10 @@ export default function NovoAlunoPage() {
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-widest text-white/50 mb-2"
-              style={{ fontFamily: 'var(--font-oswald)' }}>Grau</label>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Grau</label>
             <select name="grau" defaultValue="0"
-              className="w-full px-4 py-3 rounded-xl bg-black border border-white/30 text-white focus:outline-none focus:border-white text-base transition-colors">
+              className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
               {[0, 1, 2, 3, 4].map(g => (
                 <option key={g} value={g} className="bg-black">
                   {g === 0 ? 'Sem grau' : `${g}º grau`}
@@ -88,11 +87,11 @@ export default function NovoAlunoPage() {
             </select>
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
 
           <button type="submit" disabled={loading}
-            className="w-full py-3 rounded-xl bg-white hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-base uppercase tracking-widest transition-colors mt-2"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+            className="w-full py-3 rounded-xl font-bold text-base uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98] mt-2"
+            style={{ background: 'var(--brand-gold)', color: '#000' }}>
             {loading ? 'Cadastrando...' : 'Cadastrar aluno'}
           </button>
         </form>

@@ -60,15 +60,15 @@ export default function EnrollmentManager({
       {/* Add student */}
       {pool.length > 0 && (
         <div>
-          <p className="text-xs uppercase tracking-widest text-white/50 mb-2"
-            style={{ fontFamily: 'var(--font-oswald)' }}>
+          <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
             Matricular aluno
           </p>
           <div className="flex gap-2">
             <select
               value={selecionado}
               onChange={e => setSelecionado(e.target.value)}
-              className="flex-1 px-4 py-3 rounded-xl bg-black border border-white/30 text-white focus:outline-none focus:border-white text-sm transition-colors">
+              className="flex-1 px-4 py-3 rounded-xl bg-transparent text-sm transition-colors focus:outline-none"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
               <option value="" className="bg-black">Selecionar aluno...</option>
               {pool.map(a => (
                 <option key={a.id} value={a.id} className="bg-black">{a.nome}</option>
@@ -77,8 +77,8 @@ export default function EnrollmentManager({
             <button
               onClick={handleMatricular}
               disabled={!selecionado}
-              className="px-4 py-3 bg-white text-black font-bold text-sm uppercase tracking-wider rounded-xl disabled:opacity-30 transition-colors"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+              className="px-4 py-3 font-bold text-sm uppercase tracking-wider rounded-xl disabled:opacity-30 transition-transform active:scale-[0.98]"
+              style={{ background: 'var(--brand-gold)', color: '#000' }}>
               + Add
             </button>
           </div>
@@ -87,29 +87,27 @@ export default function EnrollmentManager({
 
       {/* Enrolled list */}
       <div>
-        <p className="text-xs uppercase tracking-widest text-white/50 mb-2"
-          style={{ fontFamily: 'var(--font-oswald)' }}>
+        <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
           {lista.length} aluno{lista.length !== 1 ? 's' : ''} matriculado{lista.length !== 1 ? 's' : ''}
         </p>
         <div className="space-y-2">
           {lista.length === 0 ? (
-            <p className="text-center text-white/20 text-sm py-6 uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-oswald)' }}>
+            <p className="text-center text-sm py-6 uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhum aluno matriculado
             </p>
           ) : (
             lista.map(aluno => (
               <div key={aluno.id}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5">
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
                 <div className={`w-3 h-8 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
-                <p className="flex-1 text-white font-bold uppercase tracking-wider text-sm truncate"
-                  style={{ fontFamily: 'var(--font-oswald)' }}>
+                <p className="flex-1 font-bold uppercase tracking-wider text-sm truncate" style={{ color: 'var(--brand-texto)' }}>
                   {aluno.nome}
                 </p>
                 <button
                   onClick={() => handleRemover(aluno)}
-                  className="text-white/30 hover:text-red-400 transition-colors text-xs uppercase tracking-wider"
-                  style={{ fontFamily: 'var(--font-oswald)' }}>
+                  className="text-xs uppercase tracking-wider active:opacity-60 transition-opacity"
+                  style={{ color: 'var(--brand-texto-muted)' }}>
                   Remover
                 </button>
               </div>
