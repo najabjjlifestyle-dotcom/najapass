@@ -63,6 +63,7 @@ export async function updateFotoPropria(fotoUrl: string) {
   if (error) return { error: 'Erro ao salvar foto.' }
 
   revalidatePath('/aluno')
+  revalidatePath('/aluno/perfil')
   return { success: true }
 }
 

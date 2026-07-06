@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Check, Circle } from 'lucide-react'
 import { fazerCheckin, cancelarCheckin } from './actions'
 
 type Confirmado = { nome: string; visitante: boolean }
@@ -86,11 +87,15 @@ export default function CheckinCard({
         <button
           onClick={toggle}
           disabled={loading}
-          className="w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all disabled:opacity-50 flex-shrink-0 active:scale-90"
+          className="w-14 h-14 rounded-full flex items-center justify-center transition-all disabled:opacity-50 flex-shrink-0 active:scale-90"
           style={checked
             ? { background: '#000', color: 'var(--brand-gold)' }
             : { border: '2px solid var(--brand-border-str)', color: 'var(--brand-texto-muted)' }}>
-          {loading ? '⟳' : checked ? '✓' : '○'}
+          {loading
+            ? <span className="animate-spin block w-5 h-5 border-2 rounded-full"
+                style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }} />
+            : checked ? <Check size={22} strokeWidth={2.5} /> : <Circle size={22} strokeWidth={1.5} />
+          }
         </button>
       </div>
 
