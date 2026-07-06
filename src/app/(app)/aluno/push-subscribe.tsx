@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Bell, BellOff } from 'lucide-react'
 import { salvarPushSubscription, removerPushSubscription } from './actions'
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -74,7 +75,12 @@ export default function PushSubscribeButton() {
 
   if (status === 'denied') {
     return (
-      <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>Notificações bloqueadas no navegador.</p>
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+        title="Notificações bloqueadas"
+        style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+        <BellOff size={16} style={{ color: 'var(--brand-texto-muted)' }} />
+      </div>
     )
   }
 
@@ -82,9 +88,18 @@ export default function PushSubscribeButton() {
     <button
       onClick={status === 'subscribed' ? desativar : ativar}
       disabled={loading}
-      className="text-[10px] uppercase tracking-widest underline underline-offset-2 disabled:opacity-40"
-      style={{ color: 'var(--brand-texto-muted)' }}>
-      {loading ? '...' : status === 'subscribed' ? 'Desativar notificações' : 'Ativar notificações'}
+      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform disabled:opacity-40"
+      title={status === 'subscribed' ? 'Desativar notificações' : 'Ativar notificações'}
+      style={{
+        background: status === 'subscribed' ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
+        border: `1px solid ${status === 'subscribed' ? 'var(--brand-gold-border)' : 'var(--brand-border)'}`,
+      }}>
+      {loading
+        ? <span style={{ fontSize: 12, color: 'var(--brand-texto-muted)' }}>…</span>
+        : status === 'subscribed'
+          ? <Bell size={16} style={{ color: 'var(--brand-gold)' }} />
+          : <BellOff size={16} style={{ color: 'var(--brand-texto-muted)' }} />
+      }
     </button>
   )
 }

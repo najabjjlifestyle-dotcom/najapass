@@ -1,57 +1,39 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import CheckinCard from './checkin'
 import AvatarUpload from '@/components/avatar-upload'
 import { updateFotoPropria } from './actions'
 import PushSubscribeButton from './push-subscribe'
 
-const FAIXA_COR: Record<string, string> = {
-  branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
-  laranja: 'bg-orange-400', verde: 'bg-green-400', azul: 'bg-blue-400',
-  roxa: 'bg-purple-400', marrom: 'bg-amber-700', preta: 'bg-gray-800 border border-white/20',
+const FAIXA_HEX: Record<string, string> = {
+  branca: '#FFFFFF', cinza: '#9CA3AF', amarela: '#FBBF24',
+  laranja: '#F97316', verde: '#16A34A', azul: '#2563EB',
+  roxa: '#7C3AED', marrom: '#92400E', preta: '#111111',
 }
 
-const DIAS_ABBR: Record<string, string> = {
-  domingo: 'Dom', segunda: 'Seg', terca: 'Ter', quarta: 'Qua',
-  quinta: 'Qui', sexta: 'Sex', sabado: 'Sáb',
+const DIA_MAP: Record<string, number> = {
+  domingo: 0, segunda: 1, terca: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6,
 }
 
-export default async function AlunoPortalPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+const DIA_LABEL: Record<string, string> = {
+  domingo: 'domingo', segunda: 'segunda-feira', terca: 'terça-feira',
+  quarta: 'quarta-feira', quinta: 'quinta-feira', sexta: 'sexta-feira', sabado: 'sábado',
+}
 
-  // Check if professor — redirect to dashboard
-  const { data: professor } = await supabase
-    .from('professores')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+function calcularProximoTreino(turmas: { dias_semana: string[] | null }[]): string | null {
+  const hoje = new Date().getDay()
+  const dias = turmas.flatMap(t => t.dias_semana ?? [])
+  if (dias.length === 0) return null
+  const diasNums = [...new Set(dias.map(d => DIA_MAP[d] ?? -1).filter(n => n >= 0))].sort((a, b) => a - b)
+  if (diasNums.length === 0) return null
+  const proximo = diasNums.find(d => d > hoje) ?? diasNums[0]
+  const nomeDia = Object.entries(DIA_MAP).find(([, n]) => n === proximo)?.[0]
+  return nomeDia ? DIA_LABEL[nomeDia] ?? nomeDia : null
+}
 
-  if (professor) redirect('/dashboard')
+export default async function AlunoHomePage() {
+  const { aluno, supabase } = await getAlunoOuRedireciona()
 
-  const { data: aluno } = await supabase
-    .from('alunos')
-    .select('id, nome, faixa, grau, academia_id, foto_url')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (!aluno) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--brand-fundo)' }}>
-        <div className="text-center">
-          <p className="font-bold text-xl uppercase tracking-wider mb-2" style={{ color: 'var(--brand-texto)' }}>
-            Conta não vinculada
-          </p>
-          <p className="text-sm" style={{ color: 'var(--brand-texto-muted)' }}>
-            Peça ao seu professor para cadastrar seu e-mail no sistema.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // Active classes in this academia
+  // Aulas ativas na academia
   const { data: aulasAtivasData } = await supabase
     .from('aulas')
     .select('id, video_url, turmas(nome), tema:categorias_tecnicas(nome)')
@@ -66,7 +48,6 @@ export default async function AlunoPortalPage() {
   }
   const aulasAtivasRows = (aulasAtivasData ?? []) as unknown as AulaAtivaRow[]
 
-  // Quem vai + técnicas planejadas de cada aula ao vivo
   const aulasAtivas = await Promise.all(aulasAtivasRows.map(async (aula) => {
     const [{ data: quemVaiData }, { data: planejadasData }] = await Promise.all([
       supabase.rpc('quem_vai', { p_aula_id: aula.id }),
@@ -86,28 +67,22 @@ export default async function AlunoPortalPage() {
     }
   }))
 
-  // Check existing check-ins
   const aulaIds = aulasAtivas.map(a => a.id)
   const { data: checkins } = aulaIds.length > 0
-    ? await supabase
-        .from('presencas')
-        .select('aula_id')
-        .eq('aluno_id', aluno.id)
-        .in('aula_id', aulaIds)
+    ? await supabase.from('presencas').select('aula_id').eq('aluno_id', aluno.id).in('aula_id', aulaIds)
     : { data: [] }
-
   const checkinSet = new Set((checkins ?? []).map(c => c.aula_id))
 
-  // Turmas
+  // Turmas do aluno (usadas só para "técnicas da semana" e "próximo treino")
   const { data: turmasData } = await supabase
     .from('alunos_turmas')
-    .select('turmas(id, nome, dias_semana, horario)')
+    .select('turmas(id, nome, dias_semana)')
     .eq('aluno_id', aluno.id)
     .eq('ativo', true)
 
   const turmas = (turmasData ?? [])
-    .map(t => t.turmas as unknown as { id: string; nome: string; dias_semana: string[] | null; horario: string | null } | null)
-    .filter(Boolean) as { id: string; nome: string; dias_semana: string[] | null; horario: string | null }[]
+    .map(t => t.turmas as unknown as { id: string; nome: string; dias_semana: string[] | null } | null)
+    .filter(Boolean) as { id: string; nome: string; dias_semana: string[] | null }[]
 
   // Avisos ativos: da academia toda ou das turmas do aluno
   const turmaIdsDoAluno = turmas.map(t => t.id)
@@ -121,31 +96,6 @@ export default async function AlunoPortalPage() {
     .eq('ativo', true)
     .or(avisosFiltro)
     .order('criado_em', { ascending: false })
-
-  // Recent presences
-  const { data: presencasData } = await supabase
-    .from('presencas')
-    .select('aulas(data, tema, turmas(nome))')
-    .eq('aluno_id', aluno.id)
-    .order('registrado_em', { ascending: false })
-    .limit(10)
-
-  // Frequência: últimos 30/90 dias + última presença
-  const trintaDias = new Date(); trintaDias.setDate(trintaDias.getDate() - 30)
-  const noventaDias = new Date(); noventaDias.setDate(noventaDias.getDate() - 90)
-
-  const [{ count: presencas30 }, { count: presencas90 }, { data: ultimaPresenca }] = await Promise.all([
-    supabase.from('presencas').select('id', { count: 'exact', head: true })
-      .eq('aluno_id', aluno.id).gte('registrado_em', trintaDias.toISOString()),
-    supabase.from('presencas').select('id', { count: 'exact', head: true })
-      .eq('aluno_id', aluno.id).gte('registrado_em', noventaDias.toISOString()),
-    supabase.from('presencas').select('registrado_em')
-      .eq('aluno_id', aluno.id).order('registrado_em', { ascending: false }).limit(1).maybeSingle(),
-  ])
-
-  const diasDesdeUltima = ultimaPresenca?.registrado_em
-    ? Math.floor((Date.now() - new Date(ultimaPresenca.registrado_em).getTime()) / 86400000)
-    : null
 
   // Técnicas da Semana — posições desta semana filtradas pela faixa do aluno
   type PosicaoSemana = { data: string; turma_nome: string | null; posicoes: string[] }
@@ -195,33 +145,42 @@ export default async function AlunoPortalPage() {
     }
   }
 
+  // Empty state: próximo treino + treinos no mês
+  const proximoTreino = aulasAtivas.length === 0 ? calcularProximoTreino(turmas) : null
+  const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  const { count: treinosMes } = aulasAtivas.length === 0
+    ? await supabase.from('presencas').select('id', { count: 'exact', head: true })
+        .eq('aluno_id', aluno.id).gte('registrado_em', primeiroDiaMes.toISOString())
+    : { count: null }
+
   return (
-    <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-6 pt-safe pb-6" style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <div className="flex items-center gap-4">
-          <div className={`w-4 h-14 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
-          <div className="flex-1">
-            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-              Faixa {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
+    <div>
+      <div style={{ height: 3, background: FAIXA_HEX[aluno.faixa] ?? '#FFFFFF' }} />
+      <header
+        className="flex items-center gap-3 px-5 pt-safe pb-4"
+        style={{ borderBottom: '1px solid var(--brand-border)' }}>
+        <AvatarUpload
+          entityId={aluno.id}
+          nome={aluno.nome}
+          fotoUrlAtual={aluno.foto_url}
+          persist={updateFotoPropria}
+          size={44}
+        />
+        <div className="flex-1 min-w-0">
+          <h1 className="text-[20px] font-bold leading-tight truncate" style={{ color: 'var(--brand-texto)' }}>
+            {aluno.nome.split(' ')[0]}
+          </h1>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: FAIXA_HEX[aluno.faixa] ?? '#FFFFFF' }} />
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--brand-texto-muted)' }}>
+              {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
             </p>
-            <h1 className="font-bold text-2xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-              {aluno.nome.split(' ')[0]}
-            </h1>
           </div>
-          <AvatarUpload
-            entityId={aluno.id}
-            nome={aluno.nome}
-            fotoUrlAtual={aluno.foto_url}
-            persist={updateFotoPropria}
-            size={56}
-          />
         </div>
-        <div className="mt-3">
-          <PushSubscribeButton />
-        </div>
+        <PushSubscribeButton />
       </header>
 
-      <main className="px-6 pt-6 pb-10 space-y-6">
+      <main className="px-5 pt-5 space-y-5">
 
         {/* Avisos */}
         {(avisosData ?? []).length > 0 && (
@@ -244,47 +203,38 @@ export default async function AlunoPortalPage() {
           </div>
         )}
 
-        {/* Active classes — check-in */}
+        {/* Check-in ao vivo */}
         {aulasAtivas.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-              Fazer check-in
-            </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse" style={{ background: 'var(--brand-gold)' }} />
+              <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--brand-gold)' }}>
+                Aula ao vivo agora
+              </p>
+            </div>
             {aulasAtivas.map(aula => (
-              <CheckinCard
-                key={aula.id}
-                aula={aula}
-                jaFezCheckin={checkinSet.has(aula.id)}
-              />
+              <CheckinCard key={aula.id} aula={aula} jaFezCheckin={checkinSet.has(aula.id)} />
             ))}
           </div>
         )}
 
-        {/* Turmas */}
-        {turmas.length > 0 && (
-          <div>
-            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-              Minhas turmas
+        {/* Empty state — próximo treino + contagem do mês */}
+        {aulasAtivas.length === 0 && (
+          <div className="rounded-2xl px-5 py-6 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+              Nenhuma aula ao vivo agora
             </p>
-            <div className="space-y-2">
-              {turmas.map(t => (
-                <div key={t.id} className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  <p className="font-bold uppercase tracking-wider text-sm" style={{ color: 'var(--brand-texto)' }}>
-                    {t.nome}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {t.dias_semana?.map(d => (
-                      <span key={d} className="text-xs px-2 py-0.5 rounded" style={{ color: 'var(--brand-texto-muted)', background: 'var(--brand-surf-2)' }}>
-                        {DIAS_ABBR[d] ?? d}
-                      </span>
-                    ))}
-                    {t.horario && (
-                      <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>· {t.horario.substring(0, 5)}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {proximoTreino && (
+              <p className="text-[13px] font-bold mt-1" style={{ color: 'var(--brand-texto)' }}>
+                Próximo treino: <span style={{ color: 'var(--brand-gold)' }}>{proximoTreino}</span>
+              </p>
+            )}
+            {(treinosMes ?? 0) > 0 && (
+              <p className="text-[11px] mt-3" style={{ color: 'var(--brand-texto-muted)' }}>
+                <span style={{ color: 'var(--brand-gold)', fontWeight: 700, fontSize: 18 }}>{treinosMes}</span>
+                {' '}treinos este mês
+              </p>
+            )}
           </div>
         )}
 
@@ -321,70 +271,6 @@ export default async function AlunoPortalPage() {
                 )
               })}
             </div>
-          </div>
-        )}
-
-        {/* Frequência */}
-        {(presencas30 ?? 0) > 0 || (presencas90 ?? 0) > 0 ? (
-          <div>
-            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-              Meu histórico
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="px-4 py-3 rounded-2xl text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                <p className="font-bold text-2xl" style={{ color: 'var(--brand-texto)' }}>
-                  {presencas30 ?? 0}
-                </p>
-                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: 'var(--brand-texto-muted)' }}>Últimos 30 dias</p>
-              </div>
-              <div className="px-4 py-3 rounded-2xl text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                <p className="font-bold text-2xl" style={{ color: 'var(--brand-texto)' }}>
-                  {presencas90 ?? 0}
-                </p>
-                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: 'var(--brand-texto-muted)' }}>Últimos 90 dias</p>
-              </div>
-            </div>
-            {diasDesdeUltima !== null && (
-              <p className="text-xs mt-2" style={{ color: 'var(--brand-texto-muted)' }}>
-                Última presença: {diasDesdeUltima === 0 ? 'hoje' : diasDesdeUltima === 1 ? 'ontem' : `${diasDesdeUltima} dias atrás`}
-              </p>
-            )}
-          </div>
-        ) : null}
-
-        {/* Recent presences */}
-        {(presencasData ?? []).length > 0 && (
-          <div>
-            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-              Presenças recentes
-            </p>
-            <div className="space-y-1">
-              {(presencasData ?? []).map((p, i) => {
-                const aula = p.aulas as unknown as { data: string; tema: string | null; turmas: { nome: string } | null } | null
-                if (!aula) return null
-                const turma = aula.turmas
-                const data = new Date(aula.data + 'T12:00:00').toLocaleDateString('pt-BR', {
-                  weekday: 'short', day: '2-digit', month: 'short',
-                })
-                return (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ border: '1px solid var(--brand-border)' }}>
-                    <p className="text-xs" style={{ color: 'var(--brand-texto-sec)' }}>
-                      {turma?.nome ?? 'Aula avulsa'}
-                      {aula.tema ? ` · ${aula.tema}` : ''}
-                    </p>
-                    <p className="text-xs flex-shrink-0 ml-2 capitalize" style={{ color: 'var(--brand-texto-muted)' }}>{data}</p>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {aulasAtivas.length === 0 && turmas.length === 0 && (presencasData ?? []).length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-sm uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-              Nenhuma aula ativa no momento
-            </p>
           </div>
         )}
       </main>

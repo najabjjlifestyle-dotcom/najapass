@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-03 (v1.7 — currículo global de técnicas na branch `feat/sprint10-curriculo-global`)
+**Atualizado em:** 2026-07-06 (v2.0 — B-043/B-044 concluídos na branch `feat/sprint11-portal-aluno-v2`; EP-14/B-045-047 seguem no backlog)
 
 ---
 
@@ -59,9 +59,11 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-039 | Tela de Insights (`/relatorios`) | Dashboard |
 | B-040 | Insight dinâmico no dashboard | Dashboard |
 | B-042 | Candidatos a graduação | Alunos |
+| B-043 | Portal do Aluno V2 — multi-page com bottom nav | Aluno App |
+| B-044 | Técnicas aprendidas do aluno (`/aluno/tecnicas`) | Aluno App |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
-> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008) — ver seções de detalhes abaixo.
+> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`, que já tinha o sprint10 mergeado) — ver seções de detalhes abaixo.
 
 ---
 
@@ -102,10 +104,30 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ---
 
+## 🔍 Detalhes B-043 / B-044 + HANDOFF-006 (branch `feat/sprint11-portal-aluno-v2`, a partir da `main`)
+
+**HANDOFF-006 (banho de loja do portal do aluno)** aplicado direto no redesign, sem passo intermediário: fita de cor da faixa no topo do header, avatar+nome+faixa compactos, `PushSubscribeButton` virou ícone de sino (Bell/BellOff do lucide) em vez de texto sublinhado, check-in com título "Aula ao vivo agora" + dot pulsante, spinner/ícones Check/Circle no botão de check-in em vez de caracteres unicode (`⟳ ✓ ○`), empty state mostra "Próximo treino: {dia}" + contagem de treinos do mês em vez de um beco sem saída, `/aluno/sem-conta` com ícone `UserX`.
+
+**B-043 — Portal do Aluno V2:** `src/lib/aluno-auth.ts` centraliza auth (`getAlunoOuRedireciona`, redireciona pra `/aluno/sem-conta` quando não encontra vínculo); `src/components/aluno-bottom-nav.tsx` + `src/app/(app)/aluno/layout.tsx` injetam a nav (Home/Técnicas/Histórico/Perfil) em todas as `/aluno/*`, oculta em `/aluno/sem-conta`. Home (`/aluno`) enxugada: só check-in + avisos + técnicas da semana + empty state — frequência, presenças recentes e turmas migraram pra `/aluno/historico` e `/aluno/perfil`.
+
+**B-044 — Técnicas aprendidas (`/aluno/tecnicas`):** cruza `presencas` (aulas que o aluno esteve) × `aula_tecnicas` (tipo='ensinada') × `tecnicas` (currículo global + da academia, do sprint10) agrupado por categoria, com barra de progresso e chips gold (vistas) / cinza (não vistas), ordenado por % de cobertura. Zero migration nova — currículo global do sprint10 supre toda a base.
+
+⚠️ **Nota de layout:** o `(app)/layout.tsx` do professor já envolve todas as rotas (inclusive `/aluno/*`) num wrapper `pb-16` fixo, mesmo com o `BottomNav` do professor retornando `null` em `/aluno*`. O novo `aluno/layout.tsx` soma seu próprio `pb-20`, resultando em ~144px de espaço em branco no fundo das telas do aluno em vez de ~80px. Cosmético, não funcional — ajustar se incomodar visualmente após deploy.
+
+---
+
 ## 📋 Backlog
 
-*Nenhum card pendente no momento.*
+### EP-14 — Agendamento e Recorrência
 
+| ID | Card | Épico | Branch sugerida |
+|---|---|---|---|
+| B-045 | Aulas agendadas — professor cria e gerencia aulas futuras | EP-14 | `feat/sprint12-agendamento` |
+| B-046 | Recorrência — gerar ciclo de aulas a partir da turma | EP-14 | (mesmo sprint, depois de B-045) |
+| B-047 | Portal do aluno — próximas aulas agendadas | EP-14 | (mesmo sprint, depende de B-045) |
+
+> Sprint 12 deve partir de `feat/sprint11-portal-aluno-v2` (requer `getAlunoOuRedireciona` helper).  
+> B-045 é pré-requisito de B-046 e B-047 — implementar nessa ordem.  
 > B-041 (integração com Claude chat) descartado — o app deve ser autossuficiente.
 
 ---
