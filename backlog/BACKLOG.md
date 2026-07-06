@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-02 (v1.3)  
+**Última atualização:** 2026-07-06 (v1.4)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v1.4: Adicionados EP-13 (Aluno — Jornada) com cards B-043 e B-044. Portal do aluno expandido para multi-page com nav bar focada em aprendizado.
 - v1.3: Adicionados EP-12 (Insights) com cards B-037 a B-042 (exceto B-041, descartado). B-037/B-038 são UX (banho de loja), B-039/B-040/B-042 são Insights.
 - v1.2: Branch `feat/sprint7-pendencias` fecha todos os cards P0/P1 pendentes (B-005, B-008, B-009, B-011, B-015, B-017, B-021, B-025, B-028, B-030, B-031, B-032, B-034, B-035, B-036). Ver `backlog/KANBAN.md` para detalhes e pendências operacionais (migrations a aplicar, chaves VAPID a configurar na Vercel).
 - v1.1: Adicionado EP-11 (Aluno — App), novos cards B-027 a B-033. Atualizado EP-01 (autenticação dual). EP-06 atualizado com visitantes. EP-05 atualizado com tema/vídeo.
@@ -27,6 +28,8 @@
 | EP-10 | PWA & Deploy | 🔴 P0 |
 | EP-11 | Aluno — App (check-in, aula, histórico) | 🔴 P0 |
 | EP-12 | Insights & UX Mobile | 🟡 P1 |
+| EP-13 | Aluno — Jornada de Aprendizado | 🟡 P1 |
+| EP-14 | Agendamento e Recorrência | 🟡 P1 |
 
 ---
 
@@ -450,6 +453,99 @@ Como professor, quero saber quais alunos têm presença suficiente para uma pote
 - Exibe alunos com X+ presenças desde o último registro de faixa/grau (threshold configurável por professor)
 - Não toma decisão de graduar — apenas sinaliza candidatos
 - Threshold padrão sugerido: 50 presenças para subir de grau, 120 para subir de faixa (ajustável)
+
+---
+
+---
+
+### EP-13 · Aluno — Jornada de Aprendizado
+
+#### B-043 · Portal do Aluno V2 — Multi-page com bottom nav
+**Prioridade:** P1 | **Estimativa:** L  
+Como aluno, quero um app com navegação clara entre as seções, não uma única tela com tudo empilhado.
+
+**Critérios de aceite:**
+- Bottom nav do aluno com 4 itens: Home / Técnicas / Histórico / Perfil
+- Nav aparece em todas as rotas `/aluno/*`, nunca no portal do professor
+- `/aluno` (Home): check-in ao vivo + avisos + técnicas da semana + empty state com próximo treino
+- `/aluno/historico`: frequência 30/90d + lista de presenças com técnicas de cada aula
+- `/aluno/perfil`: avatar editável + faixa + turmas + toggle de notificações
+- Helper `src/lib/aluno-auth.ts` centraliza auth check (sem duplicar lógica em cada página)
+- Layout `src/app/(app)/aluno/layout.tsx` injeta o nav e padding `pb-20`
+
+**Referência:** `HANDOFF-007-portal-aluno-v2.md` na raiz do projeto.
+
+---
+
+#### B-044 · Técnicas aprendidas do aluno (`/aluno/tecnicas`)
+**Prioridade:** P1 | **Estimativa:** M  
+Como aluno, quero ver todas as posições que já passei em aula, agrupadas por categoria, com barra de progresso mostrando minha cobertura do currículo.
+
+**Critérios de aceite:**
+- Página `/aluno/tecnicas` lista todas as categorias do currículo global
+- Para cada categoria: barra de progresso (técnicas vistas / total), contagem X/Y
+- Técnicas que o aluno viu (estava presente quando foram ensinadas) = chips dourados
+- Técnicas do currículo não vistas = chips cinzas discretos
+- Categorias ordenadas por % de cobertura (mais conhecida primeiro)
+- Empty state quando aluno ainda não tem nenhuma presença
+- Dados: `presencas` × `aula_tecnicas (tipo='ensinada')` × `tecnicas (global=true)`
+- Sem nova migration — toda a estrutura já existe desde o sprint10 (currículo global)
+
+**Referência:** `HANDOFF-007-portal-aluno-v2.md` (seção 5).
+
+---
+
+### EP-14 · Agendamento e Recorrência
+
+#### B-045 · Aulas agendadas — professor cria e gerencia aulas futuras
+**Prioridade:** P1 | **Estimativa:** L  
+Como professor, quero criar aulas para datas futuras e vê-las no dashboard para abrir no momento certo.
+
+**Critérios de aceite:**
+- Formulário de nova aula aceita datas futuras (campo `data` + campo `horario`)
+- Aula com data futura salva com `status='agendada'` automaticamente
+- Dashboard exibe seção "Próximas aulas" com as agendadas dos próximos 14 dias
+- Cada card de agendada exibe: turma, data, horário, contagem de confirmados
+- Botão "Abrir" muda status para 'aberta' e dispara push notification
+- Botão "Cancelar" cancela a aula sem apagar histórico de pré-confirmações
+- Migration: `ALTER TABLE aulas ADD COLUMN horario TEXT`
+- Migration: verificar e atualizar constraint de status se necessário
+
+**Referência:** `HANDOFF-008-aulas-agendadas-recorrentes.md`.
+
+---
+
+#### B-046 · Recorrência — gerar ciclo de aulas a partir da turma
+**Prioridade:** P1 | **Estimativa:** M  
+Como professor, quero gerar automaticamente as aulas da semana com um clique, baseado nos dias configurados na turma.
+
+**Critérios de aceite:**
+- Na página da turma: seção "Gerar aulas" com seletor 1/2/4 semanas
+- Preview antes de confirmar: "Vai criar X aulas entre {início} e {fim}"
+- Algoritmo calcula datas baseado em `turma.dias_semana` e `turma.horario`
+- Datas onde já existe aula (status='agendada' ou 'aberta') são ignoradas (sem duplicatas)
+- Aulas geradas com `status='agendada'`, podendo ser editadas antes de abrir
+- Toast de confirmação: "X aulas criadas"
+- Utilitário `src/lib/gerar-aulas.ts` com função `calcularDatasRecorrentes` (puro TS, testável)
+
+**Referência:** `HANDOFF-008-aulas-agendadas-recorrentes.md` (seção B-046).
+
+---
+
+#### B-047 · Portal do aluno — próximas aulas agendadas
+**Prioridade:** P1 | **Estimativa:** M  
+Como aluno, quero ver as próximas aulas da minha turma no app, mesmo fora do horário de treino, e poder confirmar minha presença antecipadamente.
+
+**Critérios de aceite:**
+- Home do aluno (`/aluno`) exibe seção "Próximas aulas" quando não há aula ao vivo
+- Lista as aulas agendadas das turmas do aluno, ordenadas por data/horário
+- Cada card exibe: dia da semana + data, turma, horário, contagem de confirmados, técnicas planejadas (se houver)
+- Aluno pode pré-confirmar presença (mesmo mecanismo de check-in — tabela `presencas`)
+- Quando professor abre a aula (status → 'aberta'), os pré-confirmados já constam como presentes
+- Fallback hierárquico: aula ao vivo > agendadas futuras > empty state com "Próximo treino: {dia}"
+- Aulas canceladas NÃO aparecem na home do aluno
+
+**Referência:** `HANDOFF-008-aulas-agendadas-recorrentes.md` (seção B-047).
 
 ---
 

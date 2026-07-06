@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-03 (v1.7 — currículo global de técnicas na branch `feat/sprint10-curriculo-global`)
+**Atualizado em:** 2026-07-06 (v1.9 — agendamento + recorrência: EP-14 com B-045/046/047 adicionados ao backlog)
 
 ---
 
@@ -104,8 +104,26 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ## 📋 Backlog
 
-*Nenhum card pendente no momento.*
+### EP-13 — Aluno: Jornada de Aprendizado
 
+| ID | Card | Épico | Branch sugerida |
+|---|---|---|---|
+| B-043 | Portal do Aluno V2 — multi-page com bottom nav | EP-13 | `feat/sprint11-portal-aluno-v2` |
+| B-044 | Técnicas aprendidas do aluno (`/aluno/tecnicas`) | EP-13 | (mesmo sprint, depende de B-043) |
+
+> B-043 e B-044 devem ser implementados juntos no mesmo sprint.  
+> Branch deve partir de `feat/sprint10-curriculo-global`.
+
+### EP-14 — Agendamento e Recorrência
+
+| ID | Card | Épico | Branch sugerida |
+|---|---|---|---|
+| B-045 | Aulas agendadas — professor cria e gerencia aulas futuras | EP-14 | `feat/sprint12-agendamento` |
+| B-046 | Recorrência — gerar ciclo de aulas a partir da turma | EP-14 | (mesmo sprint, depois de B-045) |
+| B-047 | Portal do aluno — próximas aulas agendadas | EP-14 | (mesmo sprint, depende de B-045) |
+
+> Sprint 12 deve partir de `feat/sprint11-portal-aluno-v2` (requer `getAlunoOuRedireciona` helper).  
+> B-045 é pré-requisito de B-046 e B-047 — implementar nessa ordem.  
 > B-041 (integração com Claude chat) descartado — o app deve ser autossuficiente.
 
 ---
