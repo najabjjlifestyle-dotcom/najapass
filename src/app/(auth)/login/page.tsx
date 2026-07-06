@@ -23,6 +23,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({ email })
 
     if (error) {
+      console.error('signInWithOtp error:', error.message, error.status)
       setError('Não foi possível enviar o código. Tente novamente.')
     } else {
       setStep('code')
