@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import EnrollmentManager from './enrollment'
 import EditarTurmaForm from './editar'
 import BackButton from '@/components/back-button'
+import GerarAulasForm from '@/components/gerar-aulas-form'
 
 const DIAS_ABBR: Record<string, string> = {
   domingo: 'Dom', segunda: 'Seg', terca: 'Ter', quarta: 'Qua',
@@ -105,6 +106,11 @@ export default async function TurmaPage({ params }: { params: Promise<{ id: stri
           turmaId={id}
           matriculados={alunosMatriculados}
           disponiveis={disponiveis}
+        />
+
+        <GerarAulasForm
+          turma={{ id: turma.id, dias_semana: turma.dias_semana as string[] | null, horario: turma.horario as string | null }}
+          academiaId={professor.academia_id}
         />
 
         {/* Histórico de aulas */}

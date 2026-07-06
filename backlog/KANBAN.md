@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-06 (v2.0 — B-043/B-044 concluídos na branch `feat/sprint11-portal-aluno-v2`; EP-14/B-045-047 seguem no backlog)
+**Atualizado em:** 2026-07-06 (v2.1 — B-045/B-046/B-047 concluídos na branch `feat/sprint12-agendamento`)
 
 ---
 
@@ -61,9 +61,12 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-042 | Candidatos a graduação | Alunos |
 | B-043 | Portal do Aluno V2 — multi-page com bottom nav | Aluno App |
 | B-044 | Técnicas aprendidas do aluno (`/aluno/tecnicas`) | Aluno App |
+| B-045 | Aulas agendadas — professor cria e gerencia aulas futuras | Aulas |
+| B-046 | Recorrência — gerar ciclo de aulas a partir da turma | Aulas |
+| B-047 | Portal do aluno — próximas aulas agendadas | Aluno App |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
-> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`, que já tinha o sprint10 mergeado) — ver seções de detalhes abaixo.
+> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11) — ver seções de detalhes abaixo.
 
 ---
 
@@ -116,19 +119,21 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ---
 
+## 🔍 Detalhes B-045 / B-046 / B-047 (branch `feat/sprint12-agendamento`, a partir da `feat/sprint11-portal-aluno-v2`)
+
+**Correção ao handoff:** HANDOFF-008 assumia que faltava uma coluna `aulas.horario`. Na verdade `aulas.hora_inicio` (TIME) já existe desde o schema original e cobre o mesmo caso de uso — reaproveitado em vez de criar coluna nova. O status `'agendada'` também já era aceito pela constraint original; só faltava `'cancelada'`, adicionado via migration.
+
+**B-045 — Aulas agendadas:** `abrirAula()` agora calcula `status` (`data > hoje` → `agendada`, senão `aberta`) em vez de sempre `'aberta'`; push só dispara quando a aula abre de fato (`abrirAulaAgendada`), não no agendamento. Dashboard ganhou seção "Próximas aulas" (próximos 14 dias) com `AgendadaCard` (botões Abrir/Cancelar inline). Página de detalhe da aula (`/aulas/[id]`) ganhou badges Agendada/Cancelada + ações rápidas; `attendance-list.tsx` trava o toggle de presença e o botão "Finalizar" enquanto a aula está agendada (`isLocked = isFinished || isScheduled`), sem afetar a pré-confirmação do aluno (mecanismo separado).
+
+**B-046 — Recorrência:** `src/lib/gerar-aulas.ts` (função pura `calcularDatasRecorrentes`, testável sem DB) + `gerarAulasRecorrentes()` server action com dedupe (não recria aula em data que já tem `agendada`/`aberta`) + `GerarAulasForm` em `/turmas/[id]` com preview ao vivo antes de confirmar.
+
+**B-047 — Próximas aulas no portal do aluno:** Home do aluno busca aulas `agendada` das turmas do aluno, conta confirmados e verifica se o próprio aluno já confirmou; `ConfirmarPresencaButton` reaproveita `fazerCheckin`/`cancelarCheckin` (mesma tabela `presencas` do check-in ao vivo — quando o professor abre a aula, quem já confirmou aparece automaticamente como presente). Hierarquia final do empty state: aula ao vivo → próximas agendadas → "próximo treino" genérico (só quando não há nem uma coisa nem outra).
+
+---
+
 ## 📋 Backlog
 
-### EP-14 — Agendamento e Recorrência
-
-| ID | Card | Épico | Branch sugerida |
-|---|---|---|---|
-| B-045 | Aulas agendadas — professor cria e gerencia aulas futuras | EP-14 | `feat/sprint12-agendamento` |
-| B-046 | Recorrência — gerar ciclo de aulas a partir da turma | EP-14 | (mesmo sprint, depois de B-045) |
-| B-047 | Portal do aluno — próximas aulas agendadas | EP-14 | (mesmo sprint, depende de B-045) |
-
-> Sprint 12 deve partir de `feat/sprint11-portal-aluno-v2` (requer `getAlunoOuRedireciona` helper).  
-> B-045 é pré-requisito de B-046 e B-047 — implementar nessa ordem.  
-> B-041 (integração com Claude chat) descartado — o app deve ser autossuficiente.
+*Nenhum card pendente no momento.*
 
 ---
 

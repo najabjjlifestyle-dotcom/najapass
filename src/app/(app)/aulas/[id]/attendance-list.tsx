@@ -51,6 +51,8 @@ export default function AttendanceList({
   const [addingAvulso, setAddingAvulso] = useState(false)
 
   const isFinished = status === 'finalizada'
+  const isScheduled = status === 'agendada'
+  const isLocked = isFinished || isScheduled
 
   async function handleAddVisitante() {
     const nome = novoVisitante.trim()
@@ -83,7 +85,7 @@ export default function AttendanceList({
   }
 
   function toggle(alunoId: string) {
-    if (isFinished) return
+    if (isLocked) return
 
     const wasPresent = presentes.has(alunoId)
 
@@ -123,7 +125,7 @@ export default function AttendanceList({
         <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
           {presentes.size} presente{presentes.size !== 1 ? 's' : ''} de {alunos.length}
         </p>
-        {!isFinished && (
+        {!isLocked && (
           <button onClick={handleFinalizar} disabled={finalizando}
             className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
             style={{ border: '1px solid var(--brand-gold-border)', color: 'var(--brand-gold)', background: 'transparent' }}>
@@ -135,9 +137,14 @@ export default function AttendanceList({
             Finalizada ✓
           </span>
         )}
+        {isScheduled && (
+          <span className="text-xs uppercase tracking-widest px-2 py-1 rounded" style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+            Agendada — abra no dashboard
+          </span>
+        )}
       </div>
 
-      {!isFinished && (
+      {!isLocked && (
         <div className="flex flex-wrap gap-2 mb-4">
           <button onClick={() => setShowVisitanteForm(v => !v)}
             className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg active:scale-[0.98] transition-transform"
@@ -200,7 +207,7 @@ export default function AttendanceList({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
               style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)', background: 'var(--brand-gold-dim)' }}>
               {v.nome} <span className="opacity-60">(visitante)</span>
-              {!isFinished && (
+              {!isLocked && (
                 <button onClick={() => handleRemoveVisitante(v.id)} className="ml-1 opacity-60 active:opacity-100 transition-opacity">×</button>
               )}
             </span>
@@ -226,8 +233,8 @@ export default function AttendanceList({
               <button
                 key={aluno.id}
                 onClick={() => toggle(aluno.id)}
-                disabled={isFinished}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-left ${isFinished ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'}`}
+                disabled={isLocked}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-left ${isLocked ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'}`}
                 style={{
                   background: presente ? 'var(--brand-gold)' : 'var(--brand-surf)',
                   border: `1px solid ${presente ? 'var(--brand-gold)' : 'var(--brand-border)'}`,

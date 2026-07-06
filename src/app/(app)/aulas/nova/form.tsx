@@ -36,6 +36,8 @@ export default function NovaAulaForm({
 
   const hoje = new Date().toISOString().split('T')[0]
   const horaAtual = new Date().toTimeString().slice(0, 5)
+  const [dataSelecionada, setDataSelecionada] = useState(hoje)
+  const isAgendamento = dataSelecionada > hoje
 
   // Posições do tema selecionado
   const tecnicasDoTema = temaId
@@ -133,9 +135,14 @@ export default function NovaAulaForm({
 
           <div>
             <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Data</label>
-            <input name="data" type="date" defaultValue={hoje} required
+            <input name="data" type="date" value={dataSelecionada} onChange={e => setDataSelecionada(e.target.value)} required
               className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
               style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
+            {isAgendamento && (
+              <p className="text-xs mt-1.5" style={{ color: 'var(--brand-gold)' }}>
+                Data futura — a aula fica agendada até você abrir no dia.
+              </p>
+            )}
           </div>
 
           <div>
@@ -263,7 +270,7 @@ export default function NovaAulaForm({
           <button type="submit" disabled={loading}
             className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98] mt-2"
             style={{ background: 'var(--brand-gold)', color: '#000' }}>
-            {loading ? 'Abrindo...' : 'Abrir Aula'}
+            {loading ? 'Salvando...' : isAgendamento ? 'Agendar Aula' : 'Abrir Aula'}
           </button>
         </form>
       </main>
