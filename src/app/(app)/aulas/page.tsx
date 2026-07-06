@@ -106,9 +106,10 @@ export default async function AulasPage({
                   </p>
                 </div>
                 <span className="text-xs uppercase tracking-widest flex-shrink-0"
-                  style={{ color: aula.status === 'finalizada' ? '#4ADE80' : aula.status === 'aberta' ? 'var(--brand-gold)' : 'var(--brand-texto-muted)' }}>
+                  style={{ color: aula.status === 'finalizada' ? '#4ADE80' : aula.status === 'aberta' ? 'var(--brand-gold)' : aula.status === 'cancelada' ? '#f87171' : 'var(--brand-texto-muted)' }}>
                   {aula.status === 'finalizada' ? 'Finalizada' :
-                   aula.status === 'aberta' ? 'Ao vivo' : 'Agendada'}
+                   aula.status === 'aberta' ? 'Ao vivo' :
+                   aula.status === 'cancelada' ? 'Cancelada' : 'Agendada'}
                 </span>
               </Link>
             )

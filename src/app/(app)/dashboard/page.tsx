@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Users, LayoutGrid, ClipboardList, Inbox, Megaphone, CalendarDays } from 'lucide-react'
+import AgendadaCard from '@/components/agendada-card'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,8 @@ export default async function DashboardPage() {
   const primeiroDiaMes = new Date(
     new Date().getFullYear(), new Date().getMonth(), 1
   ).toISOString().split('T')[0]
+  const hoje = new Date().toISOString().split('T')[0]
+  const quatorzeDias = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
 
   const [
     { count: totalAlunos },
@@ -126,6 +129,7 @@ export default async function DashboardPage() {
     { data: alunoMaisAusenteData },
     { data: ultimasEnsinadasData },
     { data: ultimaAulaFinalizada },
+    { data: agendadasData },
   ] = await Promise.all([
     supabase.from('alunos').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativo', true),
     supabase.from('turmas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativa', true),
@@ -145,12 +149,29 @@ export default async function DashboardPage() {
       .eq('tipo', 'ensinada')
       .gte('aulas.data', new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0]),
     supabase.from('aulas').select('id').eq('academia_id', acadId).eq('status', 'finalizada').order('data', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('aulas')
+      .select('id, data, hora_inicio, turmas(nome), presencas(id)')
+      .eq('academia_id', acadId)
+      .eq('status', 'agendada')
+      .gte('data', hoje)
+      .lte('data', quatorzeDias)
+      .order('data')
+      .order('hora_inicio')
+      .limit(5),
   ])
 
   const pendentes = solicitacoesRes.count ?? 0
   const nome = professor.nome
   const turmaAulaAberta = aulaAberta?.turmas as unknown as { nome: string } | null
   const presentesAulaAberta = (aulaAberta?.presencas as unknown as { id: string }[] | null)?.length ?? 0
+
+  const agendadas = (agendadasData ?? []).map(a => ({
+    id: a.id,
+    data: a.data,
+    hora_inicio: a.hora_inicio as string | null,
+    turma_nome: (a.turmas as unknown as { nome: string } | null)?.nome ?? null,
+    confirmados: (a.presencas as unknown as { id: string }[] | null)?.length ?? 0,
+  }))
 
   const insight = await calcularInsight(supabase, {
     alunoMaisAusente: (alunoMaisAusenteData as { aluno_id: string; nome: string; dias_ausente: number }[] | null)?.[0] ?? null,
@@ -261,6 +282,25 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Próximas aulas (agendadas) ── */}
+      {agendadas.length > 0 && (
+        <section className="px-4 mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+              Próximas aulas
+            </p>
+            <Link href="/aulas/nova" className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--brand-gold)' }}>
+              + Agendar
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {agendadas.map(aula => (
+              <AgendadaCard key={aula.id} aula={aula} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Insight dinâmico ── */}
       {insight && (

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import AttendanceList from './attendance-list'
 import TecnicasAula from './tecnicas-aula'
 import BackButton from '@/components/back-button'
+import AulaAgendadaActions from './agendada-actions'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
@@ -149,6 +150,18 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
                 Ao vivo
               </span>
             )}
+            {aula.status === 'agendada' && (
+              <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
+                style={{ color: 'var(--brand-texto-muted)', border: '1px solid var(--brand-border)' }}>
+                Agendada
+              </span>
+            )}
+            {aula.status === 'cancelada' && (
+              <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
+                style={{ color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+                Cancelada
+              </span>
+            )}
           </div>
           <p className="text-xs mt-1 capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
             {dataFormatada}
@@ -168,6 +181,12 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
       </header>
+
+      {aula.status === 'agendada' && (
+        <div className="px-5 mt-4">
+          <AulaAgendadaActions aulaId={id} />
+        </div>
+      )}
 
       <div className="rounded-xl mx-5 mt-4 overflow-hidden"
         style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>

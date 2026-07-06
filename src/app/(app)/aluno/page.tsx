@@ -3,6 +3,7 @@ import CheckinCard from './checkin'
 import AvatarUpload from '@/components/avatar-upload'
 import { updateFotoPropria } from './actions'
 import PushSubscribeButton from './push-subscribe'
+import ConfirmarPresencaButton from './confirmar-button'
 
 const FAIXA_HEX: Record<string, string> = {
   branca: '#FFFFFF', cinza: '#9CA3AF', amarela: '#FBBF24',
@@ -145,10 +146,70 @@ export default async function AlunoHomePage() {
     }
   }
 
-  // Empty state: próximo treino + treinos no mês
-  const proximoTreino = aulasAtivas.length === 0 ? calcularProximoTreino(turmas) : null
+  // Próximas aulas agendadas das turmas do aluno (só quando não há aula ao vivo)
+  type ProximaAula = {
+    id: string
+    data: string
+    horario: string | null
+    turma_nome: string | null
+    confirmados: number
+    euVou: boolean
+    tecnicas: string[]
+  }
+  let proximas: ProximaAula[] = []
+  const hoje = new Date().toISOString().split('T')[0]
+
+  if (aulasAtivas.length === 0 && turmaIds.length > 0) {
+    const { data: proximasData } = await supabase
+      .from('aulas')
+      .select('id, data, hora_inicio, turma_id, turmas(nome), aula_tecnicas(tipo, tecnicas(nome))')
+      .eq('academia_id', aluno.academia_id)
+      .eq('status', 'agendada')
+      .in('turma_id', turmaIds)
+      .gte('data', hoje)
+      .order('data')
+      .order('hora_inicio')
+      .limit(5)
+
+    type ProximaRow = {
+      id: string; data: string; hora_inicio: string | null
+      turmas: { nome: string } | null
+      aula_tecnicas: { tipo: string; tecnicas: { nome: string } | null }[] | null
+    }
+    const proximasRows = (proximasData ?? []) as unknown as ProximaRow[]
+    const proximasIds = proximasRows.map(a => a.id)
+
+    const { data: confirmacoesData } = proximasIds.length > 0
+      ? await supabase.from('presencas').select('aula_id, aluno_id').in('aula_id', proximasIds)
+      : { data: [] }
+
+    const confirmacoes = (confirmacoesData ?? []) as { aula_id: string; aluno_id: string | null }[]
+    const confirmacoesCount = new Map<string, number>()
+    const meusIds = new Set<string>()
+    for (const c of confirmacoes) {
+      confirmacoesCount.set(c.aula_id, (confirmacoesCount.get(c.aula_id) ?? 0) + 1)
+      if (c.aluno_id === aluno.id) meusIds.add(c.aula_id)
+    }
+
+    proximas = proximasRows.map(a => ({
+      id: a.id,
+      data: a.data,
+      horario: a.hora_inicio,
+      turma_nome: a.turmas?.nome ?? null,
+      confirmados: confirmacoesCount.get(a.id) ?? 0,
+      euVou: meusIds.has(a.id),
+      tecnicas: (a.aula_tecnicas ?? [])
+        .filter(at => at.tipo === 'planejada')
+        .map(at => at.tecnicas?.nome)
+        .filter((n): n is string => Boolean(n)),
+    }))
+  }
+
+  // Empty state: próximo treino + treinos no mês (só quando nem ao vivo nem agendada)
+  const semNadaAgora = aulasAtivas.length === 0 && proximas.length === 0
+  const proximoTreino = semNadaAgora ? calcularProximoTreino(turmas) : null
   const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  const { count: treinosMes } = aulasAtivas.length === 0
+  const { count: treinosMes } = semNadaAgora
     ? await supabase.from('presencas').select('id', { count: 'exact', head: true })
         .eq('aluno_id', aluno.id).gte('registrado_em', primeiroDiaMes.toISOString())
     : { count: null }
@@ -218,8 +279,52 @@ export default async function AlunoHomePage() {
           </div>
         )}
 
+        {/* Próximas aulas agendadas — só quando não há aula ao vivo */}
+        {aulasAtivas.length === 0 && proximas.length > 0 && (
+          <div>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+              Próximas aulas
+            </p>
+            <div className="space-y-2">
+              {proximas.map(p => {
+                const d = new Date(p.data + 'T12:00:00')
+                const dataFmt = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+                return (
+                  <div key={p.id} className="rounded-2xl p-4"
+                    style={{
+                      background: p.euVou ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
+                      border: `1px solid ${p.euVou ? 'var(--brand-gold-border)' : 'var(--brand-border)'}`,
+                    }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>
+                          {p.turma_nome ?? 'Aula'}
+                        </p>
+                        <p className="text-xs mt-0.5 capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
+                          {dataFmt}{p.horario ? ` · ${p.horario.substring(0, 5)}` : ''} · {p.confirmados} vão
+                        </p>
+                        {p.tecnicas.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {p.tecnicas.map((t, i) => (
+                              <span key={i} className="text-[10px] px-2 py-0.5 rounded"
+                                style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <ConfirmarPresencaButton aulaId={p.id} confirmado={p.euVou} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Empty state — próximo treino + contagem do mês */}
-        {aulasAtivas.length === 0 && (
+        {semNadaAgora && (
           <div className="rounded-2xl px-5 py-6 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
             <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Nenhuma aula ao vivo agora

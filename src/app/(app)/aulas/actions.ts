@@ -25,6 +25,9 @@ export async function abrirAula(formData: FormData) {
 
   const planejadas = formData.getAll('planejadas[]') as string[]
 
+  const hoje = new Date().toISOString().split('T')[0]
+  const status = data_aula > hoje ? 'agendada' : 'aberta'
+
   const { data: aula, error } = await supabase
     .from('aulas')
     .insert({
@@ -35,12 +38,12 @@ export async function abrirAula(formData: FormData) {
       hora_inicio: hora_inicio || null,
       tema_id: tema_id || null,
       video_url,
-      status: 'aberta',
+      status,
     })
     .select('id')
     .single()
 
-  if (error || !aula) return { error: 'Erro ao abrir aula.' }
+  if (error || !aula) return { error: 'Erro ao salvar aula.' }
 
   // Salva as posições planejadas pelo professor
   if (planejadas.length > 0) {
@@ -54,8 +57,9 @@ export async function abrirAula(formData: FormData) {
     )
   }
 
-  // Notifica os alunos da turma que a aula abriu (best-effort, não bloqueia o fluxo)
-  if (turma_id) {
+  // Notifica os alunos da turma só quando a aula abre de fato — uma aula
+  // agendada dispara push só depois, em abrirAulaAgendada().
+  if (status === 'aberta' && turma_id) {
     const { data: turma } = await supabase.from('turmas').select('nome').eq('id', turma_id).maybeSingle()
     const { data: subs } = await supabase.rpc('subscricoes_da_turma', { p_turma_id: turma_id })
     if (subs && subs.length > 0) {
@@ -68,7 +72,58 @@ export async function abrirAula(formData: FormData) {
   }
 
   revalidatePath('/aulas')
-  return { success: true, id: aula.id }
+  revalidatePath('/dashboard')
+  return { success: true, id: aula.id, status }
+}
+
+export async function abrirAulaAgendada(aulaId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { data: aula } = await supabase
+    .from('aulas')
+    .update({ status: 'aberta' })
+    .eq('id', aulaId)
+    .eq('status', 'agendada')
+    .select('id, turma_id')
+    .maybeSingle()
+
+  if (!aula) return { error: 'Aula não encontrada ou já aberta.' }
+
+  if (aula.turma_id) {
+    const { data: turma } = await supabase.from('turmas').select('nome').eq('id', aula.turma_id).maybeSingle()
+    const { data: subs } = await supabase.rpc('subscricoes_da_turma', { p_turma_id: aula.turma_id })
+    if (subs && subs.length > 0) {
+      await sendPushToAll(subs, {
+        title: '🥋 Aula aberta!',
+        body: `${turma?.nome ?? 'Sua turma'} — confirme sua presença`,
+        url: '/aluno',
+      })
+    }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/aulas')
+  return { success: true }
+}
+
+export async function cancelarAulaAgendada(aulaId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { error } = await supabase
+    .from('aulas')
+    .update({ status: 'cancelada' })
+    .eq('id', aulaId)
+    .eq('status', 'agendada')
+
+  if (error) return { error: 'Erro ao cancelar aula.' }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/aulas')
+  return { success: true }
 }
 
 export async function togglePresenca(aulaId: string, alunoId: string) {
