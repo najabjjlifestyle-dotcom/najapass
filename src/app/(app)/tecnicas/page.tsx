@@ -7,6 +7,7 @@ type Tecnica = {
   id: string
   nome: string
   descricao: string | null
+  global: boolean
   categorias_tecnicas: { nome: string; cor: string | null } | null
 }
 
@@ -21,8 +22,8 @@ export default async function TecnicasPage() {
 
   const { data: tecnicas } = await supabase
     .from('tecnicas')
-    .select('id, nome, descricao, categorias_tecnicas(nome, cor)')
-    .eq('academia_id', professor.academia_id)
+    .select('id, nome, descricao, global, categorias_tecnicas(nome, cor)')
+    .or(`academia_id.eq.${professor.academia_id},global.eq.true`)
     .order('nome')
 
   const rows = (tecnicas ?? []) as unknown as Tecnica[]
@@ -78,7 +79,15 @@ export default async function TecnicasPage() {
                     <div key={t.id}
                       className="px-4 py-3 rounded-xl"
                       style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                      <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>{t.nome}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>{t.nome}</p>
+                        {t.global && (
+                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0"
+                            style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+                            sugestão
+                          </span>
+                        )}
+                      </div>
                       {t.descricao && (
                         <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--brand-texto-sec)' }}>
                           {t.descricao}

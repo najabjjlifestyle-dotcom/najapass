@@ -55,4 +55,9 @@ DELETE FROM categorias_tecnicas c
 USING canonicos ca
 WHERE c.nome = ca.nome AND c.id <> ca.canonico;
 
-ALTER TABLE categorias_tecnicas ADD CONSTRAINT categorias_tecnicas_nome_key UNIQUE (nome);
+-- ADD CONSTRAINT não tem "IF NOT EXISTS" no Postgres — o DO block
+-- engole o erro "já existe" (duplicate_object) se rodar de novo.
+DO $$ BEGIN
+  ALTER TABLE categorias_tecnicas ADD CONSTRAINT categorias_tecnicas_nome_key UNIQUE (nome);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

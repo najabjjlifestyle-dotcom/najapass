@@ -120,7 +120,7 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
       .order('data', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase.from('tecnicas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId),
+    supabase.from('tecnicas').select('id', { count: 'exact', head: true }).or(`academia_id.eq.${acadId},global.eq.true`),
   ])
 
   type EnsinadaRow = { tecnica_id: string; tecnicas: { nome: string } | null }

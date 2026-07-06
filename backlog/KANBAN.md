@@ -1,6 +1,16 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-02 (v1.6 — B-039, B-040 e B-042 concluídos na branch `feat/sprint9-insights`)
+**Atualizado em:** 2026-07-03 (v1.7 — currículo global de técnicas na branch `feat/sprint10-curriculo-global`)
+
+---
+
+## 🥋 Currículo global de técnicas (branch `feat/sprint10-curriculo-global`, a partir da `feat/sprint9-insights`)
+
+Sem card no `BACKLOG.md` — pedido direto pelo Mestre Naja: uma lista de posições/técnicas por faixa (Guarda Fechada, Guarda Aberta, Meia Guarda, Guarda Borboleta, De La Riva, Guarda Aranha, Guarda Lasso, 50/50, Montada, Cem Quilos, Joelho na Barriga, Norte-Sul, Costas, Tartaruga, Passagem de Guarda, Takedown/Queda, Chaves de Pé) para virar sugestão no app.
+
+Implementado ativando um recurso que já existia no schema desde a v1 mas nunca tinha sido usado: `tecnicas.global` + `tecnicas.academia_id` nullable. ~168 técnicas inseridas com `academia_id NULL, global=true`, nova policy de RLS (`tecnicas_global_select`) e as 4 queries do app que buscam técnicas atualizadas pra incluir `.or(academia_id.eq.X, global.eq.true)`. Por ser de verdade global (não replicado por academia), toda academia — inclusive as criadas depois — já vê essas sugestões sem precisar reseedar nada.
+
+6 temas novos criados (Guarda Borboleta, Guarda Lasso, Joelho na Barriga, Norte-Sul, Tartaruga, Chaves de Pé); os demais reaproveitaram categorias já existentes em vez de criar quase-duplicatas (ex: "Guarda De La Riva" do texto original virou a categoria já existente "De La Riva").
 
 ---
 
@@ -114,7 +124,7 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ## ⚠️ Pendências operacionais (não são cards, mas bloqueiam funcionamento pleno)
 
-1. **Migrations não aplicadas.** Nenhuma migration criada nas branches `feat/sprint7-pendencias`, `feat/sprint8-mobile-makeover` e `feat/sprint9-insights` foi aplicada ao banco — o projeto Supabase do NajaPass não estava linkado no Supabase CLI desta máquina (só apareciam outros projetos não relacionados). Rodar `supabase link` + `supabase db push`, ou aplicar via SQL Editor do painel Supabase, na ordem: `quem_vai.sql`, `avatars_storage.sql`, `push_subscriptions.sql`, `dedupe_categorias.sql`, `categorias_insert_policy.sql`, `foto_professor.sql`, `aluno_mais_ausente.sql` (todas com timestamp `202607020000XX`).
+1. ~~**Migrations não aplicadas.**~~ Resolvido em 2026-07-03: todas as migrations pendentes (`quem_vai`, `avatars_storage`, `push_subscriptions`, `dedupe_categorias`, `categorias_insert_policy`, `foto_professor`, `aluno_mais_ausente`, `curriculo_global`, `tecnicas_global_select`) foram aplicadas manualmente via SQL Editor do Supabase (CLI desta máquina continua não linkado ao projeto — permanece a forma de aplicar migrations daqui em diante). Todas foram reescritas para serem idempotentes (`DROP POLICY IF EXISTS`, `CREATE TABLE IF NOT EXISTS`, `WHERE NOT EXISTS` em bulk inserts) e podem ser reaplicadas com segurança se necessário.
 2. **Chaves VAPID.** Geradas localmente e adicionadas ao `.env.local` (gitignored). Para push funcionar em produção, adicionar `NEXT_PUBLIC_VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` nas env vars do projeto na Vercel.
 3. **Sem suíte de testes.** O CLAUDE.md cita Vitest como parte da stack, mas não há `vitest` no `package.json` nem testes escritos. Fora do escopo desta branch.
 
