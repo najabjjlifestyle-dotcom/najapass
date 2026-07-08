@@ -107,7 +107,14 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!professor?.academia_id) redirect('/onboarding')
+  if (!professor?.academia_id) {
+    // Sem linha em professores com academia — não presume que é um
+    // professor no meio do onboarding. Pode ser um aluno caindo aqui
+    // direto (PWA instalado com start_url antigo, bookmark, etc.).
+    if (professor) redirect('/onboarding')
+    const { data: aluno } = await supabase.from('alunos').select('id').eq('user_id', user.id).maybeSingle()
+    redirect(aluno ? '/aluno' : '/boas-vindas')
+  }
 
   const academia = professor.academias as unknown as { nome: string } | null
   const acadId = professor.academia_id
