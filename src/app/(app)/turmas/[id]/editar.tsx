@@ -13,12 +13,12 @@ const DIAS = [
   { value: 'domingo', label: 'Dom' },
 ]
 
+// A Vercel (plano Hobby) só permite cron 1x/dia — não dá pra abrir
+// com precisão de horas antes do horário. O cron roda de madrugada
+// e abre de uma vez todas as aulas do dia das turmas com isso ligado.
 const OPCOES_AUTO_ABRIR = [
   { value: '', label: 'Manual (professor abre)' },
-  { value: '24', label: '24h antes' },
-  { value: '12', label: '12h antes (padrão recomendado)' },
-  { value: '2', label: '2h antes' },
-  { value: '0', label: 'No horário exato' },
+  { value: '0', label: 'Automática (abre toda manhã)' },
 ]
 
 export default function EditarTurmaForm({
@@ -114,7 +114,7 @@ export default function EditarTurmaForm({
           ))}
         </select>
         <p className="text-[10px] mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
-          Quando configurado, aulas agendadas desta turma abrem sozinhas e enviam push para os alunos.
+          Quando ligado, todas as aulas agendadas de hoje desta turma abrem sozinhas de madrugada e enviam push para os alunos.
         </p>
       </div>
 
