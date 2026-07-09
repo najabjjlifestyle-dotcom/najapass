@@ -71,9 +71,14 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-052 | Múltiplas posições por aula (picker desacoplado do tema) | Aulas |
 | B-053 | Busca de técnica ad-hoc durante aula ao vivo | Aulas |
 | B-054 | Duplicar aula | Aulas |
+| B-055 | Dashboard "cockpit" — Hoje + Insights + Semana | Dashboard |
+| B-056 | Planejamento com contexto da última aula da turma | Aulas |
+| B-057 | Feedback pós-aula — "Como foi a turma?" | Aulas |
+| B-058 | Auto-abertura de aulas por turma (cron + config) | Aulas |
+| B-059 | Nav professor: Perfil → Planejamento; nova `/planejamento` turma-centric | UX/Nav |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
-> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`) — ver seções de detalhes abaixo.
+> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055–B-059 sprint 15–16, aguardando — ver HANDOFF-011/012.
 
 ---
 
@@ -159,6 +164,33 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 **B-054 — Duplicar aula:** nova action `duplicarAula()` em `aulas/actions.ts` — copia `tema_id`/`video_url` da aula origem e só as técnicas `tipo='planejada'` (não copia `ensinada`/`nao_ensinada`, que são resultado da execução da aula original). Nova aula sempre nasce `agendada`. UI: `DuplicarAulaButton` (ícone Copy no header de `/aulas/[id]`) abre bottom sheet com turma/data/hora; após duplicar, redirect pra `/aulas/{novaAulaId}`.
 
 **Sem migrations** — `agendada` já existia no constraint desde o B-045; `aulas.hora_inicio` já cobria o caso de uso que o handoff achava que precisava de coluna nova.
+
+---
+
+## 📋 Backlog (aguardando implementação)
+
+### EP-17 · Cockpit do Professor — sprint 15, `feat/sprint15-cockpit-professor`
+
+| ID | Card | Prioridade |
+|---|---|---|
+| B-055 | Dashboard cockpit: seção Hoje (cards de aula por status + ação), Insights (RPC `professor_dashboard_insights`), mini-grid Semana | P0 |
+| B-056 | Planejamento com contexto: painel "última aula desta turma" na tela da aula pendente + reforços pré-inseridos server-side em `abrirAula()` | P0 |
+| B-057 | Feedback pós-aula: nova rota `/aulas/[id]/feedback`, tela Ótimo/Repetir por técnica, fecha o loop reforço | P0 |
+| B-058 | Auto-abertura por turma: `turmas.auto_abrir_horas INT`, Vercel Cron `/api/cron/abrir-aulas` a cada 30min | P1 |
+
+**Referência:** `HANDOFF-011-cockpit-professor.md`  
+**Ordem de implementação:** B-056 → B-057 → B-055 → B-058  
+**Migrations:** RPC `professor_dashboard_insights()` + `turmas.auto_abrir_horas` + RPC `aulas_para_abrir_agora()`
+
+---
+
+### EP-18 · Nav Professor — sprint 16, `feat/sprint16-nav-planejamento`
+
+| ID | Card | Prioridade |
+|---|---|---|
+| B-059 | Substituir "Perfil" por "Planejamento" no nav do professor. Perfil migra para header do dashboard. Nova `/planejamento`: turma-centric, mostra últimas + próximas aulas e gaps de currículo por turma. `/historico` vira retrospecto: frequência + técnicas por turma ao longo do tempo | P1 |
+
+**Referência:** HANDOFF-012 (a ser escrito)
 
 ---
 
