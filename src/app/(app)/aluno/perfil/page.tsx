@@ -1,5 +1,6 @@
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import AvatarUpload from '@/components/avatar-upload'
+import LogoutButton from '@/components/logout-button'
 import { updateFotoPropria } from '../actions'
 import PushSubscribeButton from '../push-subscribe'
 
@@ -106,6 +107,8 @@ export default async function AlunoPerfilPage() {
             </div>
           </div>
         )}
+
+        <LogoutButton />
       </main>
     </div>
   )

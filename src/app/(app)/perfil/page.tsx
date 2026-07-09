@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import PerfilForm from './form'
 import BackButton from '@/components/back-button'
 import AvatarUpload from '@/components/avatar-upload'
+import LogoutButton from '@/components/logout-button'
 import { updateFotoProfessor } from './actions'
 import { Users2, BarChart3, Dumbbell, ChevronRight } from 'lucide-react'
 
@@ -69,6 +70,8 @@ export default async function PerfilPage() {
             ))}
           </div>
         </div>
+
+        <LogoutButton />
       </main>
     </div>
   )
