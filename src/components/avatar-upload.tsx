@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 function iniciais(nome: string) {
@@ -22,7 +23,7 @@ export default function AvatarUpload({
   size?: number
 }) {
   const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputId = useId()
   const [fotoUrl, setFotoUrl] = useState(fotoUrlAtual)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -63,33 +64,38 @@ export default function AvatarUpload({
     router.refresh()
   }
 
+  const overlaySize = Math.round(size * 0.34)
+
   return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="relative rounded-full overflow-hidden flex-shrink-0 disabled:opacity-50"
-        style={{ width: size, height: size, border: '1px solid var(--brand-border-str)' }}>
-        {fotoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={fotoUrl} alt={nome} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center font-bold"
-            style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)' }}>
-            {iniciais(nome)}
-          </div>
-        )}
-      </button>
-      <div>
-        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
-          className="text-xs uppercase tracking-widest underline underline-offset-2 disabled:opacity-50"
-          style={{ color: 'var(--brand-texto-muted)' }}>
-          {uploading ? 'Enviando...' : 'Trocar foto'}
-        </button>
-        {error && <p className="text-xs mt-1" style={{ color: '#f87171' }}>{error}</p>}
-      </div>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+    <div>
+      <label
+        htmlFor={inputId}
+        className="relative inline-block flex-shrink-0"
+        style={{ width: size, height: size, cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+        <div className="w-full h-full rounded-full overflow-hidden" style={{ border: '1px solid var(--brand-border-str)' }}>
+          {fotoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={fotoUrl} alt={nome} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center font-bold"
+              style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', fontSize: size * 0.35 }}>
+              {iniciais(nome)}
+            </div>
+          )}
+        </div>
+        <div
+          className="absolute rounded-full flex items-center justify-center"
+          style={{
+            bottom: 0, right: 0,
+            width: overlaySize, height: overlaySize,
+            background: 'var(--brand-gold)',
+            border: '2px solid var(--brand-fundo)',
+          }}>
+          <Camera size={Math.round(overlaySize * 0.55)} color="#000" strokeWidth={2.5} />
+        </div>
+        <input id={inputId} type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleFile} />
+      </label>
+      {error && <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{error}</p>}
     </div>
   )
 }

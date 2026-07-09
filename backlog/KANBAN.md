@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-06 (v2.1 — B-045/B-046/B-047 concluídos na branch `feat/sprint12-agendamento`)
+**Atualizado em:** 2026-07-06 (v2.3 — B-048/049/050 concluídos na branch `feat/sprint13-aluno-insights`)
 
 ---
 
@@ -64,9 +64,12 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-045 | Aulas agendadas — professor cria e gerencia aulas futuras | Aulas |
 | B-046 | Recorrência — gerar ciclo de aulas a partir da turma | Aulas |
 | B-047 | Portal do aluno — próximas aulas agendadas | Aluno App |
+| B-048 | Técnicas: overview compacto + drill-down por categoria | Aluno App |
+| B-049 | Home insights engine (RPC + 4 cards) | Aluno App |
+| B-050 | Avatar upload UX + header redesign | Aluno App |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
-> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11) — ver seções de detalhes abaixo.
+> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`) — ver seções de detalhes abaixo.
 
 ---
 
@@ -128,6 +131,16 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 **B-046 — Recorrência:** `src/lib/gerar-aulas.ts` (função pura `calcularDatasRecorrentes`, testável sem DB) + `gerarAulasRecorrentes()` server action com dedupe (não recria aula em data que já tem `agendada`/`aberta`) + `GerarAulasForm` em `/turmas/[id]` com preview ao vivo antes de confirmar.
 
 **B-047 — Próximas aulas no portal do aluno:** Home do aluno busca aulas `agendada` das turmas do aluno, conta confirmados e verifica se o próprio aluno já confirmou; `ConfirmarPresencaButton` reaproveita `fazerCheckin`/`cancelarCheckin` (mesma tabela `presencas` do check-in ao vivo — quando o professor abre a aula, quem já confirmou aparece automaticamente como presente). Hierarquia final do empty state: aula ao vivo → próximas agendadas → "próximo treino" genérico (só quando não há nem uma coisa nem outra).
+
+---
+
+## 🔍 Detalhes B-048 / B-049 / B-050 (branch `feat/sprint13-aluno-insights`, a partir da `main`)
+
+**B-050 — Avatar upload + header:** `AvatarUpload` refatorado — o próprio círculo do avatar agora é o `<label>` do input de arquivo (via `useId()`), com overlay de câmera dourado no canto inferior direito; zero texto "TROCAR FOTO" em qualquer tela (afeta as 4 telas que usam o componente: home/perfil do aluno, perfil do professor, edição de aluno). Header da home: avatar 52px + nome + badge de faixa numa linha, bell (Bell/BellOff) fixado em 38px à direita.
+
+**B-048 — Técnicas: overview + drill-down:** overview (`/aluno/tecnicas`) reescrito — cada categoria é um card tappável com barra de progresso, até 4 chips (as com mais de 21 dias sem repetir em laranja com ⚠, as recentes em dourado) + contador "+N" das não vistas, ordenado por urgência (tem stale > tem vistas > nenhuma vista). Nova rota `/aluno/tecnicas/[id]` com 3 seções: "Precisa reforçar" (laranja), "Aprendidas" (dourado, com badge de frequência Frequente/Boa/Nx), "Ainda não viu" (chips neutros, limitado a 8 + contador do resto).
+
+**B-049 — Home insights engine:** RPC `aluno_home_insights(p_aluno_id)` — uma chamada só (evita N queries sequenciais), retorna JSON com técnica mais antiga sem revisar (>21d), presenças/técnicas do mês, melhor categoria (% de cobertura), e última aula com técnicas ensinadas. **Reforço de segurança sobre o handoff:** a função original do PM não validava que `p_aluno_id` pertence ao usuário autenticado — como é `SECURITY DEFINER`, isso permitiria ler o progresso de qualquer aluno de qualquer academia só trocando o parâmetro. Adicionado `IF p_aluno_id != id_do_aluno() THEN RETURN NULL` no início, mesmo padrão de `atualizar_foto_propria`/`aluno_mais_ausente`. Home substituiu o antigo bloco estático "próximo treino" (e a função `calcularProximoTreino`, removida por ficar redundante) pelos 4 cards de insight + empty state motivacional pra aluno novo.
 
 ---
 

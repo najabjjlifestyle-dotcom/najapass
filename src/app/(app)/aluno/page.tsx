@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import CheckinCard from './checkin'
 import AvatarUpload from '@/components/avatar-upload'
@@ -11,28 +12,19 @@ const FAIXA_HEX: Record<string, string> = {
   roxa: '#7C3AED', marrom: '#92400E', preta: '#111111',
 }
 
-const DIA_MAP: Record<string, number> = {
-  domingo: 0, segunda: 1, terca: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6,
-}
-
-const DIA_LABEL: Record<string, string> = {
-  domingo: 'domingo', segunda: 'segunda-feira', terca: 'terça-feira',
-  quarta: 'quarta-feira', quinta: 'quinta-feira', sexta: 'sexta-feira', sabado: 'sábado',
-}
-
-function calcularProximoTreino(turmas: { dias_semana: string[] | null }[]): string | null {
-  const hoje = new Date().getDay()
-  const dias = turmas.flatMap(t => t.dias_semana ?? [])
-  if (dias.length === 0) return null
-  const diasNums = [...new Set(dias.map(d => DIA_MAP[d] ?? -1).filter(n => n >= 0))].sort((a, b) => a - b)
-  if (diasNums.length === 0) return null
-  const proximo = diasNums.find(d => d > hoje) ?? diasNums[0]
-  const nomeDia = Object.entries(DIA_MAP).find(([, n]) => n === proximo)?.[0]
-  return nomeDia ? DIA_LABEL[nomeDia] ?? nomeDia : null
+type HomeInsights = {
+  tecnica_reforcar: { nome: string; categoria_nome: string; categoria_id: string; ultima_vez: string } | null
+  presencas_30d: number
+  tecnicas_aprendidas: number
+  melhor_categoria: { nome: string; id: string; vistas: number; total: number } | null
+  ultima_aula: { data: string; turma_nome: string | null; tecnicas: string[] } | null
 }
 
 export default async function AlunoHomePage() {
   const { aluno, supabase } = await getAlunoOuRedireciona()
+
+  const { data: insightsRaw } = await supabase.rpc('aluno_home_insights', { p_aluno_id: aluno.id })
+  const insights = insightsRaw as HomeInsights | null
 
   // Aulas ativas na academia
   const { data: aulasAtivasData } = await supabase
@@ -205,43 +197,36 @@ export default async function AlunoHomePage() {
     }))
   }
 
-  // Empty state: próximo treino + treinos no mês (só quando nem ao vivo nem agendada)
-  const semNadaAgora = aulasAtivas.length === 0 && proximas.length === 0
-  const proximoTreino = semNadaAgora ? calcularProximoTreino(turmas) : null
-  const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  const { count: treinosMes } = semNadaAgora
-    ? await supabase.from('presencas').select('id', { count: 'exact', head: true })
-        .eq('aluno_id', aluno.id).gte('registrado_em', primeiroDiaMes.toISOString())
-    : { count: null }
-
   return (
     <div>
       <div style={{ height: 3, background: FAIXA_HEX[aluno.faixa] ?? '#FFFFFF' }} />
       <header
-        className="flex items-center gap-3 px-5 pt-safe pb-4"
+        className="flex items-center justify-between gap-3 px-4 pt-safe pb-4"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <AvatarUpload
-          entityId={aluno.id}
-          nome={aluno.nome}
-          fotoUrlAtual={aluno.foto_url}
-          persist={updateFotoPropria}
-          size={44}
-        />
-        <div className="flex-1 min-w-0">
-          <h1 className="text-[20px] font-bold leading-tight truncate" style={{ color: 'var(--brand-texto)' }}>
-            {aluno.nome.split(' ')[0]}
-          </h1>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: FAIXA_HEX[aluno.faixa] ?? '#FFFFFF' }} />
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--brand-texto-muted)' }}>
-              {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
-            </p>
+        <div className="flex items-center gap-3 min-w-0">
+          <AvatarUpload
+            entityId={aluno.id}
+            nome={aluno.nome}
+            fotoUrlAtual={aluno.foto_url}
+            persist={updateFotoPropria}
+            size={52}
+          />
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-bold truncate" style={{ color: 'var(--brand-texto)', lineHeight: 1.1 }}>
+              {aluno.nome.split(' ')[0]}
+            </h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: FAIXA_HEX[aluno.faixa] ?? '#FFFFFF', flexShrink: 0 }} />
+              <span className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>
+                {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
+              </span>
+            </div>
           </div>
         </div>
         <PushSubscribeButton />
       </header>
 
-      <main className="px-5 pt-5 space-y-5">
+      <main className="px-4 pt-5 space-y-5">
 
         {/* Avisos */}
         {(avisosData ?? []).length > 0 && (
@@ -323,25 +308,129 @@ export default async function AlunoHomePage() {
           </div>
         )}
 
-        {/* Empty state — próximo treino + contagem do mês */}
-        {semNadaAgora && (
-          <div className="rounded-2xl px-5 py-6 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-            <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-              Nenhuma aula ao vivo agora
-            </p>
-            {proximoTreino && (
-              <p className="text-[13px] font-bold mt-1" style={{ color: 'var(--brand-texto)' }}>
-                Próximo treino: <span style={{ color: 'var(--brand-gold)' }}>{proximoTreino}</span>
+        {/* Insights */}
+        <div className="space-y-3">
+          {/* Hora de revisar — só aparece se há técnica stale (>21d) */}
+          {insights?.tecnica_reforcar && (() => {
+            const dias = Math.floor(
+              (Date.now() - new Date(insights.tecnica_reforcar.ultima_vez + 'T12:00:00').getTime()) / 86400000
+            )
+            return (
+              <Link href={`/aluno/tecnicas/${insights.tecnica_reforcar.categoria_id}`}
+                className="block rounded-2xl p-4 active:scale-[0.98] transition-transform"
+                style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+                <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--brand-gold)' }}>
+                  ⟳ Hora de revisar
+                </p>
+                <p className="font-bold text-[15px]" style={{ color: 'var(--brand-texto)' }}>
+                  {insights.tecnica_reforcar.nome}
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#888' }}>
+                  Você viu essa técnica <strong style={{ color: 'var(--brand-texto)' }}>{dias} dias atrás</strong>. Já está esquecendo?
+                </p>
+                <p className="text-[10px] mt-2 underline underline-offset-2" style={{ color: 'var(--brand-gold)' }}>
+                  Ver em {insights.tecnica_reforcar.categoria_nome} →
+                </p>
+              </Link>
+            )
+          })()}
+
+          {/* Stats strip */}
+          {((insights?.presencas_30d ?? 0) > 0 || (insights?.tecnicas_aprendidas ?? 0) > 0) && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-2xl p-3 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="font-bold text-[28px] leading-none" style={{ color: 'var(--brand-texto)' }}>
+                  {insights?.presencas_30d ?? 0}
+                </p>
+                <p className="text-[9px] uppercase tracking-widest mt-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  aulas este mês
+                </p>
+              </div>
+              <div className="rounded-2xl p-3 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="font-bold text-[28px] leading-none" style={{ color: 'var(--brand-texto)' }}>
+                  {insights?.tecnicas_aprendidas ?? 0}
+                </p>
+                <p className="text-[9px] uppercase tracking-widest mt-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  técnicas aprendidas
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Progresso na melhor categoria */}
+          {insights?.melhor_categoria && (() => {
+            const cat = insights.melhor_categoria
+            const pct = cat.total > 0 ? Math.round((cat.vistas / cat.total) * 100) : 0
+            return (
+              <Link href={`/aluno/tecnicas/${cat.id}`}
+                className="block rounded-2xl p-4 active:scale-[0.98] transition-transform"
+                style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+                    Progresso — {cat.nome}
+                  </p>
+                  <p className="text-xs font-bold" style={{ color: 'var(--brand-gold)' }}>{pct}%</p>
+                </div>
+                <p className="text-sm font-bold mb-2" style={{ color: 'var(--brand-texto)' }}>
+                  {cat.vistas} de {cat.total} técnicas
+                </p>
+                <div style={{ height: 4, background: 'var(--brand-border)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: 'var(--brand-gold)', borderRadius: 4 }} />
+                </div>
+                {cat.total - cat.vistas > 0 && (
+                  <p className="text-[10px] mt-2" style={{ color: '#555' }}>
+                    Aprenda mais <strong style={{ color: 'var(--brand-texto)' }}>{cat.total - cat.vistas} técnicas</strong> para completar
+                  </p>
+                )}
+              </Link>
+            )
+          })()}
+
+          {/* Última aula */}
+          {insights?.ultima_aula && (() => {
+            const ua = insights.ultima_aula
+            const d = new Date(ua.data + 'T12:00:00')
+            const dataFmt = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' })
+            return (
+              <div className="rounded-2xl p-4" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Última aula
+                </p>
+                <p className="text-sm font-bold capitalize" style={{ color: 'var(--brand-texto)' }}>
+                  {dataFmt}{ua.turma_nome ? ` · ${ua.turma_nome}` : ''}
+                </p>
+                {ua.tecnicas.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {ua.tecnicas.map((t, i) => (
+                      <span key={i} className="text-[10px] font-bold px-2.5 py-1 rounded-lg"
+                        style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* Empty state — aluno novo sem nenhuma presença */}
+          {!insights?.ultima_aula && (insights?.presencas_30d ?? 0) === 0 && (
+            <div className="rounded-2xl p-5 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>
+                Bem-vindo ao NajaPass!
               </p>
-            )}
-            {(treinosMes ?? 0) > 0 && (
-              <p className="text-[11px] mt-3" style={{ color: 'var(--brand-texto-muted)' }}>
-                <span style={{ color: 'var(--brand-gold)', fontWeight: 700, fontSize: 18 }}>{treinosMes}</span>
-                {' '}treinos este mês
+              <p className="text-xs mt-2" style={{ color: 'var(--brand-texto-muted)' }}>
+                Sua jornada começa quando o professor registrar sua primeira presença.
               </p>
-            )}
-          </div>
-        )}
+              <p className="text-xs mt-1" style={{ color: '#333' }}>
+                Explore as técnicas do currículo enquanto isso.
+              </p>
+              <Link href="/aluno/tecnicas" className="inline-block mt-3 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
+                Ver currículo →
+              </Link>
+            </div>
+          )}
+        </div>
 
         {/* Técnicas da Semana */}
         {tecnicasDaSemana.length > 0 && (
