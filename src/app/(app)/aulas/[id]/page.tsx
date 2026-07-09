@@ -133,6 +133,40 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     weekday: 'long', day: '2-digit', month: 'long',
   })
 
+  // Contexto da última aula da turma — só faz sentido pra aula ainda não
+  // iniciada, com turma definida (aula avulsa não tem "última aula" a comparar)
+  let ultimaAulaDaTurma: { data: string; tecnicas: { nome: string; reforco: boolean }[] } | null = null
+  if (aula.turma_id && aula.status === 'agendada') {
+    const { data: ultima } = await supabase
+      .from('aulas')
+      .select('id, data')
+      .eq('turma_id', aula.turma_id)
+      .eq('status', 'finalizada')
+      .order('data', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (ultima) {
+      const { data: tecs } = await supabase
+        .from('aula_tecnicas')
+        .select('reforco, tecnicas(nome)')
+        .eq('aula_id', ultima.id)
+        .eq('tipo', 'ensinada')
+
+      type UltimaTecRow = { reforco: boolean; tecnicas: { nome: string } | null }
+      ultimaAulaDaTurma = {
+        data: ultima.data,
+        tecnicas: ((tecs ?? []) as unknown as UltimaTecRow[])
+          .filter(t => t.tecnicas)
+          .map(t => ({ nome: t.tecnicas!.nome, reforco: t.reforco })),
+      }
+    }
+  }
+
+  const dataUltimaAulaFmt = ultimaAulaDaTurma
+    ? new Date(ultimaAulaDaTurma.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+    : null
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
       <header className="px-5 pt-safe pb-5 flex items-start gap-3"
@@ -198,6 +232,33 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
       {aula.status === 'agendada' && (
         <div className="px-5 mt-4">
           <AulaAgendadaActions aulaId={id} />
+        </div>
+      )}
+
+      {ultimaAulaDaTurma && (
+        <div className="mx-5 mt-4 px-4 py-3 rounded-xl"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <p className="text-[9px] uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+            Última aula desta turma — {dataUltimaAulaFmt}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {ultimaAulaDaTurma.tecnicas.map((t, i) => (
+              <span key={i}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold"
+                style={{
+                  background: t.reforco ? 'rgba(251,146,60,0.1)' : 'rgba(74,222,128,0.08)',
+                  border: `1px solid ${t.reforco ? 'rgba(251,146,60,0.25)' : 'rgba(74,222,128,0.2)'}`,
+                  color: t.reforco ? '#FB923C' : '#4ADE80',
+                }}>
+                {t.reforco ? '↺' : '✓'} {t.nome}
+              </span>
+            ))}
+          </div>
+          {ultimaAulaDaTurma.tecnicas.some(t => t.reforco) && (
+            <p className="text-[9px] mt-2" style={{ color: '#FB923C' }}>
+              Técnicas laranja foram marcadas para reforço — já adicionadas ao plano de hoje
+            </p>
+          )}
         </div>
       )}
 

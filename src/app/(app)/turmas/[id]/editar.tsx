@@ -13,18 +13,30 @@ const DIAS = [
   { value: 'domingo', label: 'Dom' },
 ]
 
+// A Vercel (plano Hobby) só permite cron 1x/dia — não dá pra abrir
+// com precisão de horas antes do horário. O cron roda de madrugada
+// e abre de uma vez todas as aulas do dia das turmas com isso ligado.
+const OPCOES_AUTO_ABRIR = [
+  { value: '', label: 'Manual (professor abre)' },
+  { value: '0', label: 'Automática (abre toda manhã)' },
+]
+
 export default function EditarTurmaForm({
-  turmaId, nomeAtual, diasAtuais, horarioAtual,
+  turmaId, nomeAtual, diasAtuais, horarioAtual, autoAbrirHorasAtual,
 }: {
   turmaId: string
   nomeAtual: string
   diasAtuais: string[]
   horarioAtual: string | null
+  autoAbrirHorasAtual: number | null
 }) {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState(nomeAtual)
   const [dias, setDias] = useState<string[]>(diasAtuais)
   const [horario, setHorario] = useState(horarioAtual?.substring(0, 5) ?? '')
+  const [autoAbrirHoras, setAutoAbrirHoras] = useState(
+    autoAbrirHorasAtual === null || autoAbrirHorasAtual === undefined ? '' : String(autoAbrirHorasAtual)
+  )
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
 
@@ -35,7 +47,7 @@ export default function EditarTurmaForm({
   function handleSalvar() {
     setError('')
     startTransition(async () => {
-      const res = await updateTurma(turmaId, nome, dias, horario)
+      const res = await updateTurma(turmaId, nome, dias, horario, autoAbrirHoras === '' ? null : Number(autoAbrirHoras))
       if (res?.error) { setError(res.error); return }
       setOpen(false)
     })
@@ -88,6 +100,22 @@ export default function EditarTurmaForm({
         <input value={horario} onChange={e => setHorario(e.target.value)} type="time"
           className="w-full px-3 py-2 rounded-xl bg-transparent text-sm text-white focus:outline-none"
           style={{ border: '1px solid var(--brand-border-str)' }} />
+      </div>
+
+      <div>
+        <label className="block text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
+          Abertura automática das aulas
+        </label>
+        <select value={autoAbrirHoras} onChange={e => setAutoAbrirHoras(e.target.value)}
+          className="w-full px-3 py-2 rounded-xl bg-transparent text-sm text-white focus:outline-none"
+          style={{ border: '1px solid var(--brand-border-str)' }}>
+          {OPCOES_AUTO_ABRIR.map(op => (
+            <option key={op.value} value={op.value} className="bg-black">{op.label}</option>
+          ))}
+        </select>
+        <p className="text-[10px] mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
+          Quando ligado, todas as aulas agendadas de hoje desta turma abrem sozinhas de madrugada e enviam push para os alunos.
+        </p>
       </div>
 
       {error && <p className="text-xs" style={{ color: '#f87171' }}>{error}</p>}

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/abrir-aulas",
+      "schedule": "0 7 * * *"
+    }
+  ]
+}

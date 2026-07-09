@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Users, LayoutGrid, ClipboardList, Inbox, Megaphone, CalendarDays } from 'lucide-react'
+import { Users, LayoutGrid, ClipboardList, Inbox, Megaphone } from 'lucide-react'
 import AgendadaCard from '@/components/agendada-card'
+import AulaHojeCard from './aula-hoje-card'
+import InsightCard from './insight-card'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -36,63 +38,14 @@ function ultimaAulaLabel(dataStr: string | null) {
   return `última: ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`
 }
 
-type Insight =
-  | { tipo: 'ausente'; nome: string; dias: number; alunoId: string }
-  | { tipo: 'lacuna_categoria'; categoria: string; dias: number }
-  | { tipo: 'reforco'; tecnica: string }
-  | null
-
-async function calcularInsight(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  data: {
-    alunoMaisAusente: { aluno_id: string; nome: string; dias_ausente: number } | null
-    ultimasEnsinadas: { tecnicas: { categorias_tecnicas: { nome: string } | null } | null; aulas: { data: string } | null }[]
-    ultimaAulaFinalizadaId: string | null
-  }
-): Promise<Insight> {
-  const { alunoMaisAusente, ultimasEnsinadas, ultimaAulaFinalizadaId } = data
-
-  // 1. Aluno ausente há +14 dias?
-  if (alunoMaisAusente && alunoMaisAusente.dias_ausente >= 14) {
-    return { tipo: 'ausente', nome: alunoMaisAusente.nome, dias: alunoMaisAusente.dias_ausente, alunoId: alunoMaisAusente.aluno_id }
-  }
-
-  // 2. Alguma categoria ensinada nos últimos 90 dias, mas há +21 dias sem repetir?
-  const ultimaPorCategoria = new Map<string, string>()
-  for (const r of ultimasEnsinadas) {
-    const categoria = r.tecnicas?.categorias_tecnicas?.nome
-    const dataAula = r.aulas?.data
-    if (!categoria || !dataAula) continue
-    const atual = ultimaPorCategoria.get(categoria)
-    if (!atual || dataAula > atual) ultimaPorCategoria.set(categoria, dataAula)
-  }
-  let categoriaLacuna: { nome: string; dias: number } | null = null
-  for (const [categoria, dataStr] of ultimaPorCategoria) {
-    const dias = Math.floor((Date.now() - new Date(dataStr + 'T12:00:00').getTime()) / 86400000)
-    if (dias >= 21 && (!categoriaLacuna || dias > categoriaLacuna.dias)) {
-      categoriaLacuna = { nome: categoria, dias }
-    }
-  }
-  if (categoriaLacuna) {
-    return { tipo: 'lacuna_categoria', categoria: categoriaLacuna.nome, dias: categoriaLacuna.dias }
-  }
-
-  // 3. Reforço pendente da última aula finalizada?
-  if (ultimaAulaFinalizadaId) {
-    const { data: reforcosData } = await supabase
-      .from('aula_tecnicas')
-      .select('tecnicas(nome)')
-      .eq('aula_id', ultimaAulaFinalizadaId)
-      .eq('reforco', true)
-      .limit(1)
-    const reforco = (reforcosData as unknown as { tecnicas: { nome: string } | null }[] | null)?.[0]
-    if (reforco?.tecnicas) {
-      return { tipo: 'reforco', tecnica: reforco.tecnicas.nome }
-    }
-  }
-
-  return null
+type DashboardInsights = {
+  turmas_sem_plano: { aula_id: string; turma_nome: string | null; hora: string | null }[] | null
+  categoria_esquecida: { categoria_nome: string; dias: number } | null
+  aluno_ausente: { aluno_nome: string; aluno_id: string; dias: number } | null
+  reforcos_pendentes: number
 }
+
+const DIAS_ABBR = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 // ── page ─────────────────────────────────────────────────────────────────────
 
@@ -124,6 +77,7 @@ export default async function DashboardPage() {
   ).toISOString().split('T')[0]
   const hoje = new Date().toISOString().split('T')[0]
   const quatorzeDias = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
+  const seteDias = new Date(Date.now() + 6 * 86400000).toISOString().split('T')[0]
 
   const [
     { count: totalAlunos },
@@ -132,11 +86,10 @@ export default async function DashboardPage() {
     solicitacoesRes,
     { data: ultimasAulas },
     { data: ultimaAula },
-    { data: aulaAberta },
-    { data: alunoMaisAusenteData },
-    { data: ultimasEnsinadasData },
-    { data: ultimaAulaFinalizada },
+    { data: aulasHojeData },
     { data: agendadasData },
+    { data: semanaData },
+    { data: insightsRaw },
   ] = await Promise.all([
     supabase.from('alunos').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativo', true),
     supabase.from('turmas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativa', true),
@@ -144,33 +97,63 @@ export default async function DashboardPage() {
     supabase.from('solicitacoes').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('status', 'pendente').then(r => r.error ? { count: 0 } : r),
     supabase.from('aulas').select('id, data, status, turmas(nome), presencas(id)').eq('academia_id', acadId).order('data', { ascending: false }).order('hora_inicio', { ascending: false }).limit(3),
     supabase.from('aulas').select('data').eq('academia_id', acadId).order('data', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('aulas').select('id, turmas(nome), presencas(id)').eq('academia_id', acadId).eq('status', 'aberta').order('data', { ascending: false }).limit(1).maybeSingle(),
-    supabase.rpc('aluno_mais_ausente', { p_academia_id: acadId }).then(r => r.error ? { data: [] } : r),
-    // .order()/.limit() não reordenam pela tabela referenciada (aulas) — postgrest só
-    // reordena o array aninhado, não a seleção externa. Em vez de "últimas 50", filtra
-    // por janela de data (90 dias) e processa tudo em JS.
-    supabase
-      .from('aula_tecnicas')
-      .select('tecnicas!inner(categorias_tecnicas(nome)), aulas!inner(data, academia_id)')
-      .eq('aulas.academia_id', acadId)
-      .eq('tipo', 'ensinada')
-      .gte('aulas.data', new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0]),
-    supabase.from('aulas').select('id').eq('academia_id', acadId).eq('status', 'finalizada').order('data', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('aulas')
+      .select('id, status, hora_inicio, turmas(nome), presencas(id)')
+      .eq('academia_id', acadId)
+      .eq('data', hoje)
+      .in('status', ['agendada', 'aberta', 'finalizada'])
+      .order('hora_inicio'),
     supabase.from('aulas')
       .select('id, data, hora_inicio, turmas(nome), presencas(id)')
       .eq('academia_id', acadId)
       .eq('status', 'agendada')
-      .gte('data', hoje)
+      .gt('data', hoje)
       .lte('data', quatorzeDias)
       .order('data')
       .order('hora_inicio')
       .limit(5),
+    supabase.from('aulas')
+      .select('id, data, status')
+      .eq('academia_id', acadId)
+      .gte('data', hoje)
+      .lte('data', seteDias)
+      .in('status', ['agendada', 'aberta', 'finalizada'])
+      .order('data'),
+    supabase.rpc('professor_dashboard_insights', { p_academia_id: acadId }).then(r => r.error ? { data: null } : r),
   ])
 
   const pendentes = solicitacoesRes.count ?? 0
   const nome = professor.nome
-  const turmaAulaAberta = aulaAberta?.turmas as unknown as { nome: string } | null
-  const presentesAulaAberta = (aulaAberta?.presencas as unknown as { id: string }[] | null)?.length ?? 0
+  const insights = insightsRaw as DashboardInsights | null
+
+  // ── Hoje: técnicas planejadas das aulas ainda agendadas (chips do card) ──
+  const aulasHojeIds = (aulasHojeData ?? []).map(a => a.id)
+  const aulasHojeAgendadasIds = (aulasHojeData ?? []).filter(a => a.status === 'agendada').map(a => a.id)
+
+  const { data: tecnicasHojeData } = aulasHojeAgendadasIds.length > 0
+    ? await supabase
+        .from('aula_tecnicas')
+        .select('aula_id, reforco, tecnicas(nome)')
+        .in('aula_id', aulasHojeAgendadasIds)
+        .eq('tipo', 'planejada')
+    : { data: [] }
+
+  type TecHojeRow = { aula_id: string; reforco: boolean; tecnicas: { nome: string } | null }
+  const tecnicasPorAulaHoje = ((tecnicasHojeData ?? []) as unknown as TecHojeRow[]).reduce<Record<string, { nome: string; reforco: boolean }[]>>((acc, r) => {
+    if (!r.tecnicas) return acc
+    if (!acc[r.aula_id]) acc[r.aula_id] = []
+    acc[r.aula_id].push({ nome: r.tecnicas.nome, reforco: r.reforco })
+    return acc
+  }, {})
+
+  const aulasHoje = (aulasHojeData ?? []).map(a => ({
+    id: a.id,
+    status: a.status as 'agendada' | 'aberta' | 'finalizada',
+    hora_inicio: a.hora_inicio as string | null,
+    turma_nome: (a.turmas as unknown as { nome: string } | null)?.nome ?? null,
+    tecnicas: tecnicasPorAulaHoje[a.id] ?? [],
+    presentes: (a.presencas as unknown as { id: string }[] | null)?.length ?? 0,
+  }))
 
   const agendadas = (agendadasData ?? []).map(a => ({
     id: a.id,
@@ -180,13 +163,31 @@ export default async function DashboardPage() {
     confirmados: (a.presencas as unknown as { id: string }[] | null)?.length ?? 0,
   }))
 
-  const insight = await calcularInsight(supabase, {
-    alunoMaisAusente: (alunoMaisAusenteData as { aluno_id: string; nome: string; dias_ausente: number }[] | null)?.[0] ?? null,
-    ultimasEnsinadas: (ultimasEnsinadasData ?? []) as unknown as {
-      tecnicas: { categorias_tecnicas: { nome: string } | null } | null
-      aulas: { data: string } | null
-    }[],
-    ultimaAulaFinalizadaId: ultimaAulaFinalizada?.id ?? null,
+  // ── Semana: mini-grid dos próximos 7 dias ──
+  const semanaAulas = (semanaData ?? []) as unknown as { id: string; data: string; status: string }[]
+  const semanaAulaIds = semanaAulas.map(a => a.id)
+  const { data: semanaTecData } = semanaAulaIds.length > 0
+    ? await supabase.from('aula_tecnicas').select('aula_id').in('aula_id', semanaAulaIds)
+    : { data: [] }
+  const aulaIdsComTecnica = new Set((semanaTecData ?? []).map(t => t.aula_id))
+
+  const diasDaSemana = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() + i * 86400000)
+    const dataStr = d.toISOString().split('T')[0]
+    const aulasDoDia = semanaAulas.filter(a => a.data === dataStr)
+    return {
+      dataStr,
+      label: DIAS_ABBR[d.getDay()],
+      diaNum: d.getDate(),
+      isHoje: i === 0,
+      aulas: aulasDoDia.map(a => ({
+        status: a.status,
+        cor: a.status === 'aberta' ? '#4ADE80'
+          : a.status === 'finalizada' ? 'rgba(74,222,128,0.4)'
+          : aulaIdsComTecnica.has(a.id) ? 'var(--brand-gold)'
+          : '#444',
+      })),
+    }
   })
 
   return (
@@ -224,53 +225,114 @@ export default async function DashboardPage() {
         </h1>
       </div>
 
-      {/* ── Banner: aula aberta agora ── */}
-      {aulaAberta && (
-        <div className="px-4 mb-3">
-          <Link
-            href={`/aulas/${aulaAberta.id}`}
-            className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
-            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-gold-border)' }}>
-            <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse" style={{ background: 'var(--brand-gold)' }} />
+      {/* ── HOJE ── */}
+      <section className="px-4 mb-4">
+        <p className="text-[9px] uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+          Hoje
+        </p>
+
+        {aulasHoje.length > 0 ? (
+          <div className="space-y-2">
+            {aulasHoje.map(a => (
+              <AulaHojeCard key={a.id} aula={a} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="rounded-2xl px-5 py-4 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
+                Nenhuma aula hoje.
+              </p>
+            </div>
+
+            {agendadas.length > 0 && (
               <div>
-                <p className="text-[13px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
-                  Aula em andamento
+                <p className="text-[9px] uppercase tracking-widest mb-2 mt-3" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Próximas aulas
                 </p>
-                <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                  {turmaAulaAberta?.nome ?? 'Aula avulsa'} · {presentesAulaAberta} presente{presentesAulaAberta !== 1 ? 's' : ''}
-                </p>
+                <div className="space-y-2">
+                  {agendadas.map(aula => (
+                    <AgendadaCard key={aula.id} aula={aula} />
+                  ))}
+                </div>
               </div>
-            </div>
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
-              style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)' }}>
-              →
-            </div>
-          </Link>
-        </div>
+            )}
+
+            <Link
+              href="/aulas/nova"
+              className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--brand-gold)' }}>
+              <p className="text-[13px] font-bold uppercase tracking-wide text-black">+ Nova aula</p>
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
+                style={{ background: 'rgba(0,0,0,0.15)', color: 'black' }}>
+                →
+              </div>
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* ── INSIGHTS ── */}
+      {insights && (
+        insights.turmas_sem_plano?.length || insights.categoria_esquecida || insights.aluno_ausente || insights.reforcos_pendentes > 0
+      ) && (
+        <section className="px-4 mb-4 space-y-1.5">
+          {insights.turmas_sem_plano?.[0] && (
+            <InsightCard cor="orange" href={`/aulas/${insights.turmas_sem_plano[0].aula_id}`}>
+              ⚠ <b style={{ color: '#ccc' }}>{insights.turmas_sem_plano[0].turma_nome ?? 'Aula avulsa'}</b>
+              {insights.turmas_sem_plano[0].hora ? ` (${insights.turmas_sem_plano[0].hora.substring(0, 5)})` : ''} — nenhuma técnica planejada. Toque para planejar →
+            </InsightCard>
+          )}
+          {insights.categoria_esquecida && (
+            <InsightCard cor="yellow">
+              ⏰ Categoria <b style={{ color: '#ccc' }}>{insights.categoria_esquecida.categoria_nome}</b> não ensinada há {insights.categoria_esquecida.dias} dias
+            </InsightCard>
+          )}
+          {insights.aluno_ausente && (
+            <InsightCard cor="yellow" href={`/alunos/${insights.aluno_ausente.aluno_id}`}>
+              👤 <b style={{ color: '#ccc' }}>{insights.aluno_ausente.aluno_nome}</b> ausente há {insights.aluno_ausente.dias} dias — ver perfil →
+            </InsightCard>
+          )}
+          {insights.reforcos_pendentes > 0 && (
+            <InsightCard cor="blue">
+              🔁 {insights.reforcos_pendentes} técnica{insights.reforcos_pendentes > 1 ? 's marcadas' : ' marcada'} para reforço esta semana
+            </InsightCard>
+          )}
+        </section>
       )}
 
-      {/* ── CTA Abrir Aula ── */}
-      <div className="px-4 mb-3">
-        <Link
-          href="/aulas/nova"
-          className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
-          style={{ background: 'var(--brand-gold)' }}>
-          <div>
-            <p className="text-[13px] font-bold uppercase tracking-wide text-black">Abrir aula</p>
-            <p className="text-[10px] mt-0.5" style={{ color: 'rgba(0,0,0,0.5)' }}>Inicie o treino de hoje</p>
+      {/* ── SEMANA (mini-grid) ── */}
+      <section className="px-4 mb-4">
+        <Link href="/semana" className="block active:opacity-80 transition-opacity">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+              Semana
+            </p>
+            <span className="text-[10px]" style={{ color: 'var(--brand-gold)' }}>Ver tudo →</span>
           </div>
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
-            style={{ background: 'rgba(0,0,0,0.15)', color: 'black' }}>
-            →
+          <div className="grid grid-cols-7 gap-1.5 rounded-2xl p-3" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            {diasDaSemana.map(dia => (
+              <div key={dia.dataStr} className="flex flex-col items-center gap-1.5">
+                <p className="text-[8px] uppercase" style={{ color: dia.isHoje ? 'var(--brand-gold)' : 'var(--brand-texto-muted)' }}>
+                  {dia.label}
+                </p>
+                <p className="text-[10px] font-bold" style={{ color: dia.isHoje ? 'var(--brand-gold)' : 'var(--brand-texto-sec)' }}>
+                  {dia.diaNum}
+                </p>
+                <div className="flex flex-col gap-0.5 items-center min-h-[12px]">
+                  {dia.aulas.slice(0, 3).map((a, i) => (
+                    <span key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: a.cor }} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </Link>
-      </div>
+      </section>
 
       {/* ── Stats Strip ── */}
-      <div className="grid grid-cols-3 gap-1.5 px-4 mb-3">
+      <div className="grid grid-cols-3 gap-1.5 px-4 mb-4">
         {[
           { valor: String(aulasMes ?? 0), label: 'aulas no mês' },
           { valor: String(totalAlunos ?? 0), label: 'alunos ativos' },
@@ -289,52 +351,6 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
-
-      {/* ── Próximas aulas (agendadas) ── */}
-      {agendadas.length > 0 && (
-        <section className="px-4 mb-3">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-              Próximas aulas
-            </p>
-            <Link href="/aulas/nova" className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--brand-gold)' }}>
-              + Agendar
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {agendadas.map(aula => (
-              <AgendadaCard key={aula.id} aula={aula} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Insight dinâmico ── */}
-      {insight && (
-        <div className="px-4 mb-3">
-          <Link
-            href={insight.tipo === 'ausente' ? `/alunos/${insight.alunoId}` : '/relatorios'}
-            className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
-            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-gold-border)' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-1.5 h-8 rounded-full flex-shrink-0" style={{ background: 'var(--brand-gold)' }} />
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
-                  {insight.tipo === 'ausente' && `${insight.nome} — ${insight.dias}d sem treinar`}
-                  {insight.tipo === 'lacuna_categoria' && `${insight.categoria} — ${insight.dias}d sem ensinar`}
-                  {insight.tipo === 'reforco' && 'Reforço pendente'}
-                </p>
-                <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                  {insight.tipo === 'ausente' && 'Ver perfil do aluno'}
-                  {insight.tipo === 'lacuna_categoria' && 'Ver insights da academia'}
-                  {insight.tipo === 'reforco' && insight.tecnica}
-                </p>
-              </div>
-            </div>
-            <span style={{ color: 'var(--brand-gold)', fontSize: 18 }}>→</span>
-          </Link>
-        </div>
-      )}
 
       {/* ── Grid de Ações ── */}
       <div className="grid grid-cols-2 gap-2 px-4 mb-4">
@@ -417,23 +433,6 @@ export default async function DashboardPage() {
             </p>
           </div>
           <Megaphone size={18} style={{ color: 'var(--brand-gold)' }} />
-        </Link>
-      </div>
-
-      {/* ── Técnicas da Semana ── */}
-      <div className="px-4 mb-3">
-        <Link href="/semana"
-          className="flex items-center justify-between rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
-          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-          <div>
-            <p className="text-[13px] font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto)' }}>
-              Técnicas da Semana
-            </p>
-            <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-              Aulas e posições planejadas
-            </p>
-          </div>
-          <CalendarDays size={18} style={{ color: 'var(--brand-gold)' }} />
         </Link>
       </div>
 

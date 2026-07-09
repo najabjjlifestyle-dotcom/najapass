@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { togglePresenca, finalizarAula, adicionarVisitante, removerVisitante } from '../actions'
 import Avatar from '@/components/avatar'
 
@@ -115,7 +116,7 @@ export default function AttendanceList({
     if (result?.error) {
       setFinalizando(false)
     } else {
-      router.refresh()
+      router.push(`/aulas/${aulaId}/feedback`)
     }
   }
 
@@ -133,9 +134,11 @@ export default function AttendanceList({
           </button>
         )}
         {isFinished && (
-          <span className="text-xs uppercase tracking-widest px-2 py-1 rounded" style={{ color: '#4ADE80', border: '1px solid rgba(74,222,128,0.3)' }}>
-            Finalizada ✓
-          </span>
+          <Link href={`/aulas/${aulaId}/feedback`}
+            className="text-xs uppercase tracking-widest px-2 py-1 rounded active:scale-[0.98] transition-transform"
+            style={{ color: '#4ADE80', border: '1px solid rgba(74,222,128,0.3)' }}>
+            Ver feedback →
+          </Link>
         )}
         {isScheduled && (
           <span className="text-xs uppercase tracking-widest px-2 py-1 rounded" style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>

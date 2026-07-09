@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-09 (v1.5)  
+**Última atualização:** 2026-07-09 (v1.6)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v1.6: Adicionados EP-17 (Cockpit do Professor) com cards B-055 a B-058. Dashboard redesign, planejamento com contexto, feedback pós-aula, auto-abertura por turma.
 - v1.5: Adicionados EP-16 (Fluxo de Aula — Professor) com cards B-051 a B-054. Fluxo pendente, multi-posições, busca ad-hoc e duplicação de aula.
 - v1.4: Adicionados EP-13 (Aluno — Jornada) com cards B-043 e B-044. Portal do aluno expandido para multi-page com nav bar focada em aprendizado.
 - v1.3: Adicionados EP-12 (Insights) com cards B-037 a B-042 (exceto B-041, descartado). B-037/B-038 são UX (banho de loja), B-039/B-040/B-042 são Insights.
@@ -33,6 +34,7 @@
 | EP-14 | Agendamento e Recorrência | 🟡 P1 |
 | EP-15 | Banho de Loja: Portal Aluno V2 (Insights + Drill-down) | 🟡 P1 |
 | EP-16 | Fluxo de Aula — Professor (pendente + multi-posições + duplicar) | 🔴 P0 |
+| EP-17 | Cockpit do Professor (dashboard + loop de aprendizado) | 🔴 P0 |
 
 ---
 
@@ -664,6 +666,42 @@ Como professor, quero copiar o planejamento de técnicas de uma aula para outra 
 - RLS: só duplica aulas da própria academia
 
 **Referência:** `HANDOFF-010-fluxo-pendente-multi-posicoes.md` (seção B-054).
+
+---
+
+---
+
+### EP-17 · Cockpit do Professor
+
+#### B-055 · Dashboard redesign — "O que tenho hoje"
+**Prioridade:** P0 | **Estimativa:** L  
+Redesign completo: seção "Hoje" (aulas do dia com ação rápida), "Insights" (3-5 cards acionáveis), "Semana" (mini-grid).
+
+**Referência:** `HANDOFF-011-cockpit-professor.md` (seção B-055).
+
+---
+
+#### B-056 · Planejamento com contexto da última aula da turma
+**Prioridade:** P0 | **Estimativa:** M  
+Tela da aula pendente mostra o que foi ensinado na última aula da turma, com técnicas de reforço pré-adicionadas automaticamente.
+
+**Referência:** `HANDOFF-011-cockpit-professor.md` (seção B-056).
+
+---
+
+#### B-057 · Feedback pós-aula — "Como foi a turma?"
+**Prioridade:** P0 | **Estimativa:** M  
+Após FINALIZAR AULA: tela rápida por técnica (Ótimo / Repetir). Fecha o loop: reforços marcados aqui aparecem pré-adicionados na próxima aula da turma.
+
+**Referência:** `HANDOFF-011-cockpit-professor.md` (seção B-057).
+
+---
+
+#### B-058 · Auto-abertura de aulas por turma
+**Prioridade:** P1 | **Estimativa:** M  
+Professor configura "Turma da Noite abre 12h antes". Vercel Cron roda a cada 30min; abre automaticamente e dispara push.
+
+**Referência:** `HANDOFF-011-cockpit-professor.md` (seção B-058).
 
 ---
 

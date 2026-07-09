@@ -20,7 +20,13 @@ export async function matricularAluno(turmaId: string, alunoId: string) {
   return { success: true }
 }
 
-export async function updateTurma(turmaId: string, nome: string, diasSemana: string[], horario: string) {
+export async function updateTurma(
+  turmaId: string,
+  nome: string,
+  diasSemana: string[],
+  horario: string,
+  autoAbrirHoras: number | null,
+) {
   const nomeTrim = nome.trim()
   if (!nomeTrim) return { error: 'Nome é obrigatório.' }
 
@@ -34,6 +40,7 @@ export async function updateTurma(turmaId: string, nome: string, diasSemana: str
       nome: nomeTrim,
       dias_semana: diasSemana,
       horario: horario || null,
+      auto_abrir_horas: autoAbrirHoras,
     })
     .eq('id', turmaId)
 

@@ -71,9 +71,14 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-052 | Múltiplas posições por aula (picker desacoplado do tema) | Aulas |
 | B-053 | Busca de técnica ad-hoc durante aula ao vivo | Aulas |
 | B-054 | Duplicar aula | Aulas |
+| B-055 | Dashboard "cockpit" — Hoje + Insights + Semana | Dashboard |
+| B-056 | Planejamento com contexto da última aula da turma | Aulas |
+| B-057 | Feedback pós-aula — "Como foi a turma?" | Aulas |
+| B-058 | Auto-abertura de aulas por turma (cron + config) | Aulas |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
-> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`) — ver seções de detalhes abaixo.
+> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-059 (nav professor → `/planejamento`) referenciado em rascunho de backlog mas **nenhum HANDOFF-012 foi recebido ainda** — não implementado, não faz parte deste sprint.
 
 ---
 
@@ -162,6 +167,28 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ---
 
+## 🔍 Detalhes B-055 / B-056 / B-057 / B-058 (branch `feat/sprint15-cockpit-professor`, a partir da `main`)
+
+**B-056 — Planejamento com contexto:** tela da aula `agendada` com turma agora busca a última aula finalizada da mesma turma e mostra um painel com as técnicas ensinadas nela (✓ verde) e as marcadas pra reforço (↺ laranja) antes do bloco de técnicas da aula atual. `abrirAula()` passou a inserir os reforços da última aula **server-side** (união com o que o form já manda), preservando `reforco: true` na nova linha `planejada` — antes isso só acontecia no client e perdia a flag.
+
+**B-057 — Feedback pós-aula:** nova rota `/aulas/[id]/feedback` — ao finalizar a aula, `attendance-list.tsx` redireciona pra lá em vez de ficar na mesma tela. Lista as técnicas ensinadas com toggle Ótimo/Repetir (default: repete o que já veio marcado como reforço), preview de quantas vão pra próxima aula, e `salvarFeedbackAula()` zera + remarca `reforco` em `aula_tecnicas`. Se o professor voltar em `/aulas/[id]` depois de finalizada, o botão "Finalizar Aula" vira link "Ver feedback →".
+
+**B-055 — Dashboard cockpit:** redesenhado em 3 seções — **Hoje** (aulas do dia com `AulaHojeCard`: 3 variantes por status — pendente com chips de técnica/aviso de "sem plano" + botões Iniciar/Editar, ao vivo com destaque verde, finalizada compacta; fallback pra próximas aulas + CTA "Nova aula" quando não há nada hoje), **Insights** (RPC `professor_dashboard_insights` — turma sem plano, categoria esquecida, aluno ausente, reforços pendentes; card só aparece se houver algo, sem "tudo certo"), **Semana** (mini-grid de 7 dias com dots coloridos por status, link pra `/semana`). Removido o card de insight antigo (`calcularInsight`) e as queries que ele usava, substituídos pela RPC nova. Stats strip e grid de atalhos (Alunos/Turmas/Histórico/Solicitações) mantidos, movidos pra baixo das 3 seções novas.
+
+**B-058 — Auto-abertura por turma:** campo "Abertura automática das aulas" no formulário de editar turma (`turmas.auto_abrir_horas`, NULL = manual). Cron `/api/cron/abrir-aulas` a cada 30min via `vercel.json`, protegido por `CRON_SECRET`, chama a RPC `aulas_para_abrir_agora()` (compara `data + hora_inicio - auto_abrir_horas` contra o horário atual em `America/Sao_Paulo`, com janela de tolerância de 2h pra trás) e abre + dispara push pras aulas que caem na janela. **Correção ao handoff:** o cron usa um cliente Supabase novo (`src/lib/supabase/service.ts`, service role key) em vez do cliente cookie-based usado no resto do app — o handoff original reaproveitava `createClient()` de `@/lib/supabase/server`, que depende de cookies de sessão inexistentes numa chamada de cron sem usuário logado; isso faria toda leitura/escrita falhar silenciosamente sob RLS. **Pendências de configuração:** adicionar `SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` (gerar um valor aleatório) nas env vars da Vercel e no `.env.local`.
+
+---
+
+### EP-18 · Nav Professor — sprint 16, `feat/sprint16-nav-planejamento`
+
+| ID | Card | Prioridade |
+|---|---|---|
+| B-059 | Substituir "Perfil" por "Planejamento" no nav do professor. Perfil migra para header do dashboard. Nova `/planejamento`: turma-centric, mostra últimas + próximas aulas e gaps de currículo por turma. `/historico` vira retrospecto: frequência + técnicas por turma ao longo do tempo | P1 |
+
+**Referência:** HANDOFF-012 (a ser escrito)
+
+---
+
 ## 🟡 Em Progresso
 
 *Nenhum card em progresso no momento — aguardando push/PR/merge das branches `feat/sprint8-mobile-makeover` e `feat/sprint9-insights`.*
@@ -179,6 +206,8 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 1. ~~**Migrations não aplicadas.**~~ Resolvido em 2026-07-03: todas as migrations pendentes (`quem_vai`, `avatars_storage`, `push_subscriptions`, `dedupe_categorias`, `categorias_insert_policy`, `foto_professor`, `aluno_mais_ausente`, `curriculo_global`, `tecnicas_global_select`) foram aplicadas manualmente via SQL Editor do Supabase (CLI desta máquina continua não linkado ao projeto — permanece a forma de aplicar migrations daqui em diante). Todas foram reescritas para serem idempotentes (`DROP POLICY IF EXISTS`, `CREATE TABLE IF NOT EXISTS`, `WHERE NOT EXISTS` em bulk inserts) e podem ser reaplicadas com segurança se necessário.
 2. **Chaves VAPID.** Geradas localmente e adicionadas ao `.env.local` (gitignored). Para push funcionar em produção, adicionar `NEXT_PUBLIC_VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` nas env vars do projeto na Vercel.
 3. **Sem suíte de testes.** O CLAUDE.md cita Vitest como parte da stack, mas não há `vitest` no `package.json` nem testes escritos. Fora do escopo desta branch.
+4. **Novas migrations do sprint 15 não aplicadas.** `professor_dashboard_insights.sql` e `turma_auto_abrir.sql` (colunas + RPC `aulas_para_abrir_agora`) precisam ser rodadas manualmente no SQL Editor do Supabase, igual às anteriores.
+5. **`SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` não configurados.** Necessários pro cron de auto-abertura (`/api/cron/abrir-aulas`) funcionar — sem eles o endpoint sempre responde 401/erro. Pegar a service role key no painel do Supabase (Project Settings → API) e gerar um `CRON_SECRET` aleatório; adicionar nos dois lugares: `.env.local` (dev) e env vars do projeto na Vercel (produção — sem isso lá, o cron configurado em `vercel.json` chama o endpoint e recebe 401 a cada 30min).
 
 ---
 

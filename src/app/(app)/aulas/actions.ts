@@ -47,14 +47,43 @@ export async function abrirAula(formData: FormData) {
 
   if (error || !aula) return { error: 'Erro ao salvar aula.' }
 
-  // Salva as posições planejadas pelo professor
-  if (planejadas.length > 0) {
+  // Reforços da última aula finalizada desta turma — inseridos aqui (não só
+  // no client) pra garantir que a flag reforco=true sobrevive independente
+  // de quem/como criou a aula, e pro painel de contexto (B-056) conseguir
+  // mostrar o que veio de reforço mesmo se o professor desmarcar/remarcar
+  // no form antes de salvar.
+  let reforcoIds = new Set<string>()
+  if (turma_id) {
+    const { data: ultimaAula } = await supabase
+      .from('aulas')
+      .select('id')
+      .eq('turma_id', turma_id)
+      .eq('status', 'finalizada')
+      .order('data', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (ultimaAula) {
+      const { data: reforcos } = await supabase
+        .from('aula_tecnicas')
+        .select('tecnica_id')
+        .eq('aula_id', ultimaAula.id)
+        .eq('tipo', 'ensinada')
+        .eq('reforco', true)
+      reforcoIds = new Set((reforcos ?? []).map(r => r.tecnica_id))
+    }
+  }
+
+  // Salva as posições planejadas pelo professor + reforços que ainda não
+  // estejam na lista (união — sem duplicar linha se o client já mandou o id)
+  const todasPlanejadas = new Set([...planejadas, ...reforcoIds])
+  if (todasPlanejadas.size > 0) {
     await supabase.from('aula_tecnicas').insert(
-      planejadas.map(tecnica_id => ({
+      [...todasPlanejadas].map(tecnica_id => ({
         aula_id: aula.id,
         tecnica_id,
         tipo: 'planejada',
-        reforco: false,
+        reforco: reforcoIds.has(tecnica_id),
       }))
     )
   }
