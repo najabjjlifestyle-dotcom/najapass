@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-06 (v2.3 — B-048/049/050 concluídos na branch `feat/sprint13-aluno-insights`)
+**Atualizado em:** 2026-07-09 (v2.4 — EP-16 adicionado ao backlog, sprint 14 aguardando)
 
 ---
 
@@ -146,7 +146,18 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ## 📋 Backlog
 
-*Nenhum card pendente no momento.*
+### EP-16 · Fluxo de Aula — Professor (sprint 14, branch `feat/sprint14-fluxo-pendente`)
+
+| ID | Card | Prioridade | Estimativa |
+|---|---|---|---|
+| B-051 | Status pendente — toda aula nasce como `agendada`; botão "SALVAR AULA"; badge Pendente/Agendada | P0 | S |
+| B-052 | Múltiplas posições por aula — picker com busca + categorias expansíveis; remover filtro de tema | P0 | M |
+| B-053 | Busca ad-hoc durante aula AO VIVO — campo de texto substitui `<select>` flat | P1 | S |
+| B-054 | Duplicar aula — bottom sheet com turma/data/hora; copia só `planejadas` | P1 | M |
+
+**Referência:** `HANDOFF-010-fluxo-pendente-multi-posicoes.md`  
+**Ordem:** B-051 → B-052 → B-053 → B-054  
+**Sem migration** — `agendada` já existe no constraint.
 
 ---
 
