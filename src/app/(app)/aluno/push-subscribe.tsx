@@ -76,9 +76,9 @@ export default function PushSubscribeButton() {
   if (status === 'denied') {
     return (
       <div
-        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+        className="rounded-full flex items-center justify-center flex-shrink-0"
         title="Notificações bloqueadas"
-        style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+        style={{ width: 38, height: 38, background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
         <BellOff size={16} style={{ color: 'var(--brand-texto-muted)' }} />
       </div>
     )
@@ -88,9 +88,10 @@ export default function PushSubscribeButton() {
     <button
       onClick={status === 'subscribed' ? desativar : ativar}
       disabled={loading}
-      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform disabled:opacity-40"
+      className="rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform disabled:opacity-40"
       title={status === 'subscribed' ? 'Desativar notificações' : 'Ativar notificações'}
       style={{
+        width: 38, height: 38,
         background: status === 'subscribed' ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
         border: `1px solid ${status === 'subscribed' ? 'var(--brand-gold-border)' : 'var(--brand-border)'}`,
       }}>
