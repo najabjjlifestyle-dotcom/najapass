@@ -29,7 +29,7 @@ export default async function TurmaPage({ params }: { params: Promise<{ id: stri
 
   const { data: turma } = await supabase
     .from('turmas')
-    .select('id, nome, dias_semana, horario, ativa')
+    .select('id, nome, dias_semana, horario, ativa, auto_abrir_horas')
     .eq('id', id)
     .single()
 
@@ -100,6 +100,7 @@ export default async function TurmaPage({ params }: { params: Promise<{ id: stri
           nomeAtual={turma.nome}
           diasAtuais={(turma.dias_semana as string[] | null) ?? []}
           horarioAtual={turma.horario as string | null}
+          autoAbrirHorasAtual={turma.auto_abrir_horas as number | null}
         />
 
         <EnrollmentManager
