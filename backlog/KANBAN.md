@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-06 (v2.1 — B-045/B-046/B-047 concluídos na branch `feat/sprint12-agendamento`)
+**Atualizado em:** 2026-07-06 (v2.2 — EP-15 com B-048/049/050 adicionados ao backlog; motivação: screenshots do portal aluno com avatar "TROCAR FOTO" solto e home vazia)
 
 ---
 
@@ -133,7 +133,19 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ## 📋 Backlog
 
-*Nenhum card pendente no momento.*
+### EP-15 — Banho de Loja: Portal do Aluno V2 (Insights + Drill-down)
+
+| ID | Card | Épico | Branch sugerida |
+|---|---|---|---|
+| B-050 | Avatar upload UX + header redesign (remover "TROCAR FOTO") | EP-15 | `feat/sprint13-aluno-insights` |
+| B-048 | Técnicas: overview compacto + drill-down `/aluno/tecnicas/[id]` | EP-15 | (mesmo sprint) |
+| B-049 | Home insights engine (RPC `aluno_home_insights` + 4 cards) | EP-15 | (mesmo sprint) |
+
+> Implementar na ordem: B-050 (avatar) → B-048 (técnicas drill-down) → B-049 (insights home).  
+> Branch deve partir de `feat/sprint12-agendamento`.  
+> B-049 requer migration SQL: `XXXX_aluno_home_insights.sql`.  
+> **Motivação:** screenshots do usuário mostraram portal com avatar "TROCAR FOTO" solto, lista de técnicas sem interação, home vazia entre treinos.  
+> **Referência:** `HANDOFF-009-banho-de-loja-aluno-v2.md`.
 
 ---
 

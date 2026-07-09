@@ -30,6 +30,7 @@
 | EP-12 | Insights & UX Mobile | 🟡 P1 |
 | EP-13 | Aluno — Jornada de Aprendizado | 🟡 P1 |
 | EP-14 | Agendamento e Recorrência | 🟡 P1 |
+| EP-15 | Banho de Loja: Portal Aluno V2 (Insights + Drill-down) | 🟡 P1 |
 
 ---
 
@@ -546,6 +547,55 @@ Como aluno, quero ver as próximas aulas da minha turma no app, mesmo fora do ho
 - Aulas canceladas NÃO aparecem na home do aluno
 
 **Referência:** `HANDOFF-008-aulas-agendadas-recorrentes.md` (seção B-047).
+
+---
+
+### EP-15 · Banho de Loja: Portal Aluno V2 (Insights + Drill-down)
+
+#### B-050 · Avatar upload UX + header redesign
+**Prioridade:** P1 | **Estimativa:** S  
+Remover "TROCAR FOTO" como texto solto. Avatar circle = o próprio botão de upload, com ícone de câmera como overlay circular dourado. Header: banda de cor da faixa (3px) + avatar com câmera + nome + badge de faixa colorido + sino (Bell/BellOff Lucide).
+
+**Critérios de aceite:**
+- `AvatarUpload` refatorado: `<label>` envolve o círculo, câmera overlay `bottom:2px right:2px` no círculo
+- Nenhum texto "TROCAR FOTO" visível em qualquer tela
+- Bell/BellOff em círculo 38px (sem underline, sem texto)
+- Banda de cor da faixa (3px) no topo de todas as telas do aluno
+
+**Referência:** `HANDOFF-009-banho-de-loja-aluno-v2.md` (seção B-050).
+
+---
+
+#### B-048 · Técnicas: overview compacto + drill-down por categoria
+**Prioridade:** P1 | **Estimativa:** M  
+Overview com cards compactos (chips apenas das vistas, stale em laranja, `+N` unseen, seta `›`). Nova rota `/aluno/tecnicas/[id]` com 3 seções: "Precisa reforçar" (laranja, > 21 dias), "Aprendidas" (com frequência e data), "Ainda não viu" (dim chips).
+
+**Critérios de aceite:**
+- Overview: card por categoria com barra de progresso + max 4 chips + "+N" + ChevronRight
+- Categorias com técnica stale (>21d) aparecem PRIMEIRO com borda laranja sutil
+- Toque em qualquer categoria → `/aluno/tecnicas/[id]`
+- Detail page: stale section (laranja), learned (gold, com "vista Nx · última: Y dias"), unseen (dim)
+- Frequency badge: Frequente (≥5×), Boa (≥3×), ou "Nx" para resto
+- Empty state correto quando aluno nunca viu nada nesta categoria
+
+**Referência:** `HANDOFF-009-banho-de-loja-aluno-v2.md` (seção B-048).
+
+---
+
+#### B-049 · Home insights engine
+**Prioridade:** P1 | **Estimativa:** M  
+Substituir o vazio da home entre treinos por 4 cards de insight: "Hora de revisar" (técnica stale, link para categoria), stats strip (aulas/mês + técnicas aprendidas), progresso da melhor categoria, última aula com técnicas. Empty state motivacional para alunos novos.
+
+**Critérios de aceite:**
+- RPC `aluno_home_insights(p_aluno_id)` retorna: técnica stale, contagens, melhor categoria, última aula
+- Card "Hora de revisar" com nome da técnica + dias + link para categoria
+- Stats: 2 cards — "X aulas este mês" e "Y técnicas aprendidas"
+- Card de progresso: melhor categoria com barra e "aprenda mais N técnicas"
+- Card de última aula: data + técnicas como chips dourados
+- Aluno sem presença alguma: empty state com link para `/aluno/tecnicas`
+- Nenhuma tela com "NENHUMA AULA AO VIVO AGORA" sozinho sem contexto
+
+**Referência:** `HANDOFF-009-banho-de-loja-aluno-v2.md` (seção B-049).
 
 ---
 
