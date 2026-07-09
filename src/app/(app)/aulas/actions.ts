@@ -25,8 +25,10 @@ export async function abrirAula(formData: FormData) {
 
   const planejadas = formData.getAll('planejadas[]') as string[]
 
-  const hoje = new Date().toISOString().split('T')[0]
-  const status = data_aula > hoje ? 'agendada' : 'aberta'
+  // Toda aula nasce agendada — o professor abre explicitamente quando
+  // for começar, mesmo se for hoje. Isso garante uma fase de planejamento
+  // real em vez de pular direto pro modo "ao vivo".
+  const status = 'agendada'
 
   const { data: aula, error } = await supabase
     .from('aulas')
@@ -57,19 +59,8 @@ export async function abrirAula(formData: FormData) {
     )
   }
 
-  // Notifica os alunos da turma só quando a aula abre de fato — uma aula
-  // agendada dispara push só depois, em abrirAulaAgendada().
-  if (status === 'aberta' && turma_id) {
-    const { data: turma } = await supabase.from('turmas').select('nome').eq('id', turma_id).maybeSingle()
-    const { data: subs } = await supabase.rpc('subscricoes_da_turma', { p_turma_id: turma_id })
-    if (subs && subs.length > 0) {
-      await sendPushToAll(subs, {
-        title: '🥋 Aula aberta!',
-        body: `${turma?.nome ?? 'Sua turma'} — confirme sua presença`,
-        url: '/aluno',
-      })
-    }
-  }
+  // Toda aula nasce agendada agora — push só dispara quando o professor
+  // abre de fato, em abrirAulaAgendada().
 
   revalidatePath('/aulas')
   revalidatePath('/dashboard')
@@ -124,6 +115,71 @@ export async function cancelarAulaAgendada(aulaId: string) {
   revalidatePath('/dashboard')
   revalidatePath('/aulas')
   return { success: true }
+}
+
+export async function duplicarAula(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { data: professor } = await supabase
+    .from('professores').select('id, academia_id').eq('user_id', user.id).maybeSingle()
+  if (!professor?.academia_id) return { error: 'Professor não encontrado.' }
+
+  const aulaOrigemId = formData.get('aula_origem_id') as string
+  const turmaId = (formData.get('turma_id') as string | null) || null
+  const data_aula = formData.get('data') as string
+  const hora_inicio = (formData.get('hora_inicio') as string | null) || null
+
+  const { data: aulaOrigem } = await supabase
+    .from('aulas')
+    .select('tema_id, video_url')
+    .eq('id', aulaOrigemId)
+    .eq('academia_id', professor.academia_id)
+    .single()
+
+  if (!aulaOrigem) return { error: 'Aula não encontrada.' }
+
+  // Só copia as PLANEJADAS — ensinada/nao_ensinada são resultado da
+  // execução da aula original, não fazem sentido numa aula ainda não dada.
+  const { data: tecnicasOrigem } = await supabase
+    .from('aula_tecnicas')
+    .select('tecnica_id, reforco')
+    .eq('aula_id', aulaOrigemId)
+    .eq('tipo', 'planejada')
+
+  const { data: novaAula, error } = await supabase
+    .from('aulas')
+    .insert({
+      academia_id: professor.academia_id,
+      professor_id: professor.id,
+      turma_id: turmaId,
+      data: data_aula,
+      hora_inicio: hora_inicio || null,
+      tema_id: aulaOrigem.tema_id,
+      video_url: aulaOrigem.video_url,
+      status: 'agendada',
+    })
+    .select('id')
+    .single()
+
+  if (error || !novaAula) return { error: 'Erro ao criar aula duplicada.' }
+
+  if (tecnicasOrigem && tecnicasOrigem.length > 0) {
+    await supabase.from('aula_tecnicas').insert(
+      tecnicasOrigem.map(t => ({
+        aula_id: novaAula.id,
+        tecnica_id: t.tecnica_id,
+        tipo: 'planejada',
+        reforco: t.reforco,
+      }))
+    )
+  }
+
+  revalidatePath('/aulas')
+  revalidatePath('/semana')
+  revalidatePath('/dashboard')
+  return { success: true, id: novaAula.id }
 }
 
 export async function togglePresenca(aulaId: string, alunoId: string) {
