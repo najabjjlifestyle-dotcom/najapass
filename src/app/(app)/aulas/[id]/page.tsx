@@ -5,6 +5,7 @@ import AttendanceList from './attendance-list'
 import TecnicasAula from './tecnicas-aula'
 import BackButton from '@/components/back-button'
 import AulaAgendadaActions from './agendada-actions'
+import DuplicarAulaButton from '@/components/duplicar-aula-button'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
@@ -31,10 +32,9 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   if (!aula) redirect('/aulas')
 
   const temaNome = (aula.tema as unknown as { nome: string } | null)?.nome ?? null
-  const aulaTemaid = aula.tema_id as string | null
 
-  // Parallel: presencas, todas as aula_tecnicas, posições disponíveis
-  const [presencasResult, aulaTecnicasResult, todasTecnicasResult] = await Promise.all([
+  // Parallel: presencas, todas as aula_tecnicas, posições disponíveis, turmas (p/ duplicar)
+  const [presencasResult, aulaTecnicasResult, todasTecnicasResult, turmasResult] = await Promise.all([
     supabase.from('presencas').select('id, aluno_id, nome_visitante').eq('aula_id', id),
     supabase
       .from('aula_tecnicas')
@@ -44,6 +44,12 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
       .from('tecnicas')
       .select('id, nome, categoria_id, categorias_tecnicas(nome)')
       .or(`academia_id.eq.${professor.academia_id},global.eq.true`)
+      .order('nome'),
+    supabase
+      .from('turmas')
+      .select('id, nome')
+      .eq('academia_id', professor.academia_id)
+      .eq('ativa', true)
       .order('nome'),
   ])
 
@@ -119,7 +125,6 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   type RawTec = { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null }
   const disponiveis = ((todasTecnicasResult.data ?? []) as unknown as RawTec[])
     .filter(t => !naAulaIds.has(t.id))
-    .filter(t => !aulaTemaid || t.categoria_id === aulaTemaid)
     .map(t => ({ id: t.id, nome: t.nome, categoria: t.categorias_tecnicas?.nome ?? null }))
 
   const turma = aula.turmas as unknown as { nome: string } | null
@@ -133,7 +138,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
       <header className="px-5 pt-safe pb-5 flex items-start gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/aulas" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
               {turma?.nome ?? 'Aula Avulsa'}
@@ -150,12 +155,19 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
                 Ao vivo
               </span>
             )}
-            {aula.status === 'agendada' && (
-              <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
-                style={{ color: 'var(--brand-texto-muted)', border: '1px solid var(--brand-border)' }}>
-                Agendada
-              </span>
-            )}
+            {aula.status === 'agendada' && (() => {
+              const hoje = new Date().toISOString().split('T')[0]
+              const isPendente = (aula.data as string) <= hoje
+              return (
+                <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
+                  style={{
+                    color: isPendente ? '#FBBF24' : 'var(--brand-texto-muted)',
+                    border: `1px solid ${isPendente ? 'rgba(251,191,36,0.3)' : 'var(--brand-border)'}`,
+                  }}>
+                  {isPendente ? 'Pendente' : 'Agendada'}
+                </span>
+              )
+            })()}
             {aula.status === 'cancelada' && (
               <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
                 style={{ color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
@@ -180,6 +192,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
             </a>
           )}
         </div>
+        <DuplicarAulaButton aulaId={id} turmas={turmasResult.data ?? []} />
       </header>
 
       {aula.status === 'agendada' && (

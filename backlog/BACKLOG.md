@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-06 (v1.4)  
+**Última atualização:** 2026-07-09 (v1.5)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v1.5: Adicionados EP-16 (Fluxo de Aula — Professor) com cards B-051 a B-054. Fluxo pendente, multi-posições, busca ad-hoc e duplicação de aula.
 - v1.4: Adicionados EP-13 (Aluno — Jornada) com cards B-043 e B-044. Portal do aluno expandido para multi-page com nav bar focada em aprendizado.
 - v1.3: Adicionados EP-12 (Insights) com cards B-037 a B-042 (exceto B-041, descartado). B-037/B-038 são UX (banho de loja), B-039/B-040/B-042 são Insights.
 - v1.2: Branch `feat/sprint7-pendencias` fecha todos os cards P0/P1 pendentes (B-005, B-008, B-009, B-011, B-015, B-017, B-021, B-025, B-028, B-030, B-031, B-032, B-034, B-035, B-036). Ver `backlog/KANBAN.md` para detalhes e pendências operacionais (migrations a aplicar, chaves VAPID a configurar na Vercel).
@@ -31,6 +32,7 @@
 | EP-13 | Aluno — Jornada de Aprendizado | 🟡 P1 |
 | EP-14 | Agendamento e Recorrência | 🟡 P1 |
 | EP-15 | Banho de Loja: Portal Aluno V2 (Insights + Drill-down) | 🟡 P1 |
+| EP-16 | Fluxo de Aula — Professor (pendente + multi-posições + duplicar) | 🔴 P0 |
 
 ---
 
@@ -596,6 +598,72 @@ Substituir o vazio da home entre treinos por 4 cards de insight: "Hora de revisa
 - Nenhuma tela com "NENHUMA AULA AO VIVO AGORA" sozinho sem contexto
 
 **Referência:** `HANDOFF-009-banho-de-loja-aluno-v2.md` (seção B-049).
+
+---
+
+---
+
+### EP-16 · Fluxo de Aula — Professor
+
+#### B-051 · Status pendente — toda aula nasce como `agendada`
+**Prioridade:** P0 | **Estimativa:** S  
+Como professor, quero criar o plano de aula e só depois iniciar a aula quando os alunos chegarem.
+
+**Critérios de aceite:**
+- `abrirAula()` sempre cria com `status='agendada'` (remove o split por data)
+- Formulário: botão "SALVAR AULA" (não "ABRIR AULA")
+- Badge "Pendente" para aulas `agendada` com data ≤ hoje; "Agendada" para datas futuras
+- Dashboard "Próximas aulas" inclui aulas de hoje (`gte`, não `gt`)
+- "Iniciar" (AulaAgendadaActions existente) abre a aula → AO VIVO + push
+- Sem migration — status `agendada` já existe
+
+**Referência:** `HANDOFF-010-fluxo-pendente-multi-posicoes.md` (seção B-051).
+
+---
+
+#### B-052 · Múltiplas posições por aula
+**Prioridade:** P0 | **Estimativa:** M  
+Como professor, quero planejar técnicas de múltiplas categorias na mesma aula (ex: Costas + Guarda Fechada).
+
+**Critérios de aceite:**
+- Formulário de nova aula: picker com busca + navegação por categoria (sem filtro por tema único)
+- Chips selecionados sempre visíveis no topo do picker
+- Ad-hoc na aula AO VIVO: remover filtro de tema em `disponiveis` (técnicas de qualquer categoria disponíveis)
+- Técnicas na tela da aula agrupadas por categoria quando há múltiplas
+- Título do bloco de técnicas: "POSIÇÕES — COSTAS" se uma só categoria, "POSIÇÕES" se múltiplas
+
+**Referência:** `HANDOFF-010-fluxo-pendente-multi-posicoes.md` (seção B-052).
+
+---
+
+#### B-053 · Busca de técnicas ad-hoc durante aula AO VIVO
+**Prioridade:** P1 | **Estimativa:** S  
+Como professor durante uma aula ao vivo, quero adicionar uma posição digitando o nome — não rolando um dropdown de 100+ itens.
+
+**Critérios de aceite:**
+- Campo de busca substitui o `<select>` flat
+- Mínimo 2 caracteres para mostrar resultados; máximo 6 chips
+- Chip mostra "Nome · Categoria" (categoria em dim)
+- Toque → adiciona como `ensinada`; campo limpa automaticamente
+- Zero resultados → mensagem "Nenhuma posição encontrada"
+
+**Referência:** `HANDOFF-010-fluxo-pendente-multi-posicoes.md` (seção B-053).
+
+---
+
+#### B-054 · Duplicar aula
+**Prioridade:** P1 | **Estimativa:** M  
+Como professor, quero copiar o planejamento de técnicas de uma aula para outra turma ou horário.
+
+**Critérios de aceite:**
+- Botão "Duplicar" (ícone Copy) no header da tela de detalhe da aula
+- Bottom sheet: select de turma + date + time picker
+- Nova aula criada como `agendada` com as técnicas `planejadas` da original
+- Técnicas `ensinada`/`nao_ensinada` NÃO copiadas (pertencem à execução da aula original)
+- Após duplicar: redirect para `/aulas/{novaAulaId}`
+- RLS: só duplica aulas da própria academia
+
+**Referência:** `HANDOFF-010-fluxo-pendente-multi-posicoes.md` (seção B-054).
 
 ---
 

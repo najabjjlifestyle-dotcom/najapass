@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { abrirAula } from '../actions'
 import { criarTema } from '../../tecnicas/actions'
 import BackButton from '@/components/back-button'
@@ -33,15 +32,29 @@ export default function NovaAulaForm({
   const [novoTemaNome, setNovoTemaNome] = useState('')
   const [criandoTema, setCriandoTema] = useState(false)
   const [temaError, setTemaError] = useState('')
+  const [buscaTecnica, setBuscaTecnica] = useState('')
+  const [categoriaExpandida, setCategoriaExpandida] = useState<string | null>(null)
 
   const hoje = new Date().toISOString().split('T')[0]
   const horaAtual = new Date().toTimeString().slice(0, 5)
   const [dataSelecionada, setDataSelecionada] = useState(hoje)
-  const isAgendamento = dataSelecionada > hoje
 
-  // Posições do tema selecionado
-  const tecnicasDoTema = temaId
-    ? tecnicas.filter(t => t.categoria_id === temaId)
+  // Agrupa TODAS as técnicas por categoria — seleção de posições é
+  // desacoplada do "Tema da aula" (que agora é só um label de display).
+  const categorias = useMemo(() => {
+    const nomePorId = new Map(temasList.map(t => [t.id, t.nome]))
+    const mapa: Record<string, { id: string; nome: string; tecnicas: TecnicaOpt[] }> = {}
+    for (const t of tecnicas) {
+      const catId = t.categoria_id ?? '__sem_categoria'
+      const catNome = t.categoria_id ? (nomePorId.get(t.categoria_id) ?? '') : 'Outras'
+      if (!mapa[catId]) mapa[catId] = { id: catId, nome: catNome, tecnicas: [] }
+      mapa[catId].tecnicas.push(t)
+    }
+    return Object.values(mapa).sort((a, b) => a.nome.localeCompare(b.nome))
+  }, [tecnicas, temasList])
+
+  const resultadosBusca = buscaTecnica.trim().length >= 2
+    ? tecnicas.filter(t => t.nome.toLowerCase().includes(buscaTecnica.toLowerCase()))
     : []
 
   // Reforços da última aula desta turma
@@ -138,11 +151,6 @@ export default function NovaAulaForm({
             <input name="data" type="date" value={dataSelecionada} onChange={e => setDataSelecionada(e.target.value)} required
               className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
               style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
-            {isAgendamento && (
-              <p className="text-xs mt-1.5" style={{ color: 'var(--brand-gold)' }}>
-                Data futura — a aula fica agendada até você abrir no dia.
-              </p>
-            )}
           </div>
 
           <div>
@@ -187,76 +195,114 @@ export default function NovaAulaForm({
             {temaError && <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{temaError}</p>}
           </div>
 
-          {/* Posições planejadas — aparece após selecionar tema */}
-          {temaId && (
-            <div>
-              <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-                Posições a ensinar
-                {planejadas.size > 0 && (
-                  <span className="ml-2 normal-case font-normal" style={{ color: 'var(--brand-texto-muted)' }}>
-                    ({planejadas.size} selecionada{planejadas.size > 1 ? 's' : ''})
-                  </span>
-                )}
-              </label>
-              {tecnicasDoTema.length === 0 ? (
-                <p className="text-xs py-2" style={{ color: 'var(--brand-texto-muted)' }}>
-                  Nenhuma posição cadastrada para este tema.{' '}
-                  <a href="/tecnicas/nova" className="underline" style={{ color: 'var(--brand-texto-sec)' }}>Cadastrar</a>
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {tecnicasDoTema.map(t => {
-                    const selecionada = planejadas.has(t.id)
-                    const isReforco = reforcosATurma.includes(t.id)
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => togglePlanejada(t.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] border"
-                        style={{
-                          background: selecionada ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
-                          borderColor: selecionada ? 'var(--brand-gold)' : 'var(--brand-border-str)',
-                          color: selecionada ? 'var(--brand-gold)' : 'var(--brand-texto-muted)',
-                        }}>
-                        {isReforco && <span title="Reforço">🔁</span>}
-                        {t.nome}
-                        {selecionada && <span>✓</span>}
-                      </button>
-                    )
-                  })}
-                </div>
+          {/* Posições a ensinar — desacoplado do tema, múltiplas categorias */}
+          <div>
+            <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+              Posições a ensinar
+              {planejadas.size > 0 && (
+                <span className="ml-2 normal-case font-normal" style={{ color: 'var(--brand-texto-muted)' }}>
+                  ({planejadas.size} selecionada{planejadas.size !== 1 ? 's' : ''})
+                </span>
               )}
+            </label>
 
-              {/* Reforços de outro tema (não no tema atual) */}
-              {reforcosComNome.filter(t => t.categoria_id !== temaId).length > 0 && (
-                <div className="mt-3">
-                  <p className="text-[10px] uppercase tracking-widest mb-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                    Reforços de outros temas
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {reforcosComNome.filter(t => t.categoria_id !== temaId).map(t => {
-                      const selecionada = planejadas.has(t.id)
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => togglePlanejada(t.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] border"
-                          style={{
-                            background: selecionada ? 'rgba(251,191,36,0.15)' : 'var(--brand-surf)',
-                            borderColor: selecionada ? '#FBBF24' : 'var(--brand-border-str)',
-                            color: selecionada ? '#FBBF24' : 'var(--brand-texto-muted)',
-                          }}>
-                          🔁 {t.nome}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+            {/* Chips selecionados — sempre visíveis */}
+            {planejadas.size > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3 pb-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+                {[...planejadas].map(id => {
+                  const t = tecnicas.find(x => x.id === id)
+                  if (!t) return null
+                  return (
+                    <button key={id} type="button" onClick={() => togglePlanejada(id)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold"
+                      style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)', color: 'var(--brand-gold)' }}>
+                      {t.nome} ×
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Busca */}
+            <input
+              type="text"
+              placeholder="Buscar posição..."
+              value={buscaTecnica}
+              onChange={e => setBuscaTecnica(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl text-sm mb-3"
+              style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)', color: 'var(--brand-texto)' }}
+            />
+
+            {buscaTecnica.trim().length >= 2 ? (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {resultadosBusca.length === 0 ? (
+                  <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>Nenhuma posição encontrada</p>
+                ) : resultadosBusca.map(t => {
+                  const sel = planejadas.has(t.id)
+                  return (
+                    <button key={t.id} type="button" onClick={() => togglePlanejada(t.id)}
+                      className="px-3 py-1.5 rounded-xl text-sm font-bold border"
+                      style={{
+                        background: sel ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
+                        borderColor: sel ? 'var(--brand-gold)' : 'var(--brand-border-str)',
+                        color: sel ? 'var(--brand-gold)' : 'var(--brand-texto-muted)',
+                      }}>
+                      {t.nome} {sel ? '✓' : ''}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {categorias.map(cat => {
+                  const temSelecionadas = cat.tecnicas.some(t => planejadas.has(t.id))
+                  const isExpanded = categoriaExpandida === cat.id || temSelecionadas
+                  return (
+                    <div key={cat.id} className="rounded-xl overflow-hidden"
+                      style={{ border: '1px solid var(--brand-border)', background: 'var(--brand-surf)' }}>
+                      <button type="button"
+                        onClick={() => setCategoriaExpandida(isExpanded && !temSelecionadas ? null : cat.id)}
+                        className="w-full flex items-center justify-between px-3 py-2.5">
+                        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--brand-texto-sec)' }}>
+                          {cat.nome}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {temSelecionadas && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded"
+                              style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)' }}>
+                              {cat.tecnicas.filter(t => planejadas.has(t.id)).length}
+                            </span>
+                          )}
+                          <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
+                            {isExpanded ? '▲' : '▼'}
+                          </span>
+                        </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+                          {cat.tecnicas.map(t => {
+                            const sel = planejadas.has(t.id)
+                            const isReforco = reforcosATurma.includes(t.id)
+                            return (
+                              <button key={t.id} type="button" onClick={() => togglePlanejada(t.id)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border"
+                                style={{
+                                  background: sel ? 'var(--brand-gold-dim)' : 'transparent',
+                                  borderColor: sel ? 'var(--brand-gold)' : 'var(--brand-border)',
+                                  color: sel ? 'var(--brand-gold)' : 'var(--brand-texto-muted)',
+                                }}>
+                                {isReforco && '🔁 '}{t.nome}{sel ? ' ✓' : ''}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Link de estudo (YouTube, etc)</label>
@@ -270,7 +316,7 @@ export default function NovaAulaForm({
           <button type="submit" disabled={loading}
             className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98] mt-2"
             style={{ background: 'var(--brand-gold)', color: '#000' }}>
-            {loading ? 'Salvando...' : isAgendamento ? 'Agendar Aula' : 'Abrir Aula'}
+            {loading ? 'Salvando...' : 'Salvar Aula'}
           </button>
         </form>
       </main>

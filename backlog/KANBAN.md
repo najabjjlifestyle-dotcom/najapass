@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-06 (v2.3 — B-048/049/050 concluídos na branch `feat/sprint13-aluno-insights`)
+**Atualizado em:** 2026-07-09 (v2.5 — B-051/052/053/054 concluídos na branch `feat/sprint14-fluxo-pendente`)
 
 ---
 
@@ -67,9 +67,13 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-048 | Técnicas: overview compacto + drill-down por categoria | Aluno App |
 | B-049 | Home insights engine (RPC + 4 cards) | Aluno App |
 | B-050 | Avatar upload UX + header redesign | Aluno App |
+| B-051 | Status pendente — toda aula nasce `agendada` | Aulas |
+| B-052 | Múltiplas posições por aula (picker desacoplado do tema) | Aulas |
+| B-053 | Busca de técnica ad-hoc durante aula ao vivo | Aulas |
+| B-054 | Duplicar aula | Aulas |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
-> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`) — ver seções de detalhes abaixo.
+> B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`) — ver seções de detalhes abaixo.
 
 ---
 
@@ -144,9 +148,17 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 
 ---
 
-## 📋 Backlog
+## 🔍 Detalhes B-051 / B-052 / B-053 / B-054 (branch `feat/sprint14-fluxo-pendente`, a partir da `main`)
 
-*Nenhum card pendente no momento.*
+**B-051 — Status pendente:** `abrirAula()` agora sempre insere `status: 'agendada'` (era `data > hoje ? 'agendada' : 'aberta'`) — toda aula passa pela fase de planejamento, mesmo as de hoje. Como consequência direta, o bloco de push notification no fim de `abrirAula()` virou código morto de verdade (`status === 'aberta'` nunca mais é true ali) — removido, já que o TS acusou a comparação como sempre-falsa. Push continua disparando normalmente, só que exclusivamente via `abrirAulaAgendada()`. Badge na tela da aula e na Semana diferencia "Pendente" (agendada com `data <= hoje`, laranja) de "Agendada" (data futura, cinza) — a distinção é só de UI, o banco continua com um único valor `'agendada'` pros dois casos. Botão do form virou sempre "Salvar Aula".
+
+**B-052 — Múltiplas posições:** o formulário de nova aula tinha o picker de técnicas travado no `categoria_id` do tema único selecionado — impossível planejar Costas + Guarda Fechada na mesma aula. Reescrito como um picker desacoplado: busca por nome (≥2 caracteres) ou navegação por categorias expansíveis (auto-expande categorias com técnica já selecionada), com chips das selecionadas sempre visíveis no topo. O campo "Tema da aula" virou puramente um label de display. Mesmo destravamento em `/aulas/[id]`: removido o filtro `.filter(t => !aulaTemaid || t.categoria_id === aulaTemaid)` da lista de técnicas disponíveis pra ad-hoc (variável `aulaTemaid` ficou sem uso e foi removida). Em `tecnicas-aula.tsx`, "Planejadas" e "Ensinadas" agora agrupam por categoria quando há mais de uma envolvida, e o título do bloco vira "Posições — X" só quando todas as técnicas são da mesma categoria, senão só "Posições".
+
+**B-053 — Busca ad-hoc:** o `<select>` nativo com 100+ técnicas (inutilizável no mobile) foi trocado por `BuscaTecnicaInline` — campo de texto, resultados só a partir de 2 caracteres, máximo 6 chips, cada um mostrando a categoria em dim (ex: "Arm Trap · Costas"). Verificado que `adicionarTecnicaAula()` já inseria com `tipo: 'ensinada'` (upsert) — nenhuma mudança necessária ali, item do handoff já estava satisfeito.
+
+**B-054 — Duplicar aula:** nova action `duplicarAula()` em `aulas/actions.ts` — copia `tema_id`/`video_url` da aula origem e só as técnicas `tipo='planejada'` (não copia `ensinada`/`nao_ensinada`, que são resultado da execução da aula original). Nova aula sempre nasce `agendada`. UI: `DuplicarAulaButton` (ícone Copy no header de `/aulas/[id]`) abre bottom sheet com turma/data/hora; após duplicar, redirect pra `/aulas/{novaAulaId}`.
+
+**Sem migrations** — `agendada` já existia no constraint desde o B-045; `aulas.hora_inicio` já cobria o caso de uso que o handoff achava que precisava de coluna nova.
 
 ---
 

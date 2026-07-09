@@ -153,13 +153,27 @@ export default async function SemanaPage() {
                               {aula.hora_inicio ? ` · ${(aula.hora_inicio as string).substring(0, 5)}` : ''}
                             </p>
                           </div>
-                          <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded flex-shrink-0"
-                            style={{
-                              color: aula.status === 'aberta' ? 'var(--brand-gold)' : aula.status === 'finalizada' ? '#4ADE80' : 'var(--brand-texto-muted)',
-                              border: `1px solid ${aula.status === 'aberta' ? 'var(--brand-gold-border)' : aula.status === 'finalizada' ? 'rgba(74,222,128,0.3)' : 'var(--brand-border)'}`,
-                            }}>
-                            {aula.status === 'aberta' ? 'Ao vivo' : aula.status === 'finalizada' ? 'Finalizada' : 'Planejada'}
-                          </span>
+                          {(() => {
+                            const isPendente = aula.status === 'agendada' && aula.data <= new Date().toISOString().split('T')[0]
+                            const cor = aula.status === 'aberta' ? 'var(--brand-gold)'
+                              : aula.status === 'finalizada' ? '#4ADE80'
+                              : isPendente ? '#FBBF24'
+                              : 'var(--brand-texto-muted)'
+                            const borda = aula.status === 'aberta' ? 'var(--brand-gold-border)'
+                              : aula.status === 'finalizada' ? 'rgba(74,222,128,0.3)'
+                              : isPendente ? 'rgba(251,191,36,0.3)'
+                              : 'var(--brand-border)'
+                            const label = aula.status === 'aberta' ? 'Ao vivo'
+                              : aula.status === 'finalizada' ? 'Finalizada'
+                              : isPendente ? 'Pendente'
+                              : 'Agendada'
+                            return (
+                              <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded flex-shrink-0"
+                                style={{ color: cor, border: `1px solid ${borda}` }}>
+                                {label}
+                              </span>
+                            )
+                          })()}
                         </div>
 
                         {/* Posições */}
