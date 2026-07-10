@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Users, LayoutGrid, ClipboardList, Inbox, Megaphone } from 'lucide-react'
+import { Megaphone } from 'lucide-react'
 import AgendadaCard from '@/components/agendada-card'
 import AulaHojeCard from './aula-hoje-card'
 import InsightCard from './insight-card'
@@ -23,16 +23,6 @@ function formatAulaDate(dataStr: string) {
   const [, month, day] = dataStr.split('-').map(Number)
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
   return { dia: String(day).padStart(2, '0'), mes: meses[month - 1] }
-}
-
-function ultimaAulaLabel(dataStr: string | null) {
-  if (!dataStr) return 'nenhuma ainda'
-  const hoje = new Date()
-  const d = new Date(dataStr + 'T12:00:00')
-  const diff = Math.round((hoje.getTime() - d.getTime()) / 86400000)
-  if (diff === 0) return 'última: hoje'
-  if (diff === 1) return 'última: ontem'
-  return `última: ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`
 }
 
 type DashboardInsights = {
@@ -80,9 +70,7 @@ export default async function DashboardPage() {
     { count: totalAlunos },
     { count: turmasAtivas },
     { count: aulasMes },
-    solicitacoesRes,
     { data: ultimasAulas },
-    { data: ultimaAula },
     { data: aulasHojeData },
     { data: agendadasData },
     { data: semanaData },
@@ -91,9 +79,7 @@ export default async function DashboardPage() {
     supabase.from('alunos').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativo', true),
     supabase.from('turmas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativa', true),
     supabase.from('aulas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).gte('data', primeiroDiaMes),
-    supabase.from('solicitacoes').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('status', 'pendente').then(r => r.error ? { count: 0 } : r),
     supabase.from('aulas').select('id, data, status, turmas(nome), presencas(id)').eq('academia_id', acadId).order('data', { ascending: false }).order('hora_inicio', { ascending: false }).limit(3),
-    supabase.from('aulas').select('data').eq('academia_id', acadId).order('data', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('aulas')
       .select('id, status, hora_inicio, turmas(nome), presencas(id)')
       .eq('academia_id', acadId)
@@ -119,7 +105,6 @@ export default async function DashboardPage() {
     supabase.rpc('professor_dashboard_insights', { p_academia_id: acadId }).then(r => r.error ? { data: null } : r),
   ])
 
-  const pendentes = solicitacoesRes.count ?? 0
   const nome = professor.nome
   const insights = insightsRaw as DashboardInsights | null
 
@@ -344,73 +329,6 @@ export default async function DashboardPage() {
               {s.label}
             </p>
           </div>
-        ))}
-      </div>
-
-      {/* ── Grid de Ações ── */}
-      <div className="grid grid-cols-2 gap-2 px-4 mb-4">
-        {[
-          {
-            href: '/alunos',
-            Icon: Users,
-            label: 'Alunos',
-            sub: `${totalAlunos ?? 0} ativos`,
-            pendente: false,
-          },
-          {
-            href: '/turmas',
-            Icon: LayoutGrid,
-            label: 'Turmas',
-            sub: `${turmasAtivas ?? 0} turmas`,
-            pendente: false,
-          },
-          {
-            href: '/aulas',
-            Icon: ClipboardList,
-            label: 'Histórico',
-            sub: ultimaAulaLabel(ultimaAula?.data ?? null),
-            pendente: false,
-          },
-          {
-            href: '/solicitacoes',
-            Icon: Inbox,
-            label: 'Solicitações',
-            sub: pendentes > 0 ? `${pendentes} pendente${pendentes !== 1 ? 's' : ''}` : 'nenhuma pendente',
-            pendente: pendentes > 0,
-          },
-        ].map(card => (
-          <Link
-            key={card.href}
-            href={card.href}
-            className="relative rounded-2xl p-3.5 flex flex-col gap-2.5 active:scale-[0.98] transition-transform"
-            style={{
-              background: card.pendente ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
-              border: `1px solid ${card.pendente ? 'var(--brand-gold-border)' : 'var(--brand-border)'}`,
-            }}>
-            {card.pendente && (
-              <span
-                className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full"
-                style={{ background: 'var(--brand-gold)' }}
-              />
-            )}
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{
-                background: card.pendente ? 'var(--brand-gold-dim)' : '#1a1a1a',
-                border: `1px solid ${card.pendente ? 'var(--brand-gold-border)' : '#222'}`,
-                color: card.pendente ? 'var(--brand-gold)' : 'var(--brand-texto-sec)',
-              }}>
-              <card.Icon size={15} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-                {card.label}
-              </p>
-              <p className="text-[9px] mt-0.5" style={{ color: card.pendente ? 'var(--brand-gold)' : 'var(--brand-texto-muted)' }}>
-                {card.sub}
-              </p>
-            </div>
-          </Link>
         ))}
       </div>
 

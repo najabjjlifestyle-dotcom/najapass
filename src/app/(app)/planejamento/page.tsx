@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import SectionTabs from '@/components/section-tabs'
 
 function formatarDataCurta(data: string) {
   return new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', {
@@ -48,6 +49,12 @@ export default async function PlanejamentoPage() {
             Planejamento
           </h1>
         </header>
+
+        <SectionTabs tabs={[
+          { href: '/planejamento', label: 'Planejamento', active: true },
+          { href: '/turmas', label: 'Turmas', active: false },
+        ]} />
+
         <main className="px-5 pt-16 text-center">
           <p className="text-sm" style={{ color: 'var(--brand-texto-muted)' }}>
             Nenhuma turma ativa ainda.
@@ -103,6 +110,11 @@ export default async function PlanejamentoPage() {
           O que cada turma está precisando
         </p>
       </header>
+
+      <SectionTabs tabs={[
+        { href: '/planejamento', label: 'Planejamento', active: true },
+        { href: '/turmas', label: 'Turmas', active: false },
+      ]} />
 
       <main className="px-5 pt-5 pb-24 space-y-4">
         {dadosPorTurma.map(({ turma, ultimaAula, proximasAulas }) => {

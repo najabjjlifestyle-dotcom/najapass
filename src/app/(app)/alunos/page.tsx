@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import Avatar from '@/components/avatar'
 import BackButton from '@/components/back-button'
+import SectionTabs from '@/components/section-tabs'
 
 const FAIXA_COR: Record<string, string> = {
   branca: 'bg-white',
@@ -29,11 +30,18 @@ export default async function AlunosPage() {
 
   if (!professor?.academia_id) redirect('/onboarding')
 
-  const { data: alunos } = await supabase
-    .from('alunos')
-    .select('id, nome, faixa, grau, ativo, foto_url')
-    .eq('academia_id', professor.academia_id)
-    .order('nome')
+  const [{ data: alunos }, { count: pendentes }] = await Promise.all([
+    supabase
+      .from('alunos')
+      .select('id, nome, faixa, grau, ativo, foto_url')
+      .eq('academia_id', professor.academia_id)
+      .order('nome'),
+    supabase
+      .from('solicitacoes')
+      .select('id', { count: 'exact', head: true })
+      .eq('academia_id', professor.academia_id)
+      .eq('status', 'pendente'),
+  ])
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
@@ -51,6 +59,11 @@ export default async function AlunosPage() {
           + Novo
         </Link>
       </header>
+
+      <SectionTabs tabs={[
+        { href: '/alunos', label: 'Alunos', active: true },
+        { href: '/solicitacoes', label: 'Solicitações', active: false, badge: pendentes ?? 0 },
+      ]} />
 
       <main className="px-6 pt-6 space-y-2 pb-10">
         {!alunos?.length ? (
