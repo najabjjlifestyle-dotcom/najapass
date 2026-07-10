@@ -3,12 +3,32 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import BackButton from '@/components/back-button'
 
+function formatarDataCurta(data: string) {
+  return new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', {
+    weekday: 'short', day: '2-digit', month: 'short',
+  })
+}
+
+type AulaTecnicaRow = { tipo: string; reforco: boolean; tecnicas: { nome: string } | null }
+type AulaRow = {
+  id: string; data: string; hora_inicio: string | null; status: string
+  turmas: { nome: string } | null
+  aula_tecnicas: AulaTecnicaRow[] | null
+}
+type FrequenciaStats = {
+  total_aulas: number
+  media_presentes: number | null
+  top_alunos: { nome: string; total: number }[] | null
+}
+
 export default async function AulasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ turma?: string; mes?: string }>
+  searchParams: Promise<{ aba?: string; turma?: string }>
 }) {
-  const { turma: turmaFiltro, mes: mesFiltro } = await searchParams
+  const { aba: abaParam, turma: turmaFiltro } = await searchParams
+  const aba = abaParam === 'frequencia' ? 'frequencia' : 'conteudo'
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -20,33 +40,19 @@ export default async function AulasPage({
     .maybeSingle()
 
   if (!professor?.academia_id) redirect('/onboarding')
+  const acadId = professor.academia_id
 
   const { data: turmasData } = await supabase
     .from('turmas')
     .select('id, nome')
-    .eq('academia_id', professor.academia_id)
+    .eq('academia_id', acadId)
     .order('nome')
 
-  let query = supabase
-    .from('aulas')
-    .select('id, data, tema, status, turmas(nome)')
-    .eq('academia_id', professor.academia_id)
-    .order('data', { ascending: false })
-    .limit(50)
-
-  if (turmaFiltro) query = query.eq('turma_id', turmaFiltro)
-  if (mesFiltro) {
-    const [ano, mes] = mesFiltro.split('-').map(Number)
-    const inicio = `${mesFiltro}-01`
-    const fim = new Date(ano, mes, 0).toISOString().split('T')[0]
-    query = query.gte('data', inicio).lte('data', fim)
-  }
-
-  const { data: aulas } = await query
+  const turmaQS = turmaFiltro ? `&turma=${turmaFiltro}` : ''
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-6 pt-safe pb-6 flex items-center justify-between" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+      <header className="px-5 pt-safe pb-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <div className="flex items-center gap-3">
           <BackButton href="/dashboard" />
           <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
@@ -60,7 +66,29 @@ export default async function AulasPage({
         </Link>
       </header>
 
-      <form method="get" className="flex gap-2 px-6 pt-4">
+      {/* Abas */}
+      <div className="flex gap-2 px-5 pt-4 pb-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+        <Link href={`/aulas?aba=conteudo${turmaQS}`}
+          className="px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider"
+          style={{
+            background: aba === 'frequencia' ? 'transparent' : 'var(--brand-gold)',
+            color: aba === 'frequencia' ? 'var(--brand-texto-muted)' : '#000',
+          }}>
+          Conteúdo
+        </Link>
+        <Link href={`/aulas?aba=frequencia${turmaQS}`}
+          className="px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider"
+          style={{
+            background: aba === 'frequencia' ? 'var(--brand-gold)' : 'transparent',
+            color: aba === 'frequencia' ? '#000' : 'var(--brand-texto-muted)',
+          }}>
+          Frequência
+        </Link>
+      </div>
+
+      {/* Filtro de turma */}
+      <form method="get" className="flex gap-2 px-5 pt-4">
+        <input type="hidden" name="aba" value={aba} />
         <select name="turma" defaultValue={turmaFiltro ?? ''}
           className="flex-1 px-3 py-2 rounded-xl bg-transparent text-sm focus:outline-none"
           style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
@@ -69,9 +97,6 @@ export default async function AulasPage({
             <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
           ))}
         </select>
-        <input type="month" name="mes" defaultValue={mesFiltro ?? ''}
-          className="px-3 py-2 rounded-xl bg-transparent text-sm focus:outline-none"
-          style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
         <button type="submit"
           className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
           style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
@@ -79,43 +104,178 @@ export default async function AulasPage({
         </button>
       </form>
 
-      <main className="px-6 pt-4 space-y-2 pb-10">
-        {!aulas?.length ? (
-          <div className="text-center py-16">
-            <p className="text-sm uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-              Nenhuma aula registrada
-            </p>
-          </div>
-        ) : (
-          aulas.map(aula => {
-            const turma = aula.turmas as unknown as { nome: string } | null
-            const dataFormatada = new Date(aula.data + 'T12:00:00').toLocaleDateString('pt-BR', {
-              day: '2-digit', month: 'short', year: 'numeric',
-            })
-            return (
-              <Link key={aula.id} href={`/aulas/${aula.id}`}
-                className="flex items-center justify-between px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
-                style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                <div>
-                  <p className="font-bold uppercase tracking-wider text-sm" style={{ color: 'var(--brand-texto)' }}>
-                    {turma?.nome ?? 'Aula Avulsa'}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                    {dataFormatada}
-                    {aula.tema ? ` · ${aula.tema}` : ''}
-                  </p>
-                </div>
-                <span className="text-xs uppercase tracking-widest flex-shrink-0"
-                  style={{ color: aula.status === 'finalizada' ? '#4ADE80' : aula.status === 'aberta' ? 'var(--brand-gold)' : aula.status === 'cancelada' ? '#f87171' : 'var(--brand-texto-muted)' }}>
-                  {aula.status === 'finalizada' ? 'Finalizada' :
-                   aula.status === 'aberta' ? 'Ao vivo' :
-                   aula.status === 'cancelada' ? 'Cancelada' : 'Agendada'}
-                </span>
-              </Link>
-            )
-          })
-        )}
-      </main>
+      {aba === 'conteudo' && <ConteudoTab acadId={acadId} turmaFiltro={turmaFiltro} />}
+      {aba === 'frequencia' && <FrequenciaTab acadId={acadId} turmaFiltro={turmaFiltro} />}
     </div>
+  )
+}
+
+// ── Aba: Conteúdo ────────────────────────────────────────────────────────────
+
+async function ConteudoTab({ acadId, turmaFiltro }: { acadId: string; turmaFiltro?: string }) {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('aulas')
+    .select('id, data, hora_inicio, status, turmas(nome), aula_tecnicas(tipo, reforco, tecnicas(nome))')
+    .eq('academia_id', acadId)
+    .in('status', ['finalizada', 'aberta'])
+    .order('data', { ascending: false })
+    .limit(60)
+
+  if (turmaFiltro) query = query.eq('turma_id', turmaFiltro)
+
+  const { data: aulasData } = await query
+  const aulas = (aulasData ?? []) as unknown as AulaRow[]
+
+  if (aulas.length === 0) {
+    return (
+      <main className="px-5 pt-10 pb-10">
+        <p className="text-sm text-center" style={{ color: 'var(--brand-texto-muted)' }}>
+          Nenhuma aula registrada no período.
+        </p>
+      </main>
+    )
+  }
+
+  type MesGroup = { label: string; aulas: AulaRow[] }
+  const grupos = aulas.reduce<MesGroup[]>((acc, aula) => {
+    const mesLabel = new Date(aula.data + 'T12:00:00').toLocaleDateString('pt-BR', {
+      month: 'long', year: 'numeric',
+    })
+    const grupo = acc.find(g => g.label === mesLabel)
+    if (grupo) grupo.aulas.push(aula)
+    else acc.push({ label: mesLabel, aulas: [aula] })
+    return acc
+  }, [])
+
+  return (
+    <main className="pt-2 pb-10">
+      {grupos.map(grupo => (
+        <div key={grupo.label}>
+          <p className="text-[9px] uppercase tracking-widest px-5 py-2 capitalize" style={{ color: 'var(--brand-gold)' }}>
+            {grupo.label}
+          </p>
+          <div className="px-5 space-y-2 mb-2">
+            {grupo.aulas.map(aula => {
+              const turma = aula.turmas
+              const ensinadas = (aula.aula_tecnicas ?? []).filter(t => t.tipo === 'ensinada' && t.tecnicas)
+              return (
+                <Link key={aula.id} href={`/aulas/${aula.id}`}
+                  className="block px-4 py-3 rounded-xl active:scale-[0.98] transition-transform"
+                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>
+                        {turma?.nome ?? 'Aula Avulsa'}
+                      </p>
+                      <p className="text-[10px] capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
+                        {formatarDataCurta(aula.data)}
+                        {aula.hora_inicio ? ` · ${aula.hora_inicio.substring(0, 5)}` : ''}
+                      </p>
+                    </div>
+                    {aula.status === 'aberta' ? (
+                      <span className="text-[10px] uppercase tracking-widest flex-shrink-0" style={{ color: 'var(--brand-gold)' }}>
+                        Ao vivo
+                      </span>
+                    ) : ensinadas.length > 0 ? (
+                      <span className="text-[10px] flex-shrink-0" style={{ color: '#4ADE80' }}>
+                        {ensinadas.length} téc.
+                      </span>
+                    ) : null}
+                  </div>
+                  {ensinadas.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {ensinadas.slice(0, 5).map((t, i) => (
+                        <span key={i}
+                          className="px-2 py-0.5 rounded text-[9px] font-bold"
+                          style={{
+                            background: t.reforco ? 'rgba(251,146,60,0.1)' : 'var(--brand-gold-dim)',
+                            border: `1px solid ${t.reforco ? 'rgba(251,146,60,0.25)' : 'var(--brand-gold-border)'}`,
+                            color: t.reforco ? '#FB923C' : 'var(--brand-gold)',
+                          }}>
+                          {t.reforco && '↺ '}{t.tecnicas!.nome}
+                        </span>
+                      ))}
+                      {ensinadas.length > 5 && (
+                        <span className="px-2 py-0.5 rounded text-[9px]"
+                          style={{ color: 'var(--brand-texto-muted)', border: '1px solid var(--brand-border)' }}>
+                          +{ensinadas.length - 5}
+                        </span>
+                      )}
+                    </div>
+                  ) : aula.status === 'finalizada' ? (
+                    <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
+                      Nenhuma técnica registrada
+                    </p>
+                  ) : null}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </main>
+  )
+}
+
+// ── Aba: Frequência ──────────────────────────────────────────────────────────
+
+async function FrequenciaTab({ acadId, turmaFiltro }: { acadId: string; turmaFiltro?: string }) {
+  const supabase = await createClient()
+
+  const { data: statsRaw } = await supabase.rpc('frequencia_resumo', {
+    p_academia_id: acadId,
+    p_turma_id: turmaFiltro || null,
+    p_dias: 90,
+  })
+  const stats = statsRaw as FrequenciaStats | null
+
+  if (!stats || stats.total_aulas === 0) {
+    return (
+      <main className="px-5 pt-10 pb-10">
+        <p className="text-sm text-center" style={{ color: 'var(--brand-texto-muted)' }}>
+          Nenhuma aula finalizada nos últimos 90 dias.
+        </p>
+      </main>
+    )
+  }
+
+  return (
+    <main className="px-5 pt-4 pb-10 space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>Aulas (90d)</p>
+          <p className="text-2xl font-bold" style={{ color: 'var(--brand-texto)' }}>{stats.total_aulas}</p>
+        </div>
+        <div className="p-3 rounded-xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>Média/aula</p>
+          <p className="text-2xl font-bold" style={{ color: 'var(--brand-texto)' }}>{stats.media_presentes ?? '—'}</p>
+        </div>
+      </div>
+
+      {(stats.top_alunos ?? []).length > 0 && (
+        <div>
+          <p className="text-[9px] uppercase tracking-widest mb-3" style={{ color: 'var(--brand-texto-muted)' }}>
+            Mais assíduos — últimos 90 dias
+          </p>
+          {(stats.top_alunos ?? []).map((aluno, i) => (
+            <div key={aluno.nome} className="flex items-center justify-between py-2.5"
+              style={{ borderBottom: '1px solid var(--brand-border)' }}>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-bold w-4 text-center"
+                  style={{ color: i === 0 ? 'var(--brand-gold)' : 'var(--brand-texto-muted)' }}>
+                  {i + 1}
+                </span>
+                <p className="text-sm" style={{ color: 'var(--brand-texto)' }}>{aluno.nome}</p>
+              </div>
+              <p className="text-xs font-bold" style={{ color: 'var(--brand-texto-muted)' }}>
+                {aluno.total} aulas
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </main>
   )
 }

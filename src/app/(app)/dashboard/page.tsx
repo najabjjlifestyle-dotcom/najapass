@@ -5,12 +5,9 @@ import { Users, LayoutGrid, ClipboardList, Inbox, Megaphone } from 'lucide-react
 import AgendadaCard from '@/components/agendada-card'
 import AulaHojeCard from './aula-hoje-card'
 import InsightCard from './insight-card'
+import Avatar from '@/components/avatar'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-function iniciais(nome: string) {
-  return nome.split(' ').slice(0, 2).map(n => n[0].toUpperCase()).join('')
-}
 
 function primeiroNome(nome: string) {
   return nome.split(' ')[0]
@@ -56,7 +53,7 @@ export default async function DashboardPage() {
 
   const { data: professor } = await supabase
     .from('professores')
-    .select('id, nome, academia_id, academias(nome)')
+    .select('id, nome, foto_url, academia_id, academias(nome)')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -195,15 +192,13 @@ export default async function DashboardPage() {
 
       {/* ── Header ── */}
       <header className="flex items-center justify-between px-5 pt-5 pb-2">
-        <Link
-          href="/perfil"
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold"
-          style={{
-            border: '1px solid var(--brand-gold)',
-            background: 'var(--brand-gold-dim)',
-            color: 'var(--brand-gold)',
-          }}>
-          {iniciais(nome)}
+        <Link href="/perfil" className="flex items-center gap-2 active:opacity-70 transition-opacity">
+          <div className="rounded-full" style={{ border: '1px solid var(--brand-gold)' }}>
+            <Avatar nome={nome} fotoUrl={professor.foto_url as string | null} size={36} />
+          </div>
+          <p className="text-xs font-bold" style={{ color: 'var(--brand-texto)' }}>
+            {primeiroNome(nome)}
+          </p>
         </Link>
         <div className="text-right">
           <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>

@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, ClipboardList, User } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, CalendarCheck2 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', Icon: LayoutDashboard, label: 'Início' },
   { href: '/alunos', Icon: Users, label: 'Alunos' },
   { href: '/aulas', Icon: ClipboardList, label: 'Histórico' },
-  { href: '/perfil', Icon: User, label: 'Perfil' },
+  { href: '/planejamento', Icon: CalendarCheck2, label: 'Planejamento' },
 ]
 
 const HIDDEN_PREFIXES = ['/aluno', '/onboarding', '/boas-vindas']
