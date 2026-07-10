@@ -15,7 +15,7 @@ export default async function NovaAulaPage() {
 
   if (!professor?.academia_id) redirect('/onboarding')
 
-  const [turmasResult, temasResult, tecnicasResult] = await Promise.all([
+  const [turmasResult, temasResult, tecnicasResult, historinhasResult] = await Promise.all([
     supabase
       .from('turmas')
       .select('id, nome')
@@ -30,6 +30,11 @@ export default async function NovaAulaPage() {
       .from('tecnicas')
       .select('id, nome, categoria_id, faixas')
       .or(`academia_id.eq.${professor.academia_id},global.eq.true`)
+      .order('nome'),
+    supabase
+      .from('historinhas')
+      .select('id, nome, historinha_tecnicas(ordem, tecnica_id, tecnicas(nome))')
+      .eq('academia_id', professor.academia_id)
       .order('nome'),
   ])
 
@@ -76,12 +81,17 @@ export default async function NovaAulaPage() {
   type TecnicaOpt = { id: string; nome: string; categoria_id: string | null; faixas: string[] }
   const tecnicas = (tecnicasResult.data ?? []) as TecnicaOpt[]
 
+  type HistorinhaTecnica = { ordem: number; tecnica_id: string; tecnicas: { nome: string } | null }
+  type Historinha = { id: string; nome: string; historinha_tecnicas: HistorinhaTecnica[] | null }
+  const historinhas = (historinhasResult.data ?? []) as unknown as Historinha[]
+
   return (
     <NovaAulaForm
       turmas={turmas}
       temas={temasResult.data ?? []}
       tecnicas={tecnicas}
       reforcosPorTurma={reforcosPorTurma}
+      historinhas={historinhas}
     />
   )
 }

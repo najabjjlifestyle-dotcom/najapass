@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { abrirAula } from '../actions'
 import { criarTema } from '../../tecnicas/actions'
 import BackButton from '@/components/back-button'
@@ -9,17 +10,21 @@ import BackButton from '@/components/back-button'
 type Turma = { id: string; nome: string }
 type Tema = { id: string; nome: string }
 type TecnicaOpt = { id: string; nome: string; categoria_id: string | null; faixas: string[] }
+type HistorinhaTecnica = { ordem: number; tecnica_id: string; tecnicas: { nome: string } | null }
+type Historinha = { id: string; nome: string; historinha_tecnicas: HistorinhaTecnica[] | null }
 
 export default function NovaAulaForm({
   turmas,
   temas,
   tecnicas,
   reforcosPorTurma,
+  historinhas,
 }: {
   turmas: Turma[]
   temas: Tema[]
   tecnicas: TecnicaOpt[]
   reforcosPorTurma: Record<string, string[]>
+  historinhas: Historinha[]
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -53,6 +58,16 @@ export default function NovaAulaForm({
     return Object.values(mapa).sort((a, b) => a.nome.localeCompare(b.nome))
   }, [tecnicas, temasList])
 
+  // Quando um tema está selecionado, o picker foca só naquela categoria
+  const categoriasVisiveis = temaId
+    ? categorias.filter(cat => cat.id === temaId)
+    : categorias
+
+  // Auto-expande a categoria correspondente ao tema selecionado
+  useEffect(() => {
+    if (temaId) setCategoriaExpandida(temaId)
+  }, [temaId])
+
   const resultadosBusca = buscaTecnica.trim().length >= 2
     ? tecnicas.filter(t => t.nome.toLowerCase().includes(buscaTecnica.toLowerCase()))
     : []
@@ -62,6 +77,13 @@ export default function NovaAulaForm({
   const reforcosComNome = reforcosATurma
     .map(id => tecnicas.find(t => t.id === id))
     .filter(Boolean) as TecnicaOpt[]
+
+  function aplicarHistorinha(historinha: Historinha) {
+    const idsNovos = [...(historinha.historinha_tecnicas ?? [])]
+      .sort((a, b) => a.ordem - b.ordem)
+      .map(ht => ht.tecnica_id)
+    setPlanejadas(prev => new Set([...prev, ...idsNovos]))
+  }
 
   function togglePlanejada(id: string) {
     setPlanejadas(prev => {
@@ -195,6 +217,56 @@ export default function NovaAulaForm({
             {temaError && <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{temaError}</p>}
           </div>
 
+          {/* Histórinhas — sequências prontas pra aplicar de uma vez */}
+          {historinhas.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Histórinhas
+                </label>
+                <Link href="/historinhas" className="text-xs" style={{ color: 'var(--brand-gold)' }}>
+                  Gerenciar →
+                </Link>
+              </div>
+
+              <div className="space-y-2">
+                {historinhas.map(h => {
+                  const tecnicasOrdenadas = [...(h.historinha_tecnicas ?? [])].sort((a, b) => a.ordem - b.ordem)
+                  const jaAplicada = tecnicasOrdenadas.length > 0 && tecnicasOrdenadas.every(ht => planejadas.has(ht.tecnica_id))
+
+                  return (
+                    <div key={h.id}
+                      className="px-3 py-2.5 rounded-xl"
+                      style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold" style={{ color: 'var(--brand-texto)' }}>
+                            {h.nome}
+                          </p>
+                          <p className="text-[10px] truncate mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                            {tecnicasOrdenadas.map(ht => ht.tecnicas?.nome).join(' → ')}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => jaAplicada ? undefined : aplicarHistorinha(h)}
+                          disabled={jaAplicada}
+                          className="ml-3 px-3 py-1.5 rounded-lg text-[10px] font-bold flex-shrink-0"
+                          style={{
+                            background: jaAplicada ? 'transparent' : 'var(--brand-gold)',
+                            color: jaAplicada ? '#4ADE80' : '#000',
+                            border: jaAplicada ? '1px solid rgba(74,222,128,0.3)' : 'none',
+                          }}>
+                          {jaAplicada ? '✓ Aplicada' : 'Aplicar'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Posições a ensinar — desacoplado do tema, múltiplas categorias */}
           <div>
             <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
@@ -254,7 +326,7 @@ export default function NovaAulaForm({
               </div>
             ) : (
               <div className="space-y-2">
-                {categorias.map(cat => {
+                {categoriasVisiveis.map(cat => {
                   const temSelecionadas = cat.tecnicas.some(t => planejadas.has(t.id))
                   const isExpanded = categoriaExpandida === cat.id || temSelecionadas
                   return (
@@ -300,6 +372,16 @@ export default function NovaAulaForm({
                     </div>
                   )
                 })}
+
+                {temaId && (
+                  <p className="text-center text-[10px] py-1">
+                    <span style={{ color: 'var(--brand-texto-muted)' }}>Filtrando por tema · </span>
+                    <button type="button" onClick={() => setTemaId('')}
+                      className="underline underline-offset-2" style={{ color: 'var(--brand-gold)' }}>
+                      Ver todas
+                    </button>
+                  </p>
+                )}
               </div>
             )}
           </div>

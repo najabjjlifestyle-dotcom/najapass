@@ -1,10 +1,13 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-09 (v1.6)  
+**Última atualização:** 2026-07-10 (v1.9)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v1.9: Adicionados EP-20 (Banho de Usabilidade + Jornada do Aluno) com cards B-064 a B-068. Jornada técnica, turma tech history, relatorios acessível, backbutton inteligente, checkin com ensinadas.
+- v1.8: Adicionados EP-19 (Planejamento Avançado) com cards B-062 e B-063. Filtro de técnicas por tema e Histórinhas (sequências).
+- v1.7: Adicionado EP-18 (Nav Professor) com cards B-059 a B-061. Nav Planejamento, página /planejamento e redesign de /historico.
 - v1.6: Adicionados EP-17 (Cockpit do Professor) com cards B-055 a B-058. Dashboard redesign, planejamento com contexto, feedback pós-aula, auto-abertura por turma.
 - v1.5: Adicionados EP-16 (Fluxo de Aula — Professor) com cards B-051 a B-054. Fluxo pendente, multi-posições, busca ad-hoc e duplicação de aula.
 - v1.4: Adicionados EP-13 (Aluno — Jornada) com cards B-043 e B-044. Portal do aluno expandido para multi-page com nav bar focada em aprendizado.
@@ -35,6 +38,9 @@
 | EP-15 | Banho de Loja: Portal Aluno V2 (Insights + Drill-down) | 🟡 P1 |
 | EP-16 | Fluxo de Aula — Professor (pendente + multi-posições + duplicar) | 🔴 P0 |
 | EP-17 | Cockpit do Professor (dashboard + loop de aprendizado) | 🔴 P0 |
+| EP-18 | Nav Professor (Planejamento + /planejamento + /historico redesign) | 🔴 P0 |
+| EP-19 | Planejamento Avançado (filtro por tema + histórinhas) | 🟡 P1 |
+| EP-20 | Banho de Usabilidade + Jornada do Aluno | 🔴 P0 |
 
 ---
 
@@ -702,6 +708,92 @@ Após FINALIZAR AULA: tela rápida por técnica (Ótimo / Repetir). Fecha o loop
 Professor configura "Turma da Noite abre 12h antes". Vercel Cron roda a cada 30min; abre automaticamente e dispara push.
 
 **Referência:** `HANDOFF-011-cockpit-professor.md` (seção B-058).
+
+---
+
+### EP-18 · Nav Professor — Planejamento
+
+#### B-059 · Nav professor: 4º item "Perfil" → "Planejamento"
+**Prioridade:** P0 | **Estimativa:** S  
+Troca o item "Perfil" do bottom nav por "Planejamento" (`/planejamento`). Perfil migra para toque no avatar do dashboard.
+
+**Referência:** `HANDOFF-012-nav-planejamento-historico.md` (seção B-059).
+
+---
+
+#### B-060 · Página `/planejamento` — visão turma-centric
+**Prioridade:** P0 | **Estimativa:** M  
+Nova rota: um card por turma ativa mostrando última aula finalizada (chips de técnicas) e próximas 3 aulas agendadas com botão "Planejar".
+
+**Referência:** `HANDOFF-012-nav-planejamento-historico.md` (seção B-060).
+
+---
+
+#### B-061 · Retrospecto `/historico` — abas Conteúdo/Frequência
+**Prioridade:** P1 | **Estimativa:** M  
+Redesign do `/aulas`: abas "Conteúdo" (aulas por mês com técnicas visíveis) e "Frequência" (stats 90d + top alunos).
+
+**Referência:** `HANDOFF-012-nav-planejamento-historico.md` (seção B-061).
+
+---
+
+### EP-19 · Planejamento Avançado
+
+#### B-062 · Picker de técnicas filtrado pelo tema selecionado
+**Prioridade:** P1 | **Estimativa:** S  
+Quando o professor seleciona um tema (ex: "Cem Quilos"), o picker de técnicas mostra apenas técnicas daquele tema — expandidas automaticamente. Link "Ver todas" restaura o comportamento padrão.
+
+**Referência:** `HANDOFF-013-filtro-tema-historinhas.md` (seção B-062).
+
+---
+
+#### B-063 · Histórinhas — sequências de técnicas
+**Prioridade:** P1 | **Estimativa:** L  
+Professor cria sequências nomeadas de técnicas ("Passagem Toreando → Cem Quilos → Americana"). No planejamento da aula, pode aplicar uma sequência inteira com um toque. Novas tabelas `historinhas` + `historinha_tecnicas`.
+
+**Referência:** `HANDOFF-013-filtro-tema-historinhas.md` (seção B-063).
+
+---
+
+### EP-20 · Banho de Usabilidade + Jornada do Aluno
+
+#### B-064 · Jornada técnica do aluno — visão professor
+**Prioridade:** P0 | **Estimativa:** M  
+`/alunos/[id]` adiciona seção "Jornada Técnica": técnicas que o aluno aprendeu, agrupadas por categoria com contagem de repetições. Verde = 3+ vezes. Novo RPC `jornada_tecnica_aluno()`. Título do header muda de "Perfil" para o nome do aluno.
+
+**Referência:** `HANDOFF-014-banho-de-usabilidade.md` (seção B-064).
+
+---
+
+#### B-065 · Turma — aulas com técnicas ensinadas
+**Prioridade:** P0 | **Estimativa:** S  
+`/turmas/[id]` corrige query de aulas (usa `tema:categorias_tecnicas(nome)` ao invés de coluna `tema` legada) e adiciona técnicas ensinadas como chips dourados em cada aula da lista.
+
+**Referência:** `HANDOFF-014-banho-de-usabilidade.md` (seção B-065).
+
+---
+
+#### B-066 · Relatorios acessível + lacunas de currículo
+**Prioridade:** P1 | **Estimativa:** S  
+Dashboard recebe card link "Insights da academia" (logo após stats strip). `/relatorios` aba Técnicas ganha subseção "Não ensinadas nos últimos 90 dias" com chips vermelhos.
+
+**Referência:** `HANDOFF-014-banho-de-usabilidade.md` (seção B-066).
+
+---
+
+#### B-067 · BackButton inteligente + reforços auto-selecionados
+**Prioridade:** P0 | **Estimativa:** S  
+`BackButton` recebe prop `useBack` que usa `router.back()` ao invés de push fixo. Em `/aulas/[id]`, voltar retorna para a página anterior. Em `/aulas/nova`, ao selecionar turma, técnicas de reforço da última aula dessa turma são auto-marcadas no estado `planejadas`.
+
+**Referência:** `HANDOFF-014-banho-de-usabilidade.md` (seção B-067).
+
+---
+
+#### B-068 · Checkin do aluno mostra técnicas ensinadas
+**Prioridade:** P1 | **Estimativa:** S  
+`CheckinCard` na home do aluno passa a mostrar técnicas já registradas como "ensinadas" pelo professor (chips verdes). Aluno acompanha em tempo real o que está sendo ensinado na aula.
+
+**Referência:** `HANDOFF-014-banho-de-usabilidade.md` (seção B-068).
 
 ---
 

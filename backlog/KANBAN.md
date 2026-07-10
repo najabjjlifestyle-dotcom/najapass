@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-10 (v2.8 — EP-19 adicionado ao backlog: B-062/063)
+**Atualizado em:** 2026-07-10 (v2.10 — B-062/B-063 concluídos)
 
 ---
 
@@ -78,17 +78,22 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-059 | Nav professor: Perfil → Planejamento | UX/Nav |
 | B-060 | Página `/planejamento` — visão turma-centric | Aulas |
 | B-061 | Retrospecto `/historico` — abas Conteúdo/Frequência | Aulas |
-
-**📋 Próximo sprint (EP-19 — HANDOFF-013):**
-
-| ID | Card | Épico |
-|---|---|---|
 | B-062 | Picker de técnicas filtrado pelo tema selecionado | Aulas |
 | B-063 | Histórinhas — sequências de técnicas nomeadas | Aulas |
 
+**📋 Sprint seguinte (EP-20 — HANDOFF-014):**
+
+| ID | Card | Épico |
+|---|---|---|
+| B-064 | Jornada técnica do aluno — visão professor | Alunos |
+| B-065 | Turma — aulas com técnicas ensinadas | Turmas |
+| B-066 | Relatorios acessível + lacunas de currículo | Dashboard |
+| B-067 | BackButton inteligente + reforços auto-selecionados | UX |
+| B-068 | Checkin do aluno mostra técnicas ensinadas | Aluno App |
+
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
-> B-062/B-063 aguardando implementação na branch `feat/sprint17-historinhas` — HANDOFF-013 recebido em 2026-07-10.
+> B-062/B-063 na branch `feat/sprint17-historinhas` (a partir da `main`) — ver seção de detalhes abaixo.
 
 ---
 
@@ -204,6 +209,16 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 Pedido direto do usuário, sem card no `BACKLOG.md`: com a bottom nav já cobrindo Alunos/Histórico/Planejamento, o grid de atalhos "Alunos/Turmas/Histórico/Solicitações" do dashboard (introduzido no B-055) virou redundante. Removido do `dashboard/page.tsx`, junto com a query de `ultimaAula`/contagem de solicitações que só alimentava esse grid (`ultimaAulaLabel()` também saiu, ficou sem uso).
 
 Como Solicitações e Turmas não tinham mais nenhum ponto de entrada na UI depois da remoção do grid, viraram abas visuais dentro das seções da bottom nav a que pertencem: novo componente `src/components/section-tabs.tsx` (barra de 2 abas, `<Link>` reais entre rotas, sem client state) usado em `/alunos` ↔ `/solicitacoes` (aba Solicitações com badge de pendentes) e `/planejamento` ↔ `/turmas`. Cada rota continua sendo uma página cheia e independente — as abas só dão navegação visual entre elas, não fundiram lógica de uma dentro da outra.
+
+---
+
+## 🔍 Detalhes B-062 / B-063 (branch `feat/sprint17-historinhas`, a partir da `main`)
+
+**B-062 — Picker filtrado por tema:** em `/aulas/nova/form.tsx`, quando `temaId` está selecionado o picker de categorias mostra só a categoria correspondente (`categoriasVisiveis = temaId ? categorias.filter(cat => cat.id === temaId) : categorias`) e a expande automaticamente via `useEffect([temaId])`. Link "Ver todas" abaixo do picker limpa o filtro. Como o estado de expansão do picker já era um único `categoriaExpandida: string | null` (não um `Set`, como o handoff assumia), o auto-expand ficou mais simples do que o exemplo do handoff — só `setCategoriaExpandida(temaId)`.
+
+**B-063 — Histórinhas:** migration nova (`historinhas` + `historinha_tecnicas`, RLS por academia via `professores.user_id = auth.uid()`, mesmo padrão das demais tabelas). CRUD completo em `/historinhas` (lista), `/historinhas/nova`, `/historinhas/[id]/editar`, componente client `historinha-form.tsx` (reordenação por botões ↑/↓ — sem drag-and-drop, mobile-first) e `actions.ts` (`salvarHistorinha`/`deletarHistorinha`, delete+reinsert das técnicas a cada save). Integrado em `/aulas/nova/form.tsx`: seção "Histórinhas" acima do picker de posições, botão "Aplicar" soma todas as técnicas da sequência ao Set de `planejadas` (sem duplicar), vira "✓ Aplicada" quando já estão todas selecionadas. Link "Histórinhas" adicionado à seção "Mais" de `/perfil`.
+
+**Correção ao handoff:** o doc assumia um componente compartilhado `@/components/busca-tecnica-inline` — na verdade `BuscaTecnicaInline` é um componente privado dentro de `aulas/[id]/tecnicas-aula.tsx`, acoplado a uma server action específica (`adicionarTecnicaAula`), não reaproveitável. `historinha-form.tsx` implementa sua própria busca inline (mesmo padrão visual, callback `onSelect` local em vez de server action direta). Também trocado o botão `←` de texto puro do exemplo do handoff pelo componente `BackButton` já padronizado no resto do app.
 
 ---
 

@@ -6,12 +6,13 @@ import BackButton from '@/components/back-button'
 import AvatarUpload from '@/components/avatar-upload'
 import LogoutButton from '@/components/logout-button'
 import { updateFotoProfessor } from './actions'
-import { Users2, BarChart3, Dumbbell, ChevronRight } from 'lucide-react'
+import { Users2, BarChart3, Dumbbell, ListOrdered, ChevronRight } from 'lucide-react'
 
 const MAIS_ITEMS = [
   { href: '/professores', Icon: Users2, label: 'Professores', sub: 'Gerenciar equipe da academia' },
   { href: '/relatorios', Icon: BarChart3, label: 'Relatórios', sub: 'Frequência e ranking de alunos' },
   { href: '/tecnicas', Icon: Dumbbell, label: 'Técnicas', sub: 'Biblioteca de posições' },
+  { href: '/historinhas', Icon: ListOrdered, label: 'Histórinhas', sub: 'Sequências de técnicas' },
 ]
 
 export default async function PerfilPage() {
