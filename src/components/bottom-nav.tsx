@@ -16,7 +16,10 @@ const HIDDEN_PREFIXES = ['/aluno', '/onboarding', '/boas-vindas']
 export default function BottomNav() {
   const pathname = usePathname()
 
-  if (HIDDEN_PREFIXES.some(prefix => pathname.startsWith(prefix))) return null
+  // Match exato ou por segmento de path — startsWith(prefix) sozinho faria
+  // "/alunos" (seção do professor, plural) casar com o prefixo "/aluno"
+  // (portal do aluno, singular) e esconder a navbar do professor por engano.
+  if (HIDDEN_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'))) return null
 
   return (
     <nav
