@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-10 (v2.10 — B-062/B-063 concluídos)
+**Atualizado em:** 2026-07-10 (v2.11 — B-064 a B-068 concluídos)
 
 ---
 
@@ -80,11 +80,6 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-061 | Retrospecto `/historico` — abas Conteúdo/Frequência | Aulas |
 | B-062 | Picker de técnicas filtrado pelo tema selecionado | Aulas |
 | B-063 | Histórinhas — sequências de técnicas nomeadas | Aulas |
-
-**📋 Sprint seguinte (EP-20 — HANDOFF-014):**
-
-| ID | Card | Épico |
-|---|---|---|
 | B-064 | Jornada técnica do aluno — visão professor | Alunos |
 | B-065 | Turma — aulas com técnicas ensinadas | Turmas |
 | B-066 | Relatorios acessível + lacunas de currículo | Dashboard |
@@ -93,7 +88,7 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
-> B-062/B-063 na branch `feat/sprint17-historinhas` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-062/B-063 na branch `feat/sprint17-historinhas` (a partir da `main`); B-064/B-065/B-066/B-067/B-068 na branch `feat/sprint18-jornada-usabilidade` (a partir da `feat/sprint17-historinhas`, ainda não mergeada) — ver seção de detalhes abaixo.
 
 ---
 
@@ -219,6 +214,22 @@ Como Solicitações e Turmas não tinham mais nenhum ponto de entrada na UI depo
 **B-063 — Histórinhas:** migration nova (`historinhas` + `historinha_tecnicas`, RLS por academia via `professores.user_id = auth.uid()`, mesmo padrão das demais tabelas). CRUD completo em `/historinhas` (lista), `/historinhas/nova`, `/historinhas/[id]/editar`, componente client `historinha-form.tsx` (reordenação por botões ↑/↓ — sem drag-and-drop, mobile-first) e `actions.ts` (`salvarHistorinha`/`deletarHistorinha`, delete+reinsert das técnicas a cada save). Integrado em `/aulas/nova/form.tsx`: seção "Histórinhas" acima do picker de posições, botão "Aplicar" soma todas as técnicas da sequência ao Set de `planejadas` (sem duplicar), vira "✓ Aplicada" quando já estão todas selecionadas. Link "Histórinhas" adicionado à seção "Mais" de `/perfil`.
 
 **Correção ao handoff:** o doc assumia um componente compartilhado `@/components/busca-tecnica-inline` — na verdade `BuscaTecnicaInline` é um componente privado dentro de `aulas/[id]/tecnicas-aula.tsx`, acoplado a uma server action específica (`adicionarTecnicaAula`), não reaproveitável. `historinha-form.tsx` implementa sua própria busca inline (mesmo padrão visual, callback `onSelect` local em vez de server action direta). Também trocado o botão `←` de texto puro do exemplo do handoff pelo componente `BackButton` já padronizado no resto do app.
+
+---
+
+## 🔍 Detalhes B-064 / B-065 / B-066 / B-067 / B-068 (branch `feat/sprint18-jornada-usabilidade`, a partir da `feat/sprint17-historinhas`)
+
+**B-067 — BackButton inteligente + reforços:** `back-button.tsx` virou client component com prop `useBack?: boolean` — quando true, renderiza `<button onClick={() => router.back()}>` em vez do `<Link href>`. Aplicado em `/aulas/[id]` (voltar pra onde o professor veio: dashboard ou histórico). **Correção ao handoff:** a Parte 2 (reforços auto-selecionados ao trocar turma em `/aulas/nova`) já estava implementada — `handleTurmaChange()` em `form.tsx` já chama `setPlanejadas(new Set(refs))` ao trocar a turma. O GAP 3 do audit do handoff estava desatualizado; nenhuma mudança necessária ali.
+
+**B-065 — Turma tech history:** `turmas/[id]/page.tsx` trocou a query bugada (`tema` — coluna TEXT legada, sempre null/stale) por `tema:categorias_tecnicas(nome)` + busca separada de `aula_tecnicas` tipo `ensinada`. Cada aula da lista agora mostra status badge (Finalizada/Ao vivo/Pendente/Cancelada) e até 4 chips de técnicas ensinadas.
+
+**B-064 — Jornada técnica do aluno:** nova RPC `jornada_tecnica_aluno(p_aluno_id)` (SECURITY DEFINER, valida que o professor autenticado é da mesma academia do aluno). `/alunos/[id]` ganhou seção "Jornada Técnica" — técnicas aprendidas agrupadas por categoria, chip verde a partir de 3 repetições. Header trocou "Perfil" pelo primeiro nome do aluno.
+
+**B-066 — Relatórios acessível:** dashboard ganhou card "Insights da academia" logo após o stats strip. **Correção ao handoff:** o doc assumia que não existia nenhum conceito de "lacunas de currículo" em `/relatorios` e propunha uma subseção nova do zero — na verdade a aba Técnicas já calculava `lacunas` (contagem de técnicas nunca ensinadas no período selecionado via `?periodo=`), só que sem listar quais. Em vez de duplicar a query, a mesma seção existente foi enriquecida pra listar as técnicas por nome (chips vermelhos, com categoria, +N quando passa de 20) — reaproveita o período (Mês/3M/Ano) já escolhido pelo professor em vez do "últimos 90 dias" fixo que o handoff sugeria.
+
+**B-068 — Checkin com técnicas ensinadas:** `/aluno/page.tsx` busca `aula_tecnicas` com `tipo IN ('planejada','ensinada')` (antes só planejada) e separa os dois arrays. `CheckinCard` ganhou chips verdes "✓ Ensinadas nesta aula" — o aluno vê em tempo real o que o professor já registrou, sem esperar abrir o app de novo depois.
+
+**Sem migrations além da RPC de B-064** (`jornada_tecnica_aluno`).
 
 ---
 

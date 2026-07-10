@@ -18,6 +18,13 @@ type PresencaRow = {
   aulas: { data: string; tema: string | null; turmas: { nome: string } | null } | null
 }
 
+type JornadaCat = {
+  categoria: string
+  categoria_id: string
+  tecnicas: { id: string; nome: string; vezes: number }[]
+  total_visto: number
+}
+
 export default async function AlunoPerfilPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -51,6 +58,9 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
   const presencas = (presencasData ?? []) as unknown as PresencaRow[]
 
+  const { data: jornadaRaw } = await supabase.rpc('jornada_tecnica_aluno', { p_aluno_id: id })
+  const jornada = (jornadaRaw ?? []) as JornadaCat[]
+
   const trinta_dias = new Date()
   trinta_dias.setDate(trinta_dias.getDate() - 30)
 
@@ -67,7 +77,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
       <header className="px-6 pt-safe pb-6 flex items-center gap-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <BackButton href="/alunos" />
         <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-          Perfil
+          {aluno.nome.split(' ')[0]}
         </h1>
       </header>
 
@@ -156,6 +166,69 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
             </div>
           )}
         </div>
+
+        {/* Jornada Técnica */}
+        {jornada.length > 0 ? (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
+                Jornada Técnica
+              </p>
+              <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
+                {jornada.reduce((s, c) => s + c.tecnicas.length, 0)} técnicas aprendidas
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {jornada.map(cat => (
+                <div key={cat.categoria_id}
+                  className="px-3 py-2.5 rounded-xl"
+                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider"
+                      style={{ color: 'var(--brand-texto)' }}>
+                      {cat.categoria}
+                    </p>
+                    <span className="text-[9px] px-2 py-0.5 rounded"
+                      style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+                      {cat.tecnicas.length} téc.
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    {cat.tecnicas.map(t => (
+                      <span key={t.id}
+                        className="px-2 py-0.5 rounded text-[9px] font-bold"
+                        style={{
+                          background: t.vezes >= 3 ? 'rgba(74,222,128,0.1)' : 'var(--brand-gold-dim)',
+                          border: `1px solid ${t.vezes >= 3 ? 'rgba(74,222,128,0.3)' : 'var(--brand-gold-border)'}`,
+                          color: t.vezes >= 3 ? '#4ADE80' : 'var(--brand-gold)',
+                        }}>
+                        {t.nome}
+                        {t.vezes >= 2 && <span className="ml-1 opacity-60">×{t.vezes}</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[9px] mt-1.5 text-right" style={{ color: 'var(--brand-texto-muted)' }}>
+              Verde = vista 3+ vezes · Dourado = vista 1–2 vezes
+            </p>
+          </div>
+        ) : (
+          <div className="px-4 py-5 rounded-xl text-center"
+            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
+              Nenhuma técnica registrada ainda
+            </p>
+            <p className="text-[9px] mt-1" style={{ color: '#333' }}>
+              As técnicas aparecem aqui quando o professor finalizá-las nas aulas em que este aluno esteve presente
+            </p>
+          </div>
+        )}
 
         {/* Graduação */}
         <GraduacaoForm alunoId={aluno.id} faixaAtual={aluno.faixa ?? 'branca'} grauAtual={aluno.grau ?? 0} />

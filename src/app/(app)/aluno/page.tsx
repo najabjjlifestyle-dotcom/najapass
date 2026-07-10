@@ -42,14 +42,17 @@ export default async function AlunoHomePage() {
   const aulasAtivasRows = (aulasAtivasData ?? []) as unknown as AulaAtivaRow[]
 
   const aulasAtivas = await Promise.all(aulasAtivasRows.map(async (aula) => {
-    const [{ data: quemVaiData }, { data: planejadasData }] = await Promise.all([
+    const [{ data: quemVaiData }, { data: tecnicasData }] = await Promise.all([
       supabase.rpc('quem_vai', { p_aula_id: aula.id }),
-      supabase.from('aula_tecnicas').select('tecnicas(nome)').eq('aula_id', aula.id).eq('tipo', 'planejada'),
+      supabase.from('aula_tecnicas')
+        .select('tipo, tecnicas(nome)')
+        .eq('aula_id', aula.id)
+        .in('tipo', ['planejada', 'ensinada']),
     ])
     const confirmados = (quemVaiData ?? []) as { nome: string; visitante: boolean }[]
-    const planejadas = ((planejadasData ?? []) as unknown as { tecnicas: { nome: string } | null }[])
-      .map(p => p.tecnicas?.nome)
-      .filter((n): n is string => Boolean(n))
+    const tecs = (tecnicasData ?? []) as unknown as { tipo: string; tecnicas: { nome: string } | null }[]
+    const planejadas = tecs.filter(t => t.tipo === 'planejada').map(t => t.tecnicas?.nome).filter((n): n is string => Boolean(n))
+    const ensinadas = tecs.filter(t => t.tipo === 'ensinada').map(t => t.tecnicas?.nome).filter((n): n is string => Boolean(n))
     return {
       id: aula.id,
       video_url: aula.video_url,
@@ -57,6 +60,7 @@ export default async function AlunoHomePage() {
       tema: aula.tema?.nome ?? null,
       confirmados,
       planejadas,
+      ensinadas,
     }
   }))
 

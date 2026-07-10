@@ -13,6 +13,7 @@ type Aula = {
   video_url: string | null
   confirmados: Confirmado[]
   planejadas: string[]
+  ensinadas: string[]
 }
 
 export default function CheckinCard({
@@ -81,6 +82,27 @@ export default function CheckinCard({
                   {p}
                 </span>
               ))}
+            </div>
+          )}
+          {aula.ensinadas.length > 0 && (
+            <div className="mt-2">
+              <p className="text-[9px] uppercase tracking-widest mb-1"
+                style={{ color: checked ? 'rgba(0,0,0,0.5)' : '#4ADE80', opacity: 0.85 }}>
+                ✓ Ensinadas nesta aula
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {aula.ensinadas.map((t, i) => (
+                  <span key={i}
+                    className="px-2 py-0.5 rounded text-[9px] font-bold"
+                    style={{
+                      background: checked ? 'rgba(0,0,0,0.1)' : 'rgba(74,222,128,0.08)',
+                      color: checked ? 'rgba(0,0,0,0.6)' : '#4ADE80',
+                      border: `1px solid ${checked ? 'rgba(0,0,0,0.1)' : 'rgba(74,222,128,0.2)'}`,
+                    }}>
+                    {t}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>

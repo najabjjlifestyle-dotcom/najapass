@@ -104,7 +104,7 @@ export default async function RelatoriosPage({
 async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; dataInicio: string; dataFim: string }) {
   const supabase = await createClient()
 
-  const [{ data: ensinadasData }, { data: ultimaAula }, { count: totalTecnicas }] = await Promise.all([
+  const [{ data: ensinadasData }, { data: ultimaAula }, { data: todasTecnicasData }] = await Promise.all([
     supabase
       .from('aula_tecnicas')
       .select('tecnica_id, tecnicas(nome), aulas!inner(data, academia_id)')
@@ -120,7 +120,11 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
       .order('data', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase.from('tecnicas').select('id', { count: 'exact', head: true }).or(`academia_id.eq.${acadId},global.eq.true`),
+    supabase
+      .from('tecnicas')
+      .select('id, nome, categorias_tecnicas(nome)')
+      .or(`academia_id.eq.${acadId},global.eq.true`)
+      .order('nome'),
   ])
 
   type EnsinadaRow = { tecnica_id: string; tecnicas: { nome: string } | null }
@@ -146,9 +150,11 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
     .filter(r => r.tecnicas)
     .map(r => ({ nome: r.tecnicas!.nome }))
 
-  const lacunas = (totalTecnicas ?? 0) - contagem.size
+  type TecnicaRow = { id: string; nome: string; categorias_tecnicas: { nome: string } | null }
+  const todasTecnicas = (todasTecnicasData ?? []) as unknown as TecnicaRow[]
+  const lacunaTecnicas = todasTecnicas.filter(t => !contagem.has(t.id))
 
-  if (ranking.length === 0 && reforcos.length === 0 && lacunas <= 0) {
+  if (ranking.length === 0 && reforcos.length === 0 && lacunaTecnicas.length === 0) {
     return (
       <p className="text-sm text-center py-16" style={{ color: 'var(--brand-texto-muted)' }}>
         Nenhuma técnica ensinada no período.
@@ -192,11 +198,29 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
         </section>
       )}
 
-      {lacunas > 0 && (
+      {lacunaTecnicas.length > 0 && (
         <section className="rounded-2xl p-3.5" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-          <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Lacunas de conteúdo</p>
-          <p className="text-base font-bold mt-1" style={{ color: 'var(--brand-texto)' }}>{lacunas} técnicas não ensinadas</p>
-          <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>de {totalTecnicas} cadastradas, no período selecionado</p>
+          <p className="text-[9px] uppercase tracking-widest mb-1" style={{ color: '#ef4444' }}>
+            ⚠ Não ensinadas no período ({lacunaTecnicas.length})
+          </p>
+          <p className="text-[10px] mb-3" style={{ color: 'var(--brand-texto-muted)' }}>
+            de {todasTecnicas.length} técnicas cadastradas
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {lacunaTecnicas.slice(0, 20).map(t => (
+              <span key={t.id}
+                className="px-2 py-0.5 rounded text-[9px]"
+                style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                {t.nome}
+                {t.categorias_tecnicas?.nome && <span className="opacity-50 ml-1">({t.categorias_tecnicas.nome})</span>}
+              </span>
+            ))}
+            {lacunaTecnicas.length > 20 && (
+              <span className="text-[9px]" style={{ color: 'var(--brand-texto-muted)' }}>
+                +{lacunaTecnicas.length - 20} mais
+              </span>
+            )}
+          </div>
         </section>
       )}
     </>
