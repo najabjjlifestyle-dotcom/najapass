@@ -332,6 +332,23 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* ── Link rápido para Insights ── */}
+      <div className="px-4 mb-2">
+        <Link href="/relatorios"
+          className="flex items-center justify-between px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
+              Insights da academia
+            </p>
+            <p className="text-[9px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+              Técnicas mais ensinadas · Frequência · Ranking
+            </p>
+          </div>
+          <span style={{ color: 'var(--brand-gold)', fontSize: 18 }}>→</span>
+        </Link>
+      </div>
+
       {/* ── Avisos ── */}
       <div className="px-4 mb-3">
         <Link href="/avisos"
