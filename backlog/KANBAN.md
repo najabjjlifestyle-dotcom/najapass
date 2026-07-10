@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-10 (v2.7 — B-059/060/061 concluídos na branch `feat/sprint16-nav-planejamento`)
+**Atualizado em:** 2026-07-10 (v2.8 — EP-19 adicionado ao backlog: B-062/063)
 
 ---
 
@@ -79,9 +79,16 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-060 | Página `/planejamento` — visão turma-centric | Aulas |
 | B-061 | Retrospecto `/historico` — abas Conteúdo/Frequência | Aulas |
 
+**📋 Próximo sprint (EP-19 — HANDOFF-013):**
+
+| ID | Card | Épico |
+|---|---|---|
+| B-062 | Picker de técnicas filtrado pelo tema selecionado | Aulas |
+| B-063 | Histórinhas — sequências de técnicas nomeadas | Aulas |
+
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
-> B-059 (nav professor → `/planejamento`) referenciado em rascunho de backlog mas **nenhum HANDOFF-012 foi recebido ainda** — não implementado, não faz parte deste sprint.
+> B-062/B-063 aguardando implementação na branch `feat/sprint17-historinhas` — HANDOFF-013 recebido em 2026-07-10.
 
 ---
 
@@ -189,6 +196,14 @@ Sem card correspondente no `BACKLOG.md`, mas em produção: seleção de papel n
 **B-060 — `/planejamento` (nova):** visão turma-centric — um card por turma ativa com a última aula finalizada (chips ✓ verde/↺ laranja das técnicas ensinadas) e as próximas 3 aulas agendadas (badge "Sem planejamento" laranja + botão Planejar, ou "X técnicas planejadas" + Ver plano). **Correção ao handoff:** a query de exemplo usava `turmas.hora_inicio`, mas essa coluna não existe em `turmas` (é `horario`) — só existe em `aulas`. Corrigido na query e no card. Sem migration, todos os dados já existiam.
 
 **B-061 — `/historico` (antes `/aulas`) retrospecto:** duas abas via `?aba=` — "Conteúdo" (default, aulas finalizadas/ao vivo agrupadas por mês com chips de técnica, reforço em laranja) e "Frequência" (RPC `frequencia_resumo`: total de aulas, média de presentes, top 5 assíduos — últimos 90 dias). Filtro de turma preservado nas duas abas via querystring. O filtro de mês antigo (`?mes=`) saiu — o agrupamento automático por mês substitui a necessidade dele.
+
+---
+
+## 🔍 Ajuste pós-sprint16 — grid de atalhos removido do dashboard (branch `feat/sprint16-nav-dashboard-cleanup`, a partir da `main`)
+
+Pedido direto do usuário, sem card no `BACKLOG.md`: com a bottom nav já cobrindo Alunos/Histórico/Planejamento, o grid de atalhos "Alunos/Turmas/Histórico/Solicitações" do dashboard (introduzido no B-055) virou redundante. Removido do `dashboard/page.tsx`, junto com a query de `ultimaAula`/contagem de solicitações que só alimentava esse grid (`ultimaAulaLabel()` também saiu, ficou sem uso).
+
+Como Solicitações e Turmas não tinham mais nenhum ponto de entrada na UI depois da remoção do grid, viraram abas visuais dentro das seções da bottom nav a que pertencem: novo componente `src/components/section-tabs.tsx` (barra de 2 abas, `<Link>` reais entre rotas, sem client state) usado em `/alunos` ↔ `/solicitacoes` (aba Solicitações com badge de pendentes) e `/planejamento` ↔ `/turmas`. Cada rota continua sendo uma página cheia e independente — as abas só dão navegação visual entre elas, não fundiram lógica de uma dentro da outra.
 
 ---
 

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SolicitacaoButtons } from './buttons'
 import BackButton from '@/components/back-button'
+import SectionTabs from '@/components/section-tabs'
 
 export default async function SolicitacoesPage() {
   const supabase = await createClient()
@@ -46,6 +47,11 @@ export default async function SolicitacoesPage() {
           )}
         </div>
       </header>
+
+      <SectionTabs tabs={[
+        { href: '/alunos', label: 'Alunos', active: false },
+        { href: '/solicitacoes', label: 'Solicitações', active: true, badge: pendentes?.length ?? 0 },
+      ]} />
 
       <main className="px-6 pt-6 pb-10 space-y-8">
 

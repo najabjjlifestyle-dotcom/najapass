@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import BackButton from '@/components/back-button'
+import SectionTabs from '@/components/section-tabs'
 
 const DIAS_ABBR: Record<string, string> = {
   domingo: 'Dom', segunda: 'Seg', terca: 'Ter', quarta: 'Qua',
@@ -42,6 +43,11 @@ export default async function TurmasPage() {
           + Nova
         </Link>
       </header>
+
+      <SectionTabs tabs={[
+        { href: '/planejamento', label: 'Planejamento', active: false },
+        { href: '/turmas', label: 'Turmas', active: true },
+      ]} />
 
       <main className="px-6 pt-6 space-y-2 pb-10">
         {!turmas?.length ? (
