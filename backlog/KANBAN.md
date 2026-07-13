@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-10 (v2.11 — B-064 a B-068 concluídos)
+**Atualizado em:** 2026-07-12 (v2.12 — tradução do currículo global pra PT-BR)
 
 ---
 
@@ -214,6 +214,18 @@ Como Solicitações e Turmas não tinham mais nenhum ponto de entrada na UI depo
 **B-063 — Histórinhas:** migration nova (`historinhas` + `historinha_tecnicas`, RLS por academia via `professores.user_id = auth.uid()`, mesmo padrão das demais tabelas). CRUD completo em `/historinhas` (lista), `/historinhas/nova`, `/historinhas/[id]/editar`, componente client `historinha-form.tsx` (reordenação por botões ↑/↓ — sem drag-and-drop, mobile-first) e `actions.ts` (`salvarHistorinha`/`deletarHistorinha`, delete+reinsert das técnicas a cada save). Integrado em `/aulas/nova/form.tsx`: seção "Histórinhas" acima do picker de posições, botão "Aplicar" soma todas as técnicas da sequência ao Set de `planejadas` (sem duplicar), vira "✓ Aplicada" quando já estão todas selecionadas. Link "Histórinhas" adicionado à seção "Mais" de `/perfil`.
 
 **Correção ao handoff:** o doc assumia um componente compartilhado `@/components/busca-tecnica-inline` — na verdade `BuscaTecnicaInline` é um componente privado dentro de `aulas/[id]/tecnicas-aula.tsx`, acoplado a uma server action específica (`adicionarTecnicaAula`), não reaproveitável. `historinha-form.tsx` implementa sua própria busca inline (mesmo padrão visual, callback `onSelect` local em vez de server action direta). Também trocado o botão `←` de texto puro do exemplo do handoff pelo componente `BackButton` já padronizado no resto do app.
+
+---
+
+## 🔍 Tradução do currículo global pra PT-BR (branch `feat/sprint19-traducao-curriculo`, a partir da `main`)
+
+Sem card no `BACKLOG.md` — pedido direto do usuário ao ver muitos nomes de técnica em inglês no app: "O ESPORTE É BRASILEIRO. PRECISAMOS TRADUZIR TUDO". Usuário mandou um catálogo próprio de referência (posições/técnicas em PT-BR com critério de quando manter o termo original) pra guiar a tradução.
+
+`supabase/migrations/20260712000001_traducao_curriculo_pt.sql` — `UPDATE` de ~90 das 168 técnicas globais (`global = true`, inseridas na `20260703000001_curriculo_global.sql`), escopado por categoria + nome antigo pra não afetar técnicas cadastradas por academias específicas. Categoria "Takedown / Queda" renomeada pra "Queda" (único nome de categoria com palavra em inglês). Critério aplicado: nome próprio mantido (Kimura, Berimbolo, Ezequiel), termo cunhado sem tradução usada no tatame mantido (Dogfight, Matrix), termo com tradução consagrada no BJJ brasileiro traduzido (Butterfly Sweep → Raspagem Borboleta, Heel Hook → Chave de Calcanhar, Toe Hold → Chave de Pé).
+
+Migration idempotente por natureza — como casa por `nome_antigo` exato, rodar de novo depois que já rodou uma vez simplesmente não encontra mais match e não faz nada.
+
+**Pendência:** alguns nomes traduzidos são chamada de julgamento (ex: Kiss of the Dragon → Beijo do Dragão, Coyote Guard → Guarda Coiote, Estima Lock → Chave Estima) — o próprio catálogo do usuário recomenda validar com o Mestre Naja antes de virar taxonomia oficial. Vale uma segunda passada depois do deploy.
 
 ---
 
