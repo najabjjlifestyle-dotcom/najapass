@@ -833,6 +833,24 @@ Em `tecnicas-aula.tsx`, esconde o botão ✗ quando `aula.status === 'aberta'`. 
 
 ---
 
+### EP-22 · Planejamento Orientado por Dados
+
+#### B-073 · Insights por turma no Planejamento
+**Prioridade:** P0 | **Estimativa:** M  
+Nova RPC `insights_turma(p_turma_id, p_academia_id)` retorna: top 5 técnicas ausentes há mais tempo (com dias de ausência), top 3 mais ensinadas no último mês, e top 3 alunos ausentes há +14 dias. Cada turma card em `/planejamento` ganha três novas seções visuais com esses dados. Seções não aparecem quando não há dados.
+
+**Referência:** `HANDOFF-016-planejamento-dados-historico.md` (seção B-073).
+
+---
+
+#### B-074 · Histórico: presentes por aula + chips de turma
+**Prioridade:** P0 | **Estimativa:** S  
+Query de `/aulas` adiciona `presencas(id)` para mostrar contagem de presentes em cada card ("12 🥋"). `<select>` nativo de turma substituído por strip horizontal de chips (Links), sem submit. Stat header mostra "X aulas registradas". Ordenação por `data DESC` já está correta no código — confirmar visualmente.
+
+**Referência:** `HANDOFF-016-planejamento-dados-historico.md` (seção B-074).
+
+---
+
 ## Ordem de Implementação Sugerida
 
 ```

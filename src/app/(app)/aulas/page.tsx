@@ -14,6 +14,7 @@ type AulaRow = {
   id: string; data: string; hora_inicio: string | null; status: string
   turmas: { nome: string } | null
   aula_tecnicas: AulaTecnicaRow[] | null
+  presencas: { id: string }[] | null
 }
 type FrequenciaStats = {
   total_aulas: number
@@ -66,6 +67,32 @@ export default async function AulasPage({
         </Link>
       </header>
 
+      {/* Filtro de turma — chips horizontais */}
+      <div className="flex gap-2 overflow-x-auto px-5 pt-4 pb-3"
+        style={{ borderBottom: '1px solid var(--brand-border)' }}>
+        <Link
+          href={`/aulas?aba=${aba}`}
+          className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider"
+          style={!turmaFiltro
+            ? { background: 'var(--brand-gold)', color: '#000' }
+            : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
+          }>
+          Todas
+        </Link>
+        {(turmasData ?? []).map(t => (
+          <Link
+            key={t.id}
+            href={`/aulas?aba=${aba}&turma=${t.id}`}
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider"
+            style={turmaFiltro === t.id
+              ? { background: 'var(--brand-gold)', color: '#000' }
+              : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
+            }>
+            {t.nome}
+          </Link>
+        ))}
+      </div>
+
       {/* Abas */}
       <div className="flex gap-2 px-5 pt-4 pb-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <Link href={`/aulas?aba=conteudo${turmaQS}`}
@@ -86,24 +113,6 @@ export default async function AulasPage({
         </Link>
       </div>
 
-      {/* Filtro de turma */}
-      <form method="get" className="flex gap-2 px-5 pt-4">
-        <input type="hidden" name="aba" value={aba} />
-        <select name="turma" defaultValue={turmaFiltro ?? ''}
-          className="flex-1 px-3 py-2 rounded-xl bg-transparent text-sm focus:outline-none"
-          style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
-          <option value="" className="bg-black">Todas as turmas</option>
-          {(turmasData ?? []).map(t => (
-            <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
-          ))}
-        </select>
-        <button type="submit"
-          className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider active:scale-[0.98] transition-transform"
-          style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
-          Filtrar
-        </button>
-      </form>
-
       {aba === 'conteudo' && <ConteudoTab acadId={acadId} turmaFiltro={turmaFiltro} />}
       {aba === 'frequencia' && <FrequenciaTab acadId={acadId} turmaFiltro={turmaFiltro} />}
     </div>
@@ -117,7 +126,7 @@ async function ConteudoTab({ acadId, turmaFiltro }: { acadId: string; turmaFiltr
 
   let query = supabase
     .from('aulas')
-    .select('id, data, hora_inicio, status, turmas(nome), aula_tecnicas(tipo, reforco, tecnicas(nome))')
+    .select('id, data, hora_inicio, status, turmas(nome), aula_tecnicas(tipo, reforco, tecnicas(nome)), presencas(id)')
     .eq('academia_id', acadId)
     .in('status', ['finalizada', 'aberta'])
     .order('data', { ascending: false })
@@ -151,6 +160,10 @@ async function ConteudoTab({ acadId, turmaFiltro }: { acadId: string; turmaFiltr
 
   return (
     <main className="pt-2 pb-10">
+      <p className="text-[10px] px-5 pb-1 uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+        {aulas.length} aula{aulas.length !== 1 ? 's' : ''} registrada{aulas.length !== 1 ? 's' : ''}
+        {turmaFiltro ? '' : ' · todas as turmas'}
+      </p>
       {grupos.map(grupo => (
         <div key={grupo.label}>
           <p className="text-[9px] uppercase tracking-widest px-5 py-2 capitalize" style={{ color: 'var(--brand-gold)' }}>
@@ -174,15 +187,22 @@ async function ConteudoTab({ acadId, turmaFiltro }: { acadId: string; turmaFiltr
                         {aula.hora_inicio ? ` · ${aula.hora_inicio.substring(0, 5)}` : ''}
                       </p>
                     </div>
-                    {aula.status === 'aberta' ? (
-                      <span className="text-[10px] uppercase tracking-widest flex-shrink-0" style={{ color: 'var(--brand-gold)' }}>
-                        Ao vivo
-                      </span>
-                    ) : ensinadas.length > 0 ? (
-                      <span className="text-[10px] flex-shrink-0" style={{ color: '#4ADE80' }}>
-                        {ensinadas.length} téc.
-                      </span>
-                    ) : null}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {(aula.presencas?.length ?? 0) > 0 && (
+                        <span className="text-[10px] font-bold" style={{ color: 'var(--brand-texto-muted)' }}>
+                          {aula.presencas!.length} 🥋
+                        </span>
+                      )}
+                      {aula.status === 'aberta' ? (
+                        <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
+                          Ao vivo
+                        </span>
+                      ) : ensinadas.length > 0 ? (
+                        <span className="text-[10px]" style={{ color: '#4ADE80' }}>
+                          {ensinadas.length} téc.
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   {ensinadas.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
