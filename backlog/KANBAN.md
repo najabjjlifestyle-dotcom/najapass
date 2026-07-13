@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-12 (v2.14 — B-069 a B-072 concluídos)
+**Atualizado em:** 2026-07-12 (v2.15 — navegação secundária consolidada em "Mais")
 
 ---
 
@@ -290,7 +290,7 @@ Sem migrations nesta sprint.
 3. **Sem suíte de testes.** O CLAUDE.md cita Vitest como parte da stack, mas não há `vitest` no `package.json` nem testes escritos. Fora do escopo desta branch.
 4. **Novas migrations do sprint 15 não aplicadas.** `professor_dashboard_insights.sql` e `turma_auto_abrir.sql` (colunas + RPC `aulas_para_abrir_agora`) precisam ser rodadas manualmente no SQL Editor do Supabase, igual às anteriores.
 5. **`SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` não configurados.** Necessários pro cron de auto-abertura (`/api/cron/abrir-aulas`) funcionar — sem eles o endpoint sempre responde 401/erro. Pegar a service role key no painel do Supabase (Project Settings → API) e gerar um `CRON_SECRET` aleatório; adicionar nos dois lugares: `.env.local` (dev) e env vars do projeto na Vercel (produção — sem isso lá, o cron configurado em `vercel.json` chama o endpoint e recebe 401 a cada 30min).
-6. **Auditoria de complexidade pendente de ação.** Ver seção "🔍 Auditoria — complexidade do fluxo do professor" abaixo. Nenhuma mudança de código feita ainda a partir dela — é um levantamento pra decidir prioridade com o usuário.
+6. ~~**Auditoria de complexidade pendente de ação.**~~ Item "4 padrões de navegação diferentes" resolvido em 2026-07-12 (branch `feat/sprint20-nav-consolidada`) — ver seção "🔍 Auditoria" abaixo. Os demais achados (frequência duplicada, terminologia Tema/Categoria, `tecnicas.faixas` morto, `/turmas/[id]` sem hierarquia visual, dashboard com 7 seções) seguem sem ação, aguardando priorização do usuário.
 
 ---
 
@@ -301,7 +301,7 @@ Pedido: "o app pro professor tá mais complexo que o necessário" + verificar se
 **"Separar treino em graduados e não graduados": não existe.** Nem por turma, nem dentro de uma aula ao vivo, nem como dois tracks de currículo. A lista de chamada (`attendance-list.tsx`) é flat, ordenada por nome, com a barra de cor da faixa só decorativa (sem agrupar/filtrar). O picker de técnicas ao vivo (`tecnicas-aula.tsx`) não tem noção de faixa nenhuma. Blocos existentes que uma feature futura poderia reaproveitar: `alunos.faixa`/`grau` (já estruturado em toda a base), `tecnicas.faixas` (array por técnica, mas só é de fato *usado como filtro* no portal do aluno — `aluno/page.tsx` — e como texto em `/semana`; nas 3 telas onde o professor lista/escolhe técnicas esse dado é coletado e ignorado), `GraduacaoForm` (troca manual de faixa/grau, zero lógica de elegibilidade) e "Candidatos a graduação" em `/relatorios?aba=alunos` (o mais próximo que existe — calcula `presenças ≥ threshold da faixa` e lista quem já bateria o número esperado, mas é só informativo, não integra com nada).
 
 **Achados de complexidade/redundância (nenhum é bug — tudo funciona, mas tem sobreposição):**
-- **4 padrões de navegação diferentes** pra telas do mesmo nível hierárquico: bottom nav (4 itens), `SectionTabs` dentro da própria página (Turmas dentro de Planejamento, Solicitações dentro de Alunos), lista "Mais" em `/perfil` (Professores/Relatórios/Técnicas/Histórinhas), e cards de atalho soltos no dashboard (Relatórios, Avisos) — `/semana` só é alcançável clicando no mini-grid, não está em nenhum menu. Provável causa real da sensação "complexo demais", mais do que qualquer tela individual estar quebrada.
+- ~~**4 padrões de navegação diferentes**~~ **— resolvido em 2026-07-12** (branch `feat/sprint20-nav-consolidada`): bottom nav (4 itens, inalterado) e `SectionTabs` (Turmas↔Planejamento, Solicitações↔Alunos, inalterados — são pares fortemente relacionados, não fragmentação de verdade) continuam os dois padrões "estruturais". Os dois padrões soltos viraram um só: a lista "Mais" em `/perfil` agora é o único catálogo de tudo que não está na bottom nav (Avisos e Semana entraram nela, além de Professores/Relatórios/Técnicas/Histórinhas já existentes), e os cards de atalho de Relatórios e Avisos saíram do dashboard (redundantes com "Mais"). O mini-grid de Semana no dashboard foi mantido — é um preview visual rico, não só um link, e agora tem uma entrada de menu de verdade em paralelo (antes não tinha nenhuma).
 - **Frequência duplicada:** existe tanto em `/aulas?aba=frequencia` quanto em `/relatorios?aba=frequencia`, respondendo praticamente a mesma pergunta com escopo levemente diferente.
 - **"Última aula desta turma" duplicada:** aparece em `/aulas/[id]` (quando a aula está agendada) E em `/planejamento` — mesmo dado, duas superfícies.
 - **Terminologia inconsistente:** "Tema da aula" na UI é literalmente a mesma entidade que `categorias_tecnicas` (usada como "categoria" em `/tecnicas`) — o próprio código comenta isso (`aulas/nova/form.tsx`), mas o usuário final vê dois nomes pra mesma coisa dependendo da tela.
