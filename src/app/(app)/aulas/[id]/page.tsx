@@ -269,6 +269,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
           tecnicas={tecnicasNaAula}
           disponiveis={disponiveis}
           aulaAberta={aula.status === 'aberta'}
+          aulaAgendada={aula.status === 'agendada'}
           temaNome={temaNome}
         />
       </div>

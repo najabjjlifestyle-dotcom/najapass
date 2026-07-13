@@ -28,15 +28,22 @@ export default function TecnicasAula({
   tecnicas,
   disponiveis,
   aulaAberta,
+  aulaAgendada,
   temaNome,
 }: {
   aulaId: string
   tecnicas: AulaTecnica[]
   disponiveis: Tecnica[]
   aulaAberta: boolean
+  aulaAgendada: boolean
   temaNome?: string | null
 }) {
   const [isPending, startTransition] = useTransition()
+
+  // Nas duas fases a lista de posições é editável: no planejamento
+  // (agendada) adicionando/removendo planejadas, na aula ao vivo (aberta)
+  // confirmando/adicionando ensinadas.
+  const editavel = aulaAberta || aulaAgendada
 
   const planejadas = tecnicas.filter(t => t.tipo === 'planejada')
   const ensinadas = tecnicas.filter(t => t.tipo === 'ensinada')
@@ -59,7 +66,7 @@ export default function TecnicasAula({
 
   const temAlguma = tecnicas.length > 0 || disponiveis.length > 0
 
-  if (!temAlguma && !aulaAberta) return null
+  if (!temAlguma && !editavel) return null
 
   const planejadasPorCategoria = agruparPorCategoria(planejadas)
   const ensinadasPorCategoria = agruparPorCategoria(ensinadas)
@@ -78,6 +85,7 @@ export default function TecnicasAula({
           <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
             Planejadas {aulaAberta ? '— confirme durante a aula' : ''}
           </p>
+          {/* No planejamento (agendada), cada planejada pode ser removida */}
           {planejadasPorCategoria.map(([cat, tecs]) => (
             <div key={cat} className="space-y-2">
               {planejadasPorCategoria.length > 1 && (
@@ -92,6 +100,14 @@ export default function TecnicasAula({
                   <span className="flex-1 text-sm font-bold" style={{ color: 'var(--brand-texto-sec)' }}>
                     {t.nome}
                   </span>
+                  {aulaAgendada && (
+                    <button onClick={() => handleRemover(t.id)} disabled={isPending}
+                      title="Remover do plano"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 disabled:opacity-30 transition-colors hover:opacity-90"
+                      style={{ background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                      ×
+                    </button>
+                  )}
                   {aulaAberta && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {/* ✓ Ensinada */}
@@ -180,22 +196,23 @@ export default function TecnicasAula({
         </div>
       )}
 
-      {/* Nenhuma posição planejada e aula aberta */}
-      {tecnicas.length === 0 && aulaAberta && (
+      {/* Nenhuma posição ainda, aula editável */}
+      {tecnicas.length === 0 && editavel && (
         <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
-          Nenhuma posição planejada.
+          {aulaAgendada ? 'Nenhuma posição planejada ainda. Adicione abaixo.' : 'Nenhuma posição planejada.'}
         </p>
       )}
 
-      {/* Adicionar ad-hoc durante a aula */}
-      {aulaAberta && disponiveis.length > 0 && (
+      {/* Adicionar posição — no planejamento entra como planejada, ao vivo como ensinada */}
+      {editavel && disponiveis.length > 0 && (
         <div>
           <p className="text-[9px] uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-            Adicionar posição
+            {aulaAgendada ? 'Planejar posição' : 'Adicionar posição'}
           </p>
           <BuscaTecnicaInline
             disponiveis={disponiveis}
             aulaId={aulaId}
+            tipo={aulaAgendada ? 'planejada' : 'ensinada'}
             isPending={isPending}
             startTransition={startTransition}
           />
@@ -206,10 +223,11 @@ export default function TecnicasAula({
 }
 
 function BuscaTecnicaInline({
-  disponiveis, aulaId, isPending, startTransition,
+  disponiveis, aulaId, tipo, isPending, startTransition,
 }: {
   disponiveis: Tecnica[]
   aulaId: string
+  tipo: 'planejada' | 'ensinada'
   isPending: boolean
   startTransition: (fn: () => Promise<void>) => void
 }) {
@@ -222,7 +240,7 @@ function BuscaTecnicaInline({
 
   function handleAdicionar(id: string) {
     startTransition(async () => {
-      await adicionarTecnicaAula(aulaId, id)
+      await adicionarTecnicaAula(aulaId, id, tipo)
       setBusca('')
     })
   }

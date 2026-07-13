@@ -3,8 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-// Ad-hoc durante a aula: marca como ensinada (upsert — pode sobrescrever planejada)
-export async function adicionarTecnicaAula(aulaId: string, tecnicaId: string) {
+// Adiciona posição à aula (upsert). Durante a aula ao vivo entra como
+// 'ensinada'; no planejamento (aula agendada) entra como 'planejada'.
+export async function adicionarTecnicaAula(
+  aulaId: string,
+  tecnicaId: string,
+  tipo: 'planejada' | 'ensinada' = 'ensinada',
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sessão expirada.' }
@@ -12,7 +17,7 @@ export async function adicionarTecnicaAula(aulaId: string, tecnicaId: string) {
   const { error } = await supabase
     .from('aula_tecnicas')
     .upsert(
-      { aula_id: aulaId, tecnica_id: tecnicaId, tipo: 'ensinada', reforco: false },
+      { aula_id: aulaId, tecnica_id: tecnicaId, tipo, reforco: false },
       { onConflict: 'aula_id,tecnica_id' }
     )
 
