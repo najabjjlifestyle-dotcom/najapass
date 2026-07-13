@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-13 (v2.17 — B-073/B-074 concluídos)
+**Atualizado em:** 2026-07-13 (v2.18 — fix: planejar posições em aula agendada)
 
 ---
 
@@ -281,6 +281,14 @@ Sem migrations nesta sprint.
 **B-074 — Histórico por data, com presença visível:** a ordenação por `data DESC` já estava correta (confirmado, sem mudança na query) — o problema era só de UX. `<select>` nativo de turma virou uma strip de chips horizontais roláveis (`Todas` + uma por turma), movida pra **antes** das abas Conteúdo/Frequência. Cada aula na aba Conteúdo agora mostra quantos alunos estiveram presentes (`N 🥋`, via `presencas(id)` adicionado à query), e o topo da lista mostra o total de aulas no filtro atual.
 
 Sem migrations em B-074.
+
+---
+
+## 🔍 Fix — planejar posições em aula agendada (branch `fix/planejar-posicoes-aula-agendada`, a partir da `main`)
+
+Bug reportado pelo usuário: dentro de `/planejamento`, tocar "Planejar" numa próxima aula levava pra `/aulas/[id]` (status `agendada`), mas ali não havia como adicionar/remover posições — o componente `TecnicasAula` só habilitava o campo "Adicionar posição" e os controles de edição quando a aula estava `aberta` (ao vivo). Ou seja, aulas geradas por recorrência (que nascem sem técnicas) ou criadas via "Planejar para depois" ficavam impossíveis de planejar depois da criação — a única janela pra montar o plano era no `/aulas/nova`.
+
+Correção: `TecnicasAula` ganhou prop `aulaAgendada`. Introduzido `editavel = aulaAberta || aulaAgendada` — nas duas fases a lista de posições é editável, mas com semânticas diferentes: no planejamento (agendada) o professor adiciona/remove **planejadas**; ao vivo (aberta) confirma/adiciona **ensinadas**. `adicionarTecnicaAula` passou a aceitar um 3º parâmetro `tipo` (default `'ensinada'` pra não quebrar a chamada da aula ao vivo), gravando `'planejada'` quando chamado do planejamento. Planejadas ganham botão de remover (×) na fase agendada; o rótulo do campo vira "Planejar posição" em vez de "Adicionar posição". Zero mudança de schema — só reaproveita o fluxo de busca de técnica que já existia pra aula ao vivo.
 
 ---
 
