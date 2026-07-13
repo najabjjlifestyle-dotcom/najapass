@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-12 (v2.15 — navegação secundária consolidada em "Mais")
+**Atualizado em:** 2026-07-13 (v2.17 — B-073/B-074 concluídos)
 
 ---
 
@@ -89,12 +89,15 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-070 | Sticky "Finalizar Aula" → redireciona para feedback | UX/Aulas |
 | B-071 | Feedback revisado: "Quais técnicas você ensinou?" + concluirAula() | Aulas |
 | B-072 | Remover ✗ durante aula ao vivo | UX |
+| B-073 | Insights por turma no Planejamento (RPC insights_turma + UI) | Planejamento |
+| B-074 | Histórico: presentes por aula + chips de turma | Histórico |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
 > B-062/B-063 na branch `feat/sprint17-historinhas` (a partir da `main`, mergeada); B-064/B-065/B-066/B-067/B-068 na branch `feat/sprint18-jornada-usabilidade` (a partir da `feat/sprint17-historinhas`, mergeada) — ver seção de detalhes abaixo.
 > Tradução do currículo (sem cards no backlog) na branch `feat/sprint19-traducao-curriculo` (a partir da `main`, aguardando merge).
 > B-069/B-070/B-071/B-072 na branch `feat/sprint19-loop-simplificado` (a partir da `main` após merge das sprints 17 e 18) — ver seção de detalhes abaixo.
+> B-073/B-074 na branch `feat/sprint20-planejamento-dados` (a partir da `main`) — ver seção de detalhes abaixo.
 
 ---
 
@@ -268,6 +271,16 @@ Sem migrations nesta sprint.
 **B-068 — Checkin com técnicas ensinadas:** `/aluno/page.tsx` busca `aula_tecnicas` com `tipo IN ('planejada','ensinada')` (antes só planejada) e separa os dois arrays. `CheckinCard` ganhou chips verdes "✓ Ensinadas nesta aula" — o aluno vê em tempo real o que o professor já registrou, sem esperar abrir o app de novo depois.
 
 **Sem migrations além da RPC de B-064** (`jornada_tecnica_aluno`).
+
+---
+
+## 🔍 Detalhes B-073 / B-074 (branch `feat/sprint20-planejamento-dados`, a partir da `main`, HANDOFF-016)
+
+**B-073 — Insights por turma no Planejamento:** nova RPC `insights_turma(p_turma_id, p_academia_id)` retorna, num JSON só: até 5 técnicas há mais tempo sem aparecer nessa turma (nunca ensinadas entram primeiro), até 3 mais ensinadas nos últimos 30 dias, e até 3 alunos sem presença há 14+ dias (ou nunca presentes). `/planejamento` chama a RPC em paralelo com as queries já existentes de última/próximas aulas (um `Promise.all` por turma) e renderiza três blocos novos no card — "⏱ Há mais tempo sem aparecer", "🔁 Mais ensinadas no mês", "👻 Alunos sumindo" — cada um só aparece se tiver dado (sem estado vazio poluindo o card). **Correção ao handoff:** a função usava `RAISE EXCEPTION 'unauthorized'` pra validação de acesso — trocado por `RETURN NULL`, mesmo padrão de segurança de todas as outras RPCs do projeto (`aluno_mais_ausente`, `frequencia_resumo`, `jornada_tecnica_aluno`, `professor_dashboard_insights`), pra manter consistência em como o frontend trata falha de autorização.
+
+**B-074 — Histórico por data, com presença visível:** a ordenação por `data DESC` já estava correta (confirmado, sem mudança na query) — o problema era só de UX. `<select>` nativo de turma virou uma strip de chips horizontais roláveis (`Todas` + uma por turma), movida pra **antes** das abas Conteúdo/Frequência. Cada aula na aba Conteúdo agora mostra quantos alunos estiveram presentes (`N 🥋`, via `presencas(id)` adicionado à query), e o topo da lista mostra o total de aulas no filtro atual.
+
+Sem migrations em B-074.
 
 ---
 
