@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-10 (v2.11 — B-064 a B-068 concluídos)
+**Atualizado em:** 2026-07-12 (v2.14 — B-069 a B-072 concluídos)
 
 ---
 
@@ -85,10 +85,16 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-066 | Relatorios acessível + lacunas de currículo | Dashboard |
 | B-067 | BackButton inteligente + reforços auto-selecionados | UX |
 | B-068 | Checkin do aluno mostra técnicas ensinadas | Aluno App |
+| B-069 | "Abrir Agora": criar + abrir em uma ação | Aulas |
+| B-070 | Sticky "Finalizar Aula" → redireciona para feedback | UX/Aulas |
+| B-071 | Feedback revisado: "Quais técnicas você ensinou?" + concluirAula() | Aulas |
+| B-072 | Remover ✗ durante aula ao vivo | UX |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
-> B-062/B-063 na branch `feat/sprint17-historinhas` (a partir da `main`); B-064/B-065/B-066/B-067/B-068 na branch `feat/sprint18-jornada-usabilidade` (a partir da `feat/sprint17-historinhas`, ainda não mergeada) — ver seção de detalhes abaixo.
+> B-062/B-063 na branch `feat/sprint17-historinhas` (a partir da `main`, mergeada); B-064/B-065/B-066/B-067/B-068 na branch `feat/sprint18-jornada-usabilidade` (a partir da `feat/sprint17-historinhas`, mergeada) — ver seção de detalhes abaixo.
+> Tradução do currículo (sem cards no backlog) na branch `feat/sprint19-traducao-curriculo` (a partir da `main`, aguardando merge).
+> B-069/B-070/B-071/B-072 na branch `feat/sprint19-loop-simplificado` (a partir da `main` após merge das sprints 17 e 18) — ver seção de detalhes abaixo.
 
 ---
 
@@ -217,6 +223,38 @@ Como Solicitações e Turmas não tinham mais nenhum ponto de entrada na UI depo
 
 ---
 
+## 🔍 Tradução do currículo global pra PT-BR (branch `feat/sprint19-traducao-curriculo`, a partir da `main`)
+
+Sem card no `BACKLOG.md` — pedido direto do usuário ao ver muitos nomes de técnica em inglês no app: "O ESPORTE É BRASILEIRO. PRECISAMOS TRADUZIR TUDO". Usuário mandou um catálogo próprio de referência (posições/técnicas em PT-BR com critério de quando manter o termo original) pra guiar a tradução.
+
+`supabase/migrations/20260712000001_traducao_curriculo_pt.sql` — `UPDATE` de ~90 das 168 técnicas globais (`global = true`, inseridas na `20260703000001_curriculo_global.sql`), escopado por categoria + nome antigo pra não afetar técnicas cadastradas por academias específicas. Categoria "Takedown / Queda" renomeada pra "Queda" (único nome de categoria com palavra em inglês). Critério aplicado: nome próprio mantido (Kimura, Berimbolo, Ezequiel), termo cunhado sem tradução usada no tatame mantido (Dogfight, Matrix), termo com tradução consagrada no BJJ brasileiro traduzido (Butterfly Sweep → Raspagem Borboleta, Heel Hook → Chave de Calcanhar, Toe Hold → Chave de Pé).
+
+Migration idempotente por natureza — como casa por `nome_antigo` exato, rodar de novo depois que já rodou uma vez simplesmente não encontra mais match e não faz nada.
+
+**Pendência:** alguns nomes traduzidos são chamada de julgamento (ex: Kiss of the Dragon → Beijo do Dragão, Coyote Guard → Guarda Coiote, Estima Lock → Chave Estima) — o próprio catálogo do usuário recomenda validar com o Mestre Naja antes de virar taxonomia oficial. Vale uma segunda passada depois do deploy.
+
+---
+
+## 🔍 Detalhes B-069 / B-070 / B-071 / B-072 (branch `feat/sprint19-loop-simplificado`, a partir da `main`, HANDOFF-015)
+
+**B-069 — Abrir Agora:** `abrirAula()` lê `intent` do FormData (`'abrir_agora'` → `status='aberta'` + push imediato pra turma, igual `abrirAulaAgendada()` já fazia; qualquer outro valor → `status='agendada'`, comportamento antigo). `/aulas/nova/form.tsx` ganhou dois botões — "Abrir Agora" (primário, dourado) e "Planejar para depois" (secundário) — cada um seta um `<input type="hidden" name="intent">` via ref antes do submit (mutação direta do DOM, não `useState`, porque o clique e o submit do form acontecem no mesmo tick e o React não teria repintado o input a tempo).
+
+**B-070 — Sticky Finalizar:** botão "Finalizar Aula" saiu do topo da lista de presença (sumia no scroll com turmas grandes) e virou uma barra fixa no rodapé com contagem de presentes: "N presentes · Finalizar Aula". Ao tocar, só navega pra `/aulas/[id]/feedback` — não finaliza mais nesse momento (finalizar virou responsabilidade do feedback, depois de marcar as técnicas).
+
+**B-071 — Feedback "O que você ensinou?":** reescrita completa. Antes: só listava técnicas já marcadas `ensinada` durante a aula, e servia só pra marcar reforço. Agora: lista TODAS as planejadas (independente de já terem sido confirmadas ao vivo ou não), professor toca "Ensinei" pra confirmar cada uma e "Repetir na próxima" pra marcar reforço; as que já estavam `ensinada` (confirmadas ao vivo) chegam pré-marcadas. `concluirAula()` (nova action) faz tudo de uma vez: marca ensinadas, marca reforços, joga as não confirmadas pra `nao_ensinada`, e só então finaliza a aula (`status='finalizada'`). Tela de sucesso oferece "Planejar próxima aula" (pré-seleciona a turma e reforços na próxima criação) ou "Ir para o início".
+
+**B-072 — Sem ✗ ao vivo:** o botão "Não ensinada" some da tela da aula ao vivo — só existiam os 3 botões (✓/🔁/✗) dentro do bloco condicionado a `aulaAberta`, então bastou remover o botão de dentro desse bloco. "Não ensinada" continua existindo como resultado automático (técnicas planejadas não confirmadas até o fim viram `nao_ensinada` no `concluirAula()`), só não é mais uma ação manual durante a aula.
+
+**Correções ao handoff:**
+- O doc listava GAP 3 ("reforços computados mas nunca aplicados") como se ainda fosse um problema — já tinha sido corrigido no HANDOFF-014 (B-067), `handleTurmaChange()` já fazia `setPlanejadas(new Set(refs))`. Nenhuma mudança adicional necessária ali além do que HANDOFF-014 já tinha feito.
+- O doc dizia pra manter `finalizarAula()` porque "`concluirAula()` a usa internamente" — na prática `concluirAula()` reimplementa a lógica de finalizar diretamente (é o próprio código do handoff que faz isso), nunca chama `finalizarAula()`. Com o botão removido de `attendance-list.tsx`, `finalizarAula()` ficou sem nenhum call site — removida por completo em vez de deixar como código morto.
+- Pelo mesmo motivo, `salvarFeedbackAula()` (a action antiga do feedback) também ficou sem nenhum call site depois da reescrita — removida em vez de mantida como wrapper de compatibilidade, já que nada mais a importa.
+- A query nova do feedback tentava `.order('created_at')` em `aula_tecnicas`, mas essa tabela nunca teve essa coluna (schema original só tem `id, aula_id, tecnica_id, tipo`; `reforco` foi adicionado depois, `created_at` nunca foi). Removido o `.order()`.
+
+Sem migrations nesta sprint.
+
+---
+
 ## 🔍 Detalhes B-064 / B-065 / B-066 / B-067 / B-068 (branch `feat/sprint18-jornada-usabilidade`, a partir da `feat/sprint17-historinhas`)
 
 **B-067 — BackButton inteligente + reforços:** `back-button.tsx` virou client component com prop `useBack?: boolean` — quando true, renderiza `<button onClick={() => router.back()}>` em vez do `<Link href>`. Aplicado em `/aulas/[id]` (voltar pra onde o professor veio: dashboard ou histórico). **Correção ao handoff:** a Parte 2 (reforços auto-selecionados ao trocar turma em `/aulas/nova`) já estava implementada — `handleTurmaChange()` em `form.tsx` já chama `setPlanejadas(new Set(refs))` ao trocar a turma. O GAP 3 do audit do handoff estava desatualizado; nenhuma mudança necessária ali.
@@ -252,6 +290,26 @@ Como Solicitações e Turmas não tinham mais nenhum ponto de entrada na UI depo
 3. **Sem suíte de testes.** O CLAUDE.md cita Vitest como parte da stack, mas não há `vitest` no `package.json` nem testes escritos. Fora do escopo desta branch.
 4. **Novas migrations do sprint 15 não aplicadas.** `professor_dashboard_insights.sql` e `turma_auto_abrir.sql` (colunas + RPC `aulas_para_abrir_agora`) precisam ser rodadas manualmente no SQL Editor do Supabase, igual às anteriores.
 5. **`SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` não configurados.** Necessários pro cron de auto-abertura (`/api/cron/abrir-aulas`) funcionar — sem eles o endpoint sempre responde 401/erro. Pegar a service role key no painel do Supabase (Project Settings → API) e gerar um `CRON_SECRET` aleatório; adicionar nos dois lugares: `.env.local` (dev) e env vars do projeto na Vercel (produção — sem isso lá, o cron configurado em `vercel.json` chama o endpoint e recebe 401 a cada 30min).
+6. **Auditoria de complexidade pendente de ação.** Ver seção "🔍 Auditoria — complexidade do fluxo do professor" abaixo. Nenhuma mudança de código feita ainda a partir dela — é um levantamento pra decidir prioridade com o usuário.
+
+---
+
+## 🔍 Auditoria — complexidade do fluxo do professor (2026-07-12, pedido direto do usuário)
+
+Pedido: "o app pro professor tá mais complexo que o necessário" + verificar se existe alguma feature de "separar o treino em graduados e não graduados". Leitura de código (não só nomes de arquivo) em `/turmas`, `/planejamento`, `/aulas`, `/tecnicas`, `/relatorios`, `/historinhas`, `/alunos`, bottom nav e dashboard.
+
+**"Separar treino em graduados e não graduados": não existe.** Nem por turma, nem dentro de uma aula ao vivo, nem como dois tracks de currículo. A lista de chamada (`attendance-list.tsx`) é flat, ordenada por nome, com a barra de cor da faixa só decorativa (sem agrupar/filtrar). O picker de técnicas ao vivo (`tecnicas-aula.tsx`) não tem noção de faixa nenhuma. Blocos existentes que uma feature futura poderia reaproveitar: `alunos.faixa`/`grau` (já estruturado em toda a base), `tecnicas.faixas` (array por técnica, mas só é de fato *usado como filtro* no portal do aluno — `aluno/page.tsx` — e como texto em `/semana`; nas 3 telas onde o professor lista/escolhe técnicas esse dado é coletado e ignorado), `GraduacaoForm` (troca manual de faixa/grau, zero lógica de elegibilidade) e "Candidatos a graduação" em `/relatorios?aba=alunos` (o mais próximo que existe — calcula `presenças ≥ threshold da faixa` e lista quem já bateria o número esperado, mas é só informativo, não integra com nada).
+
+**Achados de complexidade/redundância (nenhum é bug — tudo funciona, mas tem sobreposição):**
+- **4 padrões de navegação diferentes** pra telas do mesmo nível hierárquico: bottom nav (4 itens), `SectionTabs` dentro da própria página (Turmas dentro de Planejamento, Solicitações dentro de Alunos), lista "Mais" em `/perfil` (Professores/Relatórios/Técnicas/Histórinhas), e cards de atalho soltos no dashboard (Relatórios, Avisos) — `/semana` só é alcançável clicando no mini-grid, não está em nenhum menu. Provável causa real da sensação "complexo demais", mais do que qualquer tela individual estar quebrada.
+- **Frequência duplicada:** existe tanto em `/aulas?aba=frequencia` quanto em `/relatorios?aba=frequencia`, respondendo praticamente a mesma pergunta com escopo levemente diferente.
+- **"Última aula desta turma" duplicada:** aparece em `/aulas/[id]` (quando a aula está agendada) E em `/planejamento` — mesmo dado, duas superfícies.
+- **Terminologia inconsistente:** "Tema da aula" na UI é literalmente a mesma entidade que `categorias_tecnicas` (usada como "categoria" em `/tecnicas`) — o próprio código comenta isso (`aulas/nova/form.tsx`), mas o usuário final vê dois nomes pra mesma coisa dependendo da tela.
+- **`tecnicas.faixas` é dado morto no lado do professor:** coletado no cadastro de técnica (`/tecnicas/nova`), mas não filtra nem aparece em `/tecnicas`, no picker de `/aulas/nova`, nem no picker ao vivo de `/aulas/[id]` — só é realmente consumido no portal do aluno.
+- **`/turmas/[id]`** empilha 4 blocos (editar, matricular, gerar aulas recorrentes, histórico) sem nenhuma separação visual — tudo com o mesmo peso na mesma página longa.
+- **Dashboard** tem 7 seções distintas na primeira tela (Hoje, Insights, Semana, Stats, link Relatórios, link Avisos, feed Últimas aulas) — nenhuma quebrada, mas é bastante scroll pra abertura diária do app.
+
+Nenhuma dessas coisas foi alterada nesta sessão — é levantamento pra priorizar com o usuário antes de mexer.
 
 ---
 

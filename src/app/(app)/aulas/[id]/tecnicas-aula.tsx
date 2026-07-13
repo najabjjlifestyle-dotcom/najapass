@@ -112,15 +112,6 @@ export default function TecnicasAula({
                         style={{ background: 'rgba(251,191,36,0.15)', color: '#FBBF24', border: '1px solid rgba(251,191,36,0.3)' }}>
                         🔁
                       </button>
-                      {/* ✗ Não ensinada */}
-                      <button
-                        onClick={() => handleConfirmar(t.id, 'nao_ensinada', false)}
-                        disabled={isPending}
-                        title="Não ensinada"
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30 transition-colors hover:opacity-90"
-                        style={{ background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-                        ✗
-                      </button>
                     </div>
                   )}
                 </div>
