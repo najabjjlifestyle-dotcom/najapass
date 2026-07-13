@@ -25,10 +25,11 @@ export async function abrirAula(formData: FormData) {
 
   const planejadas = formData.getAll('planejadas[]') as string[]
 
-  // Toda aula nasce agendada — o professor abre explicitamente quando
-  // for começar, mesmo se for hoje. Isso garante uma fase de planejamento
-  // real em vez de pular direto pro modo "ao vivo".
-  const status = 'agendada'
+  // Por padrão a aula nasce agendada (fase de planejamento). Quando o
+  // professor toca "Abrir Agora" no form, intent='abrir_agora' e a aula
+  // já nasce 'aberta' — sem passar pela tela de detalhe pra abrir depois.
+  const intent = formData.get('intent') as string | null
+  const status: 'agendada' | 'aberta' = intent === 'abrir_agora' ? 'aberta' : 'agendada'
 
   const { data: aula, error } = await supabase
     .from('aulas')
@@ -88,8 +89,20 @@ export async function abrirAula(formData: FormData) {
     )
   }
 
-  // Toda aula nasce agendada agora — push só dispara quando o professor
-  // abre de fato, em abrirAulaAgendada().
+  // Se o professor abriu na hora (intent=abrir_agora), a aula já nasce
+  // 'aberta' — dispara o push aqui, igual abrirAulaAgendada() faz quando
+  // uma aula agendada é aberta depois.
+  if (status === 'aberta' && turma_id) {
+    const { data: turma } = await supabase.from('turmas').select('nome').eq('id', turma_id).maybeSingle()
+    const { data: subs } = await supabase.rpc('subscricoes_da_turma', { p_turma_id: turma_id })
+    if (subs && subs.length > 0) {
+      await sendPushToAll(subs, {
+        title: '🥋 Aula aberta!',
+        body: `${turma?.nome ?? 'Sua turma'} — confirme sua presença`,
+        url: '/aluno',
+      })
+    }
+  }
 
   revalidatePath('/aulas')
   revalidatePath('/dashboard')
@@ -268,31 +281,5 @@ export async function removerVisitante(presencaId: string, aulaId: string) {
   if (error) return { error: 'Erro ao remover visitante.' }
 
   revalidatePath(`/aulas/${aulaId}`)
-  return { success: true }
-}
-
-export async function finalizarAula(aulaId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Sessão expirada.' }
-
-  // Posições planejadas não confirmadas → marcar como não ensinadas
-  await supabase
-    .from('aula_tecnicas')
-    .update({ tipo: 'nao_ensinada' })
-    .eq('aula_id', aulaId)
-    .eq('tipo', 'planejada')
-
-  const horaFim = new Date().toTimeString().slice(0, 8)
-
-  const { error } = await supabase
-    .from('aulas')
-    .update({ status: 'finalizada', hora_fim: horaFim })
-    .eq('id', aulaId)
-
-  if (error) return { error: 'Erro ao finalizar aula.' }
-
-  revalidatePath(`/aulas/${aulaId}`)
-  revalidatePath('/aulas')
   return { success: true }
 }

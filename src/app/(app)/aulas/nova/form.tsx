@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { abrirAula } from '../actions'
@@ -19,17 +19,23 @@ export default function NovaAulaForm({
   tecnicas,
   reforcosPorTurma,
   historinhas,
+  defaultTurmaId,
 }: {
   turmas: Turma[]
   temas: Tema[]
   tecnicas: TecnicaOpt[]
   reforcosPorTurma: Record<string, string[]>
   historinhas: Historinha[]
+  defaultTurmaId?: string | null
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [submittingIntent, setSubmittingIntent] = useState<'abrir_agora' | 'planejar' | null>(null)
   const [error, setError] = useState('')
-  const [turmaId, setTurmaId] = useState('')
+  const [turmaId, setTurmaId] = useState(
+    defaultTurmaId && turmas.some(t => t.id === defaultTurmaId) ? defaultTurmaId : ''
+  )
+  const intentRef = useRef<HTMLInputElement>(null)
   const [temaId, setTemaId] = useState('')
   const [planejadas, setPlanejadas] = useState<Set<string>>(new Set())
   const [temasList, setTemasList] = useState<Tema[]>(temas)
@@ -43,6 +49,15 @@ export default function NovaAulaForm({
   const hoje = new Date().toISOString().split('T')[0]
   const horaAtual = new Date().toTimeString().slice(0, 5)
   const [dataSelecionada, setDataSelecionada] = useState(hoje)
+
+  // Chegando com ?turma_id= (ex: vindo de "Planejar próxima aula" no
+  // feedback), pré-popula os reforços da turma já pré-selecionada.
+  useEffect(() => {
+    if (!defaultTurmaId) return
+    const refs = reforcosPorTurma[defaultTurmaId] ?? []
+    if (refs.length > 0) setPlanejadas(new Set(refs))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Agrupa TODAS as técnicas por categoria — seleção de posições é
   // desacoplada do "Tema da aula" (que agora é só um label de display).
@@ -395,10 +410,19 @@ export default function NovaAulaForm({
 
           {error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
 
+          <input ref={intentRef} type="hidden" name="intent" defaultValue="planejar" />
+
           <button type="submit" disabled={loading}
+            onClick={() => { intentRef.current?.setAttribute('value', 'abrir_agora'); setSubmittingIntent('abrir_agora') }}
             className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98] mt-2"
             style={{ background: 'var(--brand-gold)', color: '#000' }}>
-            {loading ? 'Salvando...' : 'Salvar Aula'}
+            {loading && submittingIntent === 'abrir_agora' ? 'Abrindo...' : 'Abrir Agora'}
+          </button>
+          <button type="submit" disabled={loading}
+            onClick={() => { intentRef.current?.setAttribute('value', 'planejar'); setSubmittingIntent('planejar') }}
+            className="w-full py-3 rounded-xl text-sm font-bold uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98] mt-2"
+            style={{ border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)', background: 'transparent' }}>
+            {loading && submittingIntent === 'planejar' ? 'Salvando...' : 'Planejar para depois'}
           </button>
         </form>
       </main>

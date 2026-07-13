@@ -18,29 +18,31 @@ export default async function FeedbackPage({ params }: { params: Promise<{ id: s
 
   const { data: aula } = await supabase
     .from('aulas')
-    .select('id, status, data, turmas(nome)')
+    .select('id, status, data, turma_id, turmas(nome)')
     .eq('id', id)
     .single()
 
   if (!aula) redirect('/aulas')
-  if (aula.status !== 'finalizada') redirect(`/aulas/${id}`)
+  if (!['aberta', 'finalizada'].includes(aula.status)) redirect(`/aulas/${id}`)
 
   const { data: tecnicasData } = await supabase
     .from('aula_tecnicas')
-    .select('tecnica_id, reforco, tecnicas(nome)')
+    .select('tecnica_id, tipo, reforco, tecnicas(nome)')
     .eq('aula_id', id)
-    .eq('tipo', 'ensinada')
+    .in('tipo', ['planejada', 'ensinada'])
 
-  type TecRow = { tecnica_id: string; reforco: boolean; tecnicas: { nome: string } | null }
+  type TecRow = { tecnica_id: string; tipo: 'planejada' | 'ensinada'; reforco: boolean; tecnicas: { nome: string } | null }
   const tecnicas = ((tecnicasData ?? []) as unknown as TecRow[])
     .filter(t => t.tecnicas)
-    .map(t => ({ tecnica_id: t.tecnica_id, reforco: t.reforco, nome: t.tecnicas!.nome }))
+    .map(t => ({ tecnica_id: t.tecnica_id, tipo: t.tipo, reforco: t.reforco, nome: t.tecnicas!.nome }))
 
   const turma = aula.turmas as unknown as { nome: string } | null
 
   return (
     <FeedbackForm
       aulaId={id}
+      aulaStatus={aula.status}
+      turmaId={aula.turma_id}
       tecnicas={tecnicas}
       turmaNome={turma?.nome ?? 'Aula avulsa'}
       data={aula.data}

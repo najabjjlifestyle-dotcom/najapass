@@ -2,7 +2,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import NovaAulaForm from './form'
 
-export default async function NovaAulaPage() {
+export default async function NovaAulaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ turma_id?: string }>
+}) {
+  const { turma_id: turmaIdParam } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -92,6 +97,7 @@ export default async function NovaAulaPage() {
       tecnicas={tecnicas}
       reforcosPorTurma={reforcosPorTurma}
       historinhas={historinhas}
+      defaultTurmaId={turmaIdParam ?? null}
     />
   )
 }
