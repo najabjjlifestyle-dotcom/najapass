@@ -851,6 +851,24 @@ Query de `/aulas` adiciona `presencas(id)` para mostrar contagem de presentes em
 
 ---
 
+### EP-23 · UX Mobile: eliminar selects nos fluxos críticos
+
+#### B-075 · Nova Aula: turma como cards + tema como chips
+**Prioridade:** P0 | **Estimativa:** M  
+Substituir `<select>` de turma por cards tappable (gold border quando selecionado). Substituir `<select>` de tema por chips horizontais com scroll. Substituir `<select>` de aluno avulso na lista de presença por lista de botões. Zero seletores nativos nos fluxos que o professor usa todo treino.
+
+**Referência:** `HANDOFF-017-banho-de-loja-selects-turmas.md` (seção B-075).
+
+---
+
+#### B-076 · Turmas lista: contagem de alunos ativos
+**Prioridade:** P1 | **Estimativa:** XS  
+Query de `/turmas` adiciona `alunos_turmas(id)` com filtro `.eq('alunos_turmas.ativo', true)`. Card de cada turma exibe "X alunos" no canto direito.
+
+**Referência:** `HANDOFF-017-banho-de-loja-selects-turmas.md` (seção B-076).
+
+---
+
 ## Ordem de Implementação Sugerida
 
 ```
