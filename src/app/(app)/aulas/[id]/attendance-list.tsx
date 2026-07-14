@@ -49,6 +49,11 @@ export default function AttendanceList({
   const [showAvulsoForm, setShowAvulsoForm] = useState(false)
   const [avulsoId, setAvulsoId] = useState('')
   const [addingAvulso, setAddingAvulso] = useState(false)
+  const [buscaAvulso, setBuscaAvulso] = useState('')
+
+  const avulsosFiltrados = buscaAvulso.trim()
+    ? outrosAlunos.filter(a => a.nome.toLowerCase().includes(buscaAvulso.toLowerCase()))
+    : outrosAlunos
 
   const isFinished = status === 'finalizada'
   const isScheduled = status === 'agendada'
@@ -166,22 +171,47 @@ export default function AttendanceList({
       )}
 
       {showAvulsoForm && (
-        <div className="flex gap-2 mb-4">
-          <select
-            value={avulsoId}
-            onChange={e => setAvulsoId(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-xl text-sm focus:outline-none"
-            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
-            <option value="" className="bg-black">Selecione o aluno</option>
-            {outrosAlunos.map(a => (
-              <option key={a.id} value={a.id} className="bg-black">{a.nome}</option>
-            ))}
-          </select>
-          <button onClick={handleAddAvulso} disabled={addingAvulso || !avulsoId}
-            className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
-            style={{ background: 'var(--brand-gold)', color: '#000' }}>
-            {addingAvulso ? '...' : 'Add'}
-          </button>
+        <div className="mb-4">
+          {outrosAlunos.length > 6 && (
+            <input
+              type="text"
+              value={buscaAvulso}
+              onChange={e => setBuscaAvulso(e.target.value)}
+              placeholder="Buscar aluno..."
+              autoFocus
+              className="w-full px-3 py-2 rounded-xl text-sm mb-2 placeholder-white/30 focus:outline-none"
+              style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}
+            />
+          )}
+          <div className="space-y-1.5 overflow-y-auto" style={{ maxHeight: '15rem' }}>
+            {avulsosFiltrados.length === 0 ? (
+              <p className="text-xs py-2 text-center" style={{ color: 'var(--brand-texto-muted)' }}>
+                {outrosAlunos.length === 0 ? 'Todos os alunos da academia já estão nesta turma' : 'Nenhum aluno encontrado'}
+              </p>
+            ) : avulsosFiltrados.map(a => {
+              const sel = avulsoId === a.id
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setAvulsoId(prev => prev === a.id ? '' : a.id)}
+                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all active:scale-[0.98]"
+                  style={sel
+                    ? { background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)', color: 'var(--brand-gold)', fontWeight: 700 }
+                    : { background: 'var(--brand-surf)', border: '1px solid var(--brand-border)', color: 'var(--brand-texto)' }
+                  }>
+                  {a.nome}
+                </button>
+              )
+            })}
+          </div>
+          {avulsoId && (
+            <button onClick={handleAddAvulso} disabled={addingAvulso}
+              className="w-full mt-2 py-2.5 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
+              style={{ background: 'var(--brand-gold)', color: '#000' }}>
+              {addingAvulso ? '...' : 'Adicionar à lista'}
+            </button>
+          )}
         </div>
       )}
 

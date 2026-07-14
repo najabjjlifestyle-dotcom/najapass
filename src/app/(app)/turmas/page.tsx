@@ -22,11 +22,22 @@ export default async function TurmasPage() {
 
   if (!professor?.academia_id) redirect('/onboarding')
 
-  const { data: turmas } = await supabase
+  const { data: turmasData } = await supabase
     .from('turmas')
-    .select('id, nome, dias_semana, horario, ativa')
+    .select('id, nome, dias_semana, horario, ativa, alunos_turmas(id)')
     .eq('academia_id', professor.academia_id)
+    .eq('alunos_turmas.ativo', true)
     .order('nome')
+
+  type TurmaRow = {
+    id: string
+    nome: string
+    dias_semana: string[] | null
+    horario: string | null
+    ativa: boolean
+    alunos_turmas: { id: string }[]
+  }
+  const turmas = (turmasData ?? []) as unknown as TurmaRow[]
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
@@ -66,9 +77,14 @@ export default async function TurmasPage() {
             <Link key={turma.id} href={`/turmas/${turma.id}`}
               className="block px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
               style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-              <p className="font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-                {turma.nome}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
+                  {turma.nome}
+                </p>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: 'var(--brand-texto-muted)' }}>
+                  {turma.alunos_turmas?.length ?? 0} aluno{(turma.alunos_turmas?.length ?? 0) !== 1 ? 's' : ''}
+                </span>
+              </div>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {(turma.dias_semana as string[] | null)?.map((d) => (
                   <span key={d} className="text-xs px-2 py-0.5 rounded" style={{ color: 'var(--brand-texto-sec)', background: 'var(--brand-surf-2)' }}>

@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-13 (v2.18 — fix: planejar posições em aula agendada)
+**Atualizado em:** 2026-07-13 (v2.19 — B-075/B-076: selects → pickers + turmas com contagem)
 
 ---
 
@@ -91,6 +91,15 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-072 | Remover ✗ durante aula ao vivo | UX |
 | B-073 | Insights por turma no Planejamento (RPC insights_turma + UI) | Planejamento |
 | B-074 | Histórico: presentes por aula + chips de turma | Histórico |
+
+---
+
+## 📋 Backlog — EP-23: UX Mobile (Sprint 21)
+
+| ID | Card | Épico |
+|---|---|---|
+| B-075 | Nova Aula: turma como cards + tema como chips (zero selects nativos) | UX |
+| B-076 | Turmas lista: contagem de alunos ativos por turma | UX |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
@@ -289,6 +298,19 @@ Sem migrations em B-074.
 Bug reportado pelo usuário: dentro de `/planejamento`, tocar "Planejar" numa próxima aula levava pra `/aulas/[id]` (status `agendada`), mas ali não havia como adicionar/remover posições — o componente `TecnicasAula` só habilitava o campo "Adicionar posição" e os controles de edição quando a aula estava `aberta` (ao vivo). Ou seja, aulas geradas por recorrência (que nascem sem técnicas) ou criadas via "Planejar para depois" ficavam impossíveis de planejar depois da criação — a única janela pra montar o plano era no `/aulas/nova`.
 
 Correção: `TecnicasAula` ganhou prop `aulaAgendada`. Introduzido `editavel = aulaAberta || aulaAgendada` — nas duas fases a lista de posições é editável, mas com semânticas diferentes: no planejamento (agendada) o professor adiciona/remove **planejadas**; ao vivo (aberta) confirma/adiciona **ensinadas**. `adicionarTecnicaAula` passou a aceitar um 3º parâmetro `tipo` (default `'ensinada'` pra não quebrar a chamada da aula ao vivo), gravando `'planejada'` quando chamado do planejamento. Planejadas ganham botão de remover (×) na fase agendada; o rótulo do campo vira "Planejar posição" em vez de "Adicionar posição". Zero mudança de schema — só reaproveita o fluxo de busca de técnica que já existia pra aula ao vivo.
+
+---
+
+## 🔍 Detalhes B-075 / B-076 (branch `feat/sprint21-banho-loja-selects`, a partir da `main`, HANDOFF-017)
+
+**B-075 — Selects nativos → pickers no fluxo que o professor usa todo treino** (`/aulas/nova` + lista de presença). No iOS o `<select>` abre uma roda que cobre meia tela — trocado por controles inline:
+- **Turma** (`aulas/nova/form.tsx`): virou lista de cards tappáveis full-width (gold-dim + ✓ quando ativo), com um `<input type="hidden" name="turma_id" value={turmaId}>` carregando o valor pro FormData (os cards são `type=button`). `handleTurmaChange` inalterado, então os reforços da última aula continuam pré-selecionando ao trocar de turma.
+- **Tema** (`aulas/nova/form.tsx`): virou strip de chips horizontais roláveis (`Geral` + um por tema), também com `<input type="hidden" name="tema_id">`. Preserva o filtro do B-062 (selecionar tema ainda foca o picker de posições naquela categoria e o "Ver todas"/`Geral` limpa). Botão "+ Novo tema" e criação inline mantidos.
+- **Aluno avulso** (`aulas/[id]/attendance-list.tsx`): o `<select>` de "adicionar aluno de outra turma" virou lista de botões selecionáveis. **Melhoria além do handoff:** como `outrosAlunos` pode ser a academia inteira menos a turma, adicionei um campo de busca (só aparece com >6 alunos) + container rolável (`max-height`), mesmo padrão da busca de técnica — evita uma lista gigante de botões. Botão "Adicionar à lista" só aparece depois de selecionar alguém; empty state mantém a mensagem "Todos os alunos da academia já estão nesta turma".
+
+**B-076 — Turmas com contagem de alunos** (`turmas/page.tsx`): query ganhou `alunos_turmas(id)` com `.eq('alunos_turmas.ativo', true)` (filtra o array aninhado; turmas sem alunos continuam aparecendo com array vazio, conforme comportamento do PostgREST). Cada card mostra "X aluno(s)" no canto direito do nome. Sem migration.
+
+**Sem migrations nesta sprint.** Nota: os `<select>` de fluxos secundários (cadastro/edição de aluno, editar turma, avisos) ficaram de fora de propósito — o handoff foca só no fluxo diário do professor.
 
 ---
 

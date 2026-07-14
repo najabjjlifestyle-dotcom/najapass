@@ -166,17 +166,40 @@ export default function NovaAulaForm({
           {turmas.length > 0 && (
             <div>
               <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Turma</label>
-              <select name="turma_id" value={turmaId}
-                onChange={e => handleTurmaChange(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
-                style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
-                <option value="" className="bg-black">Sem turma específica</option>
-                {turmas.map(t => (
-                  <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
-                ))}
-              </select>
+              {/* hidden input carrega o valor pro FormData (cards são type=button) */}
+              <input type="hidden" name="turma_id" value={turmaId} />
+              <div className="space-y-2">
+                <button type="button" onClick={() => handleTurmaChange('')}
+                  className="w-full text-left px-4 py-3 rounded-xl transition-all active:scale-[0.98]"
+                  style={!turmaId
+                    ? { background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }
+                    : { background: 'transparent', border: '1px solid var(--brand-border)' }
+                  }>
+                  <p className="text-sm font-bold" style={{ color: !turmaId ? 'var(--brand-gold)' : 'var(--brand-texto-muted)' }}>
+                    Sem turma específica
+                  </p>
+                </button>
+                {turmas.map(t => {
+                  const ativa = turmaId === t.id
+                  return (
+                    <button key={t.id} type="button" onClick={() => handleTurmaChange(t.id)}
+                      className="w-full text-left px-4 py-3 rounded-xl transition-all active:scale-[0.98]"
+                      style={ativa
+                        ? { background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }
+                        : { background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }
+                      }>
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-sm" style={{ color: ativa ? 'var(--brand-gold)' : 'var(--brand-texto)' }}>
+                          {t.nome}
+                        </p>
+                        {ativa && <span className="text-[10px] font-bold" style={{ color: 'var(--brand-gold)' }}>✓</span>}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
               {reforcosComNome.length > 0 && (
-                <p className="text-xs mt-1.5" style={{ color: '#FBBF24' }}>
+                <p className="text-xs mt-2" style={{ color: '#FBBF24' }}>
                   🔁 {reforcosComNome.length} posição{reforcosComNome.length > 1 ? 'ões' : ''} de reforço da última aula pré-selecionada{reforcosComNome.length > 1 ? 's' : ''}
                 </p>
               )}
@@ -205,15 +228,31 @@ export default function NovaAulaForm({
                 + Novo tema
               </button>
             </div>
-            <select name="tema_id" value={temaId}
-              onChange={e => setTemaId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-transparent text-base focus:outline-none transition-colors"
-              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}>
-              <option value="" className="bg-black">Sem tema específico</option>
-              {temasList.map(t => (
-                <option key={t.id} value={t.id} className="bg-black">{t.nome}</option>
-              ))}
-            </select>
+            {/* hidden input carrega o valor pro FormData (chips são type=button) */}
+            <input type="hidden" name="tema_id" value={temaId} />
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <button type="button" onClick={() => setTemaId('')}
+                className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.96]"
+                style={!temaId
+                  ? { background: 'var(--brand-gold)', color: '#000' }
+                  : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
+                }>
+                Geral
+              </button>
+              {temasList.map(t => {
+                const ativo = temaId === t.id
+                return (
+                  <button key={t.id} type="button" onClick={() => setTemaId(t.id)}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.96]"
+                    style={ativo
+                      ? { background: 'var(--brand-gold)', color: '#000' }
+                      : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
+                    }>
+                    {t.nome}
+                  </button>
+                )
+              })}
+            </div>
 
             {showNovoTema && (
               <div className="flex gap-2 mt-2">
