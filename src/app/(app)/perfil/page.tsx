@@ -6,9 +6,11 @@ import BackButton from '@/components/back-button'
 import AvatarUpload from '@/components/avatar-upload'
 import LogoutButton from '@/components/logout-button'
 import { updateFotoProfessor } from './actions'
-import { Users2, BarChart3, Dumbbell, ListOrdered, ChevronRight } from 'lucide-react'
+import { Users2, BarChart3, Dumbbell, ListOrdered, Megaphone, CalendarDays, ChevronRight } from 'lucide-react'
 
 const MAIS_ITEMS = [
+  { href: '/avisos', Icon: Megaphone, label: 'Avisos', sub: 'Comunicados para os alunos' },
+  { href: '/semana', Icon: CalendarDays, label: 'Semana', sub: 'Grade dos próximos 7 dias' },
   { href: '/professores', Icon: Users2, label: 'Professores', sub: 'Gerenciar equipe da academia' },
   { href: '/relatorios', Icon: BarChart3, label: 'Relatórios', sub: 'Frequência e ranking de alunos' },
   { href: '/tecnicas', Icon: Dumbbell, label: 'Técnicas', sub: 'Biblioteca de posições' },

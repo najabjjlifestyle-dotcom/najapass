@@ -13,6 +13,11 @@ type AulaTecnicaRow = { tipo: string; reforco: boolean; tecnicas: { nome: string
 type UltimaAula = { id: string; data: string; aula_tecnicas: AulaTecnicaRow[] | null }
 type ProximaAula = { id: string; data: string; hora_inicio: string | null; aula_tecnicas: { tipo: string }[] | null }
 type Turma = { id: string; nome: string; dias_semana: string[] | null; horario: string | null }
+type InsightsTurma = {
+  tecnicas_ausentes: { nome: string; ultima_data: string | null; dias_ausente: number | null }[]
+  tecnicas_recentes: { nome: string; vezes: number }[]
+  alunos_ausentes: { nome: string; ultima_presenca: string | null; dias_ausente: number | null }[]
+}
 
 const DIAS_ABBR: Record<string, string> = {
   domingo: 'Dom', segunda: 'Seg', terca: 'Ter', quarta: 'Qua',
@@ -73,7 +78,7 @@ export default async function PlanejamentoPage() {
 
   const dadosPorTurma = await Promise.all(
     turmas.map(async (turma) => {
-      const [ultimaAulaRes, proximasRes] = await Promise.all([
+      const [ultimaAulaRes, proximasRes, insightsRes] = await Promise.all([
         supabase
           .from('aulas')
           .select('id, data, aula_tecnicas(tipo, reforco, tecnicas(nome))')
@@ -90,12 +95,17 @@ export default async function PlanejamentoPage() {
           .gte('data', hoje)
           .order('data')
           .limit(3),
+        supabase.rpc('insights_turma', {
+          p_turma_id: turma.id,
+          p_academia_id: professor.academia_id,
+        }),
       ])
 
       return {
         turma,
         ultimaAula: ultimaAulaRes.data as unknown as UltimaAula | null,
         proximasAulas: (proximasRes.data ?? []) as unknown as ProximaAula[],
+        insights: (insightsRes.data ?? null) as InsightsTurma | null,
       }
     })
   )
@@ -107,7 +117,7 @@ export default async function PlanejamentoPage() {
           Planejamento
         </h1>
         <p className="text-xs mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
-          O que cada turma está precisando
+          Lacunas, repetições e alunos para cada turma
         </p>
       </header>
 
@@ -117,7 +127,7 @@ export default async function PlanejamentoPage() {
       ]} />
 
       <main className="px-5 pt-5 pb-24 space-y-4">
-        {dadosPorTurma.map(({ turma, ultimaAula, proximasAulas }) => {
+        {dadosPorTurma.map(({ turma, ultimaAula, proximasAulas, insights }) => {
           const tecnicas = ultimaAula?.aula_tecnicas ?? []
           const ensinadas = tecnicas.filter(t => t.tipo === 'ensinada' && t.tecnicas)
           const reforcos = ensinadas.filter(t => t.reforco)
@@ -174,6 +184,73 @@ export default async function PlanejamentoPage() {
                   <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
                     Nenhuma aula registrada ainda para esta turma
                   </p>
+                </div>
+              )}
+
+              {/* Técnicas há mais tempo sem aparecer */}
+              {insights && insights.tecnicas_ausentes.length > 0 && (
+                <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+                  <p className="text-[9px] uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                    style={{ color: 'var(--brand-texto-muted)' }}>
+                    <span>⏱</span> Há mais tempo sem aparecer
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {insights.tecnicas_ausentes.map((t, i) => (
+                      <span key={i}
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-bold"
+                        style={{
+                          background: 'rgba(239,68,68,0.08)',
+                          border: '1px solid rgba(239,68,68,0.2)',
+                          color: '#F87171',
+                        }}>
+                        {t.nome}
+                        {t.dias_ausente !== null ? ` · ${t.dias_ausente}d` : ' · nunca'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mais ensinadas no último mês */}
+              {insights && insights.tecnicas_recentes.length > 0 && (
+                <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+                  <p className="text-[9px] uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+                    🔁 Mais ensinadas no mês
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {insights.tecnicas_recentes.map((t, i) => (
+                      <span key={i}
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-bold"
+                        style={{
+                          background: 'var(--brand-gold-dim)',
+                          border: '1px solid var(--brand-gold-border)',
+                          color: 'var(--brand-gold)',
+                        }}>
+                        {t.nome} ×{t.vezes}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Alunos sumindo */}
+              {insights && insights.alunos_ausentes.length > 0 && (
+                <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+                  <p className="text-[9px] uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+                    👻 Alunos sumindo
+                  </p>
+                  <div className="space-y-1.5">
+                    {insights.alunos_ausentes.map((a, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <p className="text-xs font-bold" style={{ color: 'var(--brand-texto)' }}>
+                          {a.nome}
+                        </p>
+                        <p className="text-[10px]" style={{ color: '#F87171' }}>
+                          {a.dias_ausente !== null ? `${a.dias_ausente} dias sem aparecer` : 'nunca apareceu'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

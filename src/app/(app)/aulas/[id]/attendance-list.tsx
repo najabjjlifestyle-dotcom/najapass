@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { togglePresenca, finalizarAula, adicionarVisitante, removerVisitante } from '../actions'
+import { togglePresenca, adicionarVisitante, removerVisitante } from '../actions'
 import Avatar from '@/components/avatar'
 
 type Aluno = { id: string; nome: string; faixa: string; grau: number; foto_url?: string | null }
@@ -40,7 +40,6 @@ export default function AttendanceList({
   const router = useRouter()
   const [presentes, setPresentes] = useState<Set<string>>(new Set(presencasIniciais))
   const [, startTransition] = useTransition()
-  const [finalizando, setFinalizando] = useState(false)
 
   const [visitantes, setVisitantes] = useState<Visitante[]>(visitantesIniciais)
   const [showVisitanteForm, setShowVisitanteForm] = useState(false)
@@ -110,29 +109,12 @@ export default function AttendanceList({
     })
   }
 
-  async function handleFinalizar() {
-    setFinalizando(true)
-    const result = await finalizarAula(aulaId)
-    if (result?.error) {
-      setFinalizando(false)
-    } else {
-      router.push(`/aulas/${aulaId}/feedback`)
-    }
-  }
-
   return (
-    <div className="px-6 pt-6 pb-10">
+    <div className="px-6 pt-6" style={{ paddingBottom: isLocked ? '2.5rem' : '7rem' }}>
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
           {presentes.size} presente{presentes.size !== 1 ? 's' : ''} de {alunos.length}
         </p>
-        {!isLocked && (
-          <button onClick={handleFinalizar} disabled={finalizando}
-            className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
-            style={{ border: '1px solid var(--brand-gold-border)', color: 'var(--brand-gold)', background: 'transparent' }}>
-            {finalizando ? 'Finalizando...' : 'Finalizar Aula'}
-          </button>
-        )}
         {isFinished && (
           <Link href={`/aulas/${aulaId}/feedback`}
             className="text-xs uppercase tracking-widest px-2 py-1 rounded active:scale-[0.98] transition-transform"
@@ -262,6 +244,21 @@ export default function AttendanceList({
           })
         )}
       </div>
+
+      {!isLocked && (
+        <div
+          className="fixed bottom-0 left-0 right-0 px-5 pt-4 pb-safe z-50"
+          style={{ background: 'var(--brand-fundo)', borderTop: '1px solid var(--brand-border)' }}
+        >
+          <button
+            onClick={() => router.push(`/aulas/${aulaId}/feedback`)}
+            className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-widest transition-transform active:scale-[0.98]"
+            style={{ background: 'var(--brand-gold)', color: '#000' }}
+          >
+            {presentes.size} {presentes.size === 1 ? 'presente' : 'presentes'} · Finalizar Aula
+          </button>
+        </div>
+      )}
     </div>
   )
 }

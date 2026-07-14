@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-10 (v1.9)  
+**Última atualização:** 2026-07-12 (v2.0)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v2.0: Adicionado EP-21 (Loop Simplificado do Professor) com cards B-069 a B-072. Abrir Agora, sticky Finalizar, feedback revisado com "Quais técnicas ensinou?", remove ✗ ao vivo.
 - v1.9: Adicionados EP-20 (Banho de Usabilidade + Jornada do Aluno) com cards B-064 a B-068. Jornada técnica, turma tech history, relatorios acessível, backbutton inteligente, checkin com ensinadas.
 - v1.8: Adicionados EP-19 (Planejamento Avançado) com cards B-062 e B-063. Filtro de técnicas por tema e Histórinhas (sequências).
 - v1.7: Adicionado EP-18 (Nav Professor) com cards B-059 a B-061. Nav Planejamento, página /planejamento e redesign de /historico.
@@ -41,6 +42,7 @@
 | EP-18 | Nav Professor (Planejamento + /planejamento + /historico redesign) | 🔴 P0 |
 | EP-19 | Planejamento Avançado (filtro por tema + histórinhas) | 🟡 P1 |
 | EP-20 | Banho de Usabilidade + Jornada do Aluno | 🔴 P0 |
+| EP-21 | Loop Simplificado do Professor | 🔴 P0 |
 
 ---
 
@@ -794,6 +796,58 @@ Dashboard recebe card link "Insights da academia" (logo após stats strip). `/re
 `CheckinCard` na home do aluno passa a mostrar técnicas já registradas como "ensinadas" pelo professor (chips verdes). Aluno acompanha em tempo real o que está sendo ensinado na aula.
 
 **Referência:** `HANDOFF-014-banho-de-usabilidade.md` (seção B-068).
+
+---
+
+### EP-21 · Loop Simplificado do Professor
+
+#### B-069 · "Abrir Agora" — criar e abrir em uma ação
+**Prioridade:** P0 | **Estimativa:** S  
+Formulário de nova aula ganha dois botões: "ABRIR AGORA" (cria com `status='aberta'` + dispara push) e "Planejar para depois" (comportamento atual). A action `abrirAula()` passa a ler um campo `intent` no FormData para decidir o status. Ao voltar de um feedback, `/aulas/nova?turma_id=X` pré-seleciona a turma e reforços.
+
+**Referência:** `HANDOFF-015-loop-simplificado-professor.md` (seção B-069).
+
+---
+
+#### B-070 · Sticky "Finalizar Aula" → redireciona para feedback
+**Prioridade:** P0 | **Estimativa:** S  
+Em `attendance-list.tsx`, remove botão "Finalizar Aula" do cabeçalho e adiciona barra fixa no rodapé (`position: fixed; bottom: 0; z-index: 50`) mostrando "N presentes · Finalizar Aula". O botão navega para `/aulas/[id]/feedback` ao invés de chamar `finalizarAula()` diretamente.
+
+**Referência:** `HANDOFF-015-loop-simplificado-professor.md` (seção B-070).
+
+---
+
+#### B-071 · Feedback revisado: "Quais técnicas você ensinou?"
+**Prioridade:** P0 | **Estimativa:** M  
+Feedback page aceita `status='aberta'` (não exige aula finalizada). Mostra TODAS as técnicas planejadas (+ ensinadas ao vivo). Nova UX: "Ensinei?" toggle por técnica; "Repetir na próxima?" para as ensinadas. Botão "Concluir aula" chama nova action `concluirAula(aulaId, ensinadas[], reforcos[])` que marca técnicas + finaliza a aula. Após concluir: tela de sucesso com "Planejar próxima aula" (→ `/aulas/nova?turma_id=X`) e "Ir para o início".
+
+**Referência:** `HANDOFF-015-loop-simplificado-professor.md` (seção B-071).
+
+---
+
+#### B-072 · Remover ✗ "Não ensinada" durante aula ao vivo
+**Prioridade:** P1 | **Estimativa:** XS  
+Em `tecnicas-aula.tsx`, esconde o botão ✗ quando `aula.status === 'aberta'`. Durante a aula, professor só vê ✓ e 🔁. O estado "não ensinada" é definido automaticamente no feedback (técnicas planejadas não confirmadas → `nao_ensinada`).
+
+**Referência:** `HANDOFF-015-loop-simplificado-professor.md` (seção B-072).
+
+---
+
+### EP-22 · Planejamento Orientado por Dados
+
+#### B-073 · Insights por turma no Planejamento
+**Prioridade:** P0 | **Estimativa:** M  
+Nova RPC `insights_turma(p_turma_id, p_academia_id)` retorna: top 5 técnicas ausentes há mais tempo (com dias de ausência), top 3 mais ensinadas no último mês, e top 3 alunos ausentes há +14 dias. Cada turma card em `/planejamento` ganha três novas seções visuais com esses dados. Seções não aparecem quando não há dados.
+
+**Referência:** `HANDOFF-016-planejamento-dados-historico.md` (seção B-073).
+
+---
+
+#### B-074 · Histórico: presentes por aula + chips de turma
+**Prioridade:** P0 | **Estimativa:** S  
+Query de `/aulas` adiciona `presencas(id)` para mostrar contagem de presentes em cada card ("12 🥋"). `<select>` nativo de turma substituído por strip horizontal de chips (Links), sem submit. Stat header mostra "X aulas registradas". Ordenação por `data DESC` já está correta no código — confirmar visualmente.
+
+**Referência:** `HANDOFF-016-planejamento-dados-historico.md` (seção B-074).
 
 ---
 
