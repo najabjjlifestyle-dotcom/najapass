@@ -38,6 +38,15 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
+/* Resposta de toque: touch-action elimina o atraso que o navegador
+   reserva pra detectar duplo-toque/zoom em cima de controles, e o
+   tap-highlight transparente tira o flash cinza do iOS/Android por
+   cima dos nossos próprios estados de active (scale/opacity). */
+button, a, [role='button'], input, select, textarea, label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* iOS safe areas */
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-bottom {
