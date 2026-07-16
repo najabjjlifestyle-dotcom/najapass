@@ -11,10 +11,37 @@ const DIAS_ABBR: Record<string, string> = {
   quinta: 'Qui', sexta: 'Sex', sabado: 'Sáb',
 }
 
-type AlunoRow = { id: string; nome: string; faixa: string }
+const FAIXA_COR: Record<string, string> = {
+  branca: 'bg-white', cinza: 'bg-gray-400', amarela: 'bg-yellow-400',
+  laranja: 'bg-orange-400', verde: 'bg-green-400', azul: 'bg-blue-400',
+  roxa: 'bg-purple-400', marrom: 'bg-amber-700', preta: 'bg-gray-800 border border-white/20',
+}
 
-export default async function TurmaPage({ params }: { params: Promise<{ id: string }> }) {
+type AlunoRow = { id: string; nome: string; faixa: string }
+type InsightsTurma = {
+  tecnicas_ausentes: { nome: string; ultima_data: string | null; dias_ausente: number | null }[]
+  tecnicas_recentes: { nome: string; vezes: number }[]
+  alunos_ausentes: { nome: string; ultima_presenca: string | null; dias_ausente: number | null }[]
+}
+type AulaHist = {
+  id: string; data: string; status: string; hora_inicio: string | null
+  presencas: { id: string }[] | null
+  aula_tecnicas: { tipo: string }[] | null
+}
+
+export default async function TurmaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ aba?: string }>
+}) {
   const { id } = await params
+  const { aba: abaParam } = await searchParams
+  const aba = ['dados', 'alunos', 'config'].includes(abaParam ?? '')
+    ? (abaParam as 'dados' | 'alunos' | 'config')
+    : 'dados'
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -35,7 +62,19 @@ export default async function TurmaPage({ params }: { params: Promise<{ id: stri
 
   if (!turma) redirect('/turmas')
 
-  const [matriculadosResult, todosAlunosResult, aulasResult] = await Promise.all([
+  const primeiroDiaMes = new Date(
+    new Date().getFullYear(), new Date().getMonth(), 1
+  ).toISOString().split('T')[0]
+  const ha30Dias = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+
+  const [
+    matriculadosRes,
+    todosAlunosRes,
+    aulasRes,
+    aulasMesCountRes,
+    aulasUlt30Res,
+    insightsRes,
+  ] = await Promise.all([
     supabase
       .from('alunos_turmas')
       .select('alunos(id, nome, faixa)')
@@ -47,164 +86,328 @@ export default async function TurmaPage({ params }: { params: Promise<{ id: stri
       .eq('academia_id', professor.academia_id)
       .eq('ativo', true)
       .order('nome'),
+    // Histórico compacto — só o suficiente pra linha do tempo
     supabase
       .from('aulas')
-      .select('id, data, status, hora_inicio, presencas(id), tema:categorias_tecnicas(nome)')
+      .select('id, data, status, hora_inicio, presencas(id), aula_tecnicas(tipo)')
       .eq('turma_id', id)
+      .in('status', ['finalizada', 'aberta'])
       .order('data', { ascending: false })
-      .limit(15),
+      .limit(10),
+    supabase
+      .from('aulas')
+      .select('id', { count: 'exact', head: true })
+      .eq('turma_id', id)
+      .eq('status', 'finalizada')
+      .gte('data', primeiroDiaMes),
+    // Todas as finalizadas dos últimos 30 dias (sem limit) — base do % de
+    // presença por aluno. Não dá pra derivar da lista de cima: o limit(10)
+    // cortaria aulas de turmas 3x/semana (~13 no mês) e distorceria o %.
+    supabase
+      .from('aulas')
+      .select('id')
+      .eq('turma_id', id)
+      .eq('status', 'finalizada')
+      .gte('data', ha30Dias),
+    supabase.rpc('insights_turma', {
+      p_turma_id: id,
+      p_academia_id: professor.academia_id,
+    }),
   ])
 
-  const alunosMatriculados: AlunoRow[] = ((matriculadosResult.data ?? [])
+  const alunosMatriculados: AlunoRow[] = ((matriculadosRes.data ?? [])
     .map(m => m.alunos as unknown as AlunoRow | null)
     .filter(Boolean) as AlunoRow[])
     .sort((a, b) => a.nome.localeCompare(b.nome))
 
   const matriculadosIds = new Set(alunosMatriculados.map(a => a.id))
-  const disponiveis: AlunoRow[] = (todosAlunosResult.data ?? []).filter(a => !matriculadosIds.has(a.id))
+  const disponiveis: AlunoRow[] = (todosAlunosRes.data ?? []).filter(a => !matriculadosIds.has(a.id))
 
-  type AulaHist = {
-    id: string; data: string; status: string
-    hora_inicio: string | null; presencas: { id: string }[]
-    tema: { nome: string } | null
-  }
-  const aulas = (aulasResult.data ?? []) as unknown as AulaHist[]
+  const aulas = (aulasRes.data ?? []) as unknown as AulaHist[]
+  const aulasMes = aulasMesCountRes.count ?? 0
+  const insights = (insightsRes.data ?? null) as InsightsTurma | null
 
-  const aulaIds = aulas.map(a => a.id)
-  const { data: tecEnsinadasData } = aulaIds.length > 0
-    ? await supabase
-        .from('aula_tecnicas')
-        .select('aula_id, tecnicas(nome)')
-        .in('aula_id', aulaIds)
-        .eq('tipo', 'ensinada')
+  // Presença por aluno nas aulas finalizadas dos últimos 30 dias
+  const aulasMesIds = (aulasUlt30Res.data ?? []).map(a => a.id)
+  const totalAulasMes = aulasMesIds.length
+  const { data: presencasMesData } = aulasMesIds.length > 0
+    ? await supabase.from('presencas').select('aluno_id').in('aula_id', aulasMesIds)
     : { data: [] }
+  const presencasPorAluno = ((presencasMesData ?? []) as { aluno_id: string | null }[])
+    .reduce<Record<string, number>>((acc, p) => {
+      if (p.aluno_id) acc[p.aluno_id] = (acc[p.aluno_id] ?? 0) + 1
+      return acc
+    }, {})
 
-  type TecRow = { aula_id: string; tecnicas: { nome: string } | null }
-  const tecPorAula = ((tecEnsinadasData ?? []) as unknown as TecRow[]).reduce<Record<string, string[]>>((acc, r) => {
-    if (!r.tecnicas) return acc
-    if (!acc[r.aula_id]) acc[r.aula_id] = []
-    acc[r.aula_id].push(r.tecnicas.nome)
-    return acc
-  }, {})
-
-  const STATUS_LABEL: Record<string, string> = {
-    finalizada: 'Finalizada', aberta: 'Ao vivo', agendada: 'Pendente', cancelada: 'Cancelada',
-  }
-  const STATUS_STYLE: Record<string, { bg: string; color: string; border: string }> = {
-    finalizada: { bg: 'rgba(74,222,128,0.08)', color: '#4ADE80', border: 'rgba(74,222,128,0.2)' },
-    aberta: { bg: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: 'var(--brand-gold-border)' },
-    agendada: { bg: 'transparent', color: 'var(--brand-texto-muted)', border: 'var(--brand-border)' },
-    cancelada: { bg: 'rgba(239,68,68,0.08)', color: '#f87171', border: 'rgba(239,68,68,0.2)' },
-  }
+  // Média de presentes nas aulas finalizadas do histórico recente
+  const aulasFinalizadas = aulas.filter(a => a.status === 'finalizada')
+  const mediaPresenca = aulasFinalizadas.length > 0
+    ? Math.round(
+        aulasFinalizadas.reduce((s, a) => s + (a.presencas?.length ?? 0), 0) / aulasFinalizadas.length
+      )
+    : null
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
-      <header className="px-5 pt-safe pb-5 flex items-start gap-3"
+
+      {/* Header */}
+      <header className="px-5 pt-safe pb-4 flex items-start gap-3"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
-        <BackButton href="/turmas" />
-        <div className="flex-1">
-          <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-            {turma.nome}
-          </h1>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {(turma.dias_semana as string[] | null)?.map(d => (
-              <span key={d} className="text-xs px-2 py-0.5 rounded"
-                style={{ color: 'var(--brand-texto-sec)', background: 'var(--brand-surf-2)' }}>
-                {DIAS_ABBR[d] ?? d}
-              </span>
-            ))}
-            {turma.horario && (
-              <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
-                · {(turma.horario as string).substring(0, 5)}
+        <BackButton href="/turmas" useBack />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="font-bold text-xl uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
+              {turma.nome}
+            </h1>
+            {!turma.ativa && (
+              <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
+                style={{ color: 'var(--brand-texto-muted)', border: '1px solid var(--brand-border)' }}>
+                Inativa
               </span>
             )}
           </div>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
+            {(turma.dias_semana as string[] | null)?.map(d => DIAS_ABBR[d] ?? d).join(' / ')}
+            {turma.horario ? ` · ${(turma.horario as string).substring(0, 5)}` : ''}
+            {` · ${alunosMatriculados.length} aluno${alunosMatriculados.length !== 1 ? 's' : ''}`}
+          </p>
         </div>
       </header>
 
-      <main className="px-5 pt-5 pb-10 space-y-8">
-        <EditarTurmaForm
-          turmaId={id}
-          nomeAtual={turma.nome}
-          diasAtuais={(turma.dias_semana as string[] | null) ?? []}
-          horarioAtual={turma.horario as string | null}
-          autoAbrirHorasAtual={turma.auto_abrir_horas as number | null}
-        />
+      {/* Abas */}
+      <div className="flex px-5 pt-3 pb-3 gap-2" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+        {([
+          { key: 'dados', label: 'Dados' },
+          { key: 'alunos', label: 'Alunos' },
+          { key: 'config', label: 'Config' },
+        ] as const).map(t => (
+          <Link key={t.key} href={`/turmas/${id}?aba=${t.key}`}
+            className="px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider"
+            style={aba === t.key
+              ? { background: 'var(--brand-gold)', color: '#000' }
+              : { background: 'transparent', color: 'var(--brand-texto-muted)', border: '1px solid var(--brand-border)' }
+            }>
+            {t.label}
+          </Link>
+        ))}
+      </div>
 
-        <EnrollmentManager
-          turmaId={id}
-          matriculados={alunosMatriculados}
-          disponiveis={disponiveis}
-        />
+      <main className={`px-5 pt-5 ${aba === 'dados' ? 'pb-40' : 'pb-10'}`}>
 
-        <GerarAulasForm
-          turma={{ id: turma.id, dias_semana: turma.dias_semana as string[] | null, horario: turma.horario as string | null }}
-          academiaId={professor.academia_id}
-        />
+        {/* ─── ABA: DADOS ─────────────────────────────────────────── */}
+        {aba === 'dados' && (
+          <div className="space-y-5">
 
-        {/* Histórico de aulas */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'var(--brand-gold)' }}>
-            Histórico de aulas
-          </p>
-          {aulas.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--brand-texto-muted)' }}>Nenhuma aula registrada.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {aulas.map(a => {
-                const dataFmt = new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', {
-                  day: '2-digit', month: 'short',
-                })
-                const presentes = a.presencas?.length ?? 0
-                const tecnicas = tecPorAula[a.id] ?? []
-                const st = STATUS_STYLE[a.status] ?? STATUS_STYLE.agendada
-                return (
-                  <Link key={a.id} href={`/aulas/${a.id}`}
-                    className="block px-4 py-3 rounded-xl active:scale-[0.98] transition-transform"
-                    style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-sm font-bold truncate" style={{ color: 'var(--brand-texto)' }}>
-                        {a.tema?.nome ?? 'Sem tema'}
-                      </p>
-                      <span className="text-xs px-2.5 py-0.5 rounded-lg font-bold flex-shrink-0"
-                        style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
-                        {presentes} pres.
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-                        style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
-                        {STATUS_LABEL[a.status] ?? a.status}
-                      </span>
-                      <span className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
-                        {dataFmt}
-                        {a.hora_inicio ? ` · ${(a.hora_inicio as string).substring(0, 5)}` : ''}
-                      </span>
-                    </div>
-                    {tecnicas.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {tecnicas.slice(0, 4).map((t, i) => (
-                          <span key={i}
-                            className="px-1.5 py-0.5 rounded text-[9px] font-bold"
-                            style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
-                            {t}
-                          </span>
-                        ))}
-                        {tecnicas.length > 4 && (
-                          <span className="text-[9px]" style={{ color: 'var(--brand-texto-muted)' }}>+{tecnicas.length - 4}</span>
-                        )}
-                      </div>
-                    ) : a.status === 'finalizada' ? (
-                      <p className="text-[9px]" style={{ color: '#333' }}>Nenhuma técnica registrada</p>
-                    ) : null}
-                  </Link>
-                )
-              })}
+            {/* Stats strip */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { valor: String(aulasMes), label: 'aulas/mês' },
+                { valor: String(alunosMatriculados.length), label: 'alunos' },
+                { valor: mediaPresenca !== null ? String(mediaPresenca) : '—', label: 'pres. média' },
+              ].map(s => (
+                <div key={s.label} className="px-3 py-3 rounded-xl text-center"
+                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <p className="text-xl font-bold" style={{ color: 'var(--brand-gold)' }}>{s.valor}</p>
+                  <p className="text-[9px] uppercase tracking-widest mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                    {s.label}
+                  </p>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+
+            {/* Insights */}
+            {insights && insights.tecnicas_ausentes.length > 0 && (
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="text-[9px] uppercase tracking-widest mb-2.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  ⏱ Há mais tempo sem aparecer
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {insights.tecnicas_ausentes.map((t, i) => (
+                    <span key={i} className="px-2 py-1 rounded-lg text-xs font-bold"
+                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171' }}>
+                      {t.nome}
+                      <span className="font-normal opacity-70">
+                        {t.dias_ausente !== null ? ` · ${t.dias_ausente}d` : ' · nunca'}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {insights && insights.tecnicas_recentes.length > 0 && (
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="text-[9px] uppercase tracking-widest mb-2.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  🔁 Mais ensinadas este mês
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {insights.tecnicas_recentes.map((t, i) => (
+                    <span key={i} className="px-2 py-1 rounded-lg text-xs font-bold"
+                      style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)', color: 'var(--brand-gold)' }}>
+                      {t.nome} <span className="opacity-70">×{t.vezes}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {insights && insights.alunos_ausentes.length > 0 && (
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <p className="text-[9px] uppercase tracking-widest mb-2.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  👻 Alunos sumindo
+                </p>
+                <div className="space-y-2">
+                  {insights.alunos_ausentes.map((a, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <p className="text-sm font-bold" style={{ color: 'var(--brand-texto)' }}>{a.nome}</p>
+                      <p className="text-xs" style={{ color: '#F87171' }}>
+                        {a.dias_ausente !== null ? `${a.dias_ausente}d sem aparecer` : 'nunca veio'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Histórico compacto */}
+            <div>
+              <p className="text-[9px] uppercase tracking-widest mb-3" style={{ color: 'var(--brand-texto-muted)' }}>
+                Últimas aulas
+              </p>
+              {aulas.length === 0 ? (
+                <p className="text-sm text-center py-4" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Nenhuma aula registrada
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {aulas.map(a => {
+                    const dataFmt = new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', {
+                      weekday: 'short', day: '2-digit', month: 'short',
+                    })
+                    const presentes = a.presencas?.length ?? 0
+                    const ensinadas = (a.aula_tecnicas ?? []).filter(t => t.tipo === 'ensinada').length
+                    return (
+                      <Link key={a.id} href={`/aulas/${a.id}`}
+                        className="flex items-center justify-between px-4 py-3 rounded-xl active:scale-[0.98] transition-transform"
+                        style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {a.status === 'aberta' && (
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse" style={{ background: '#4ADE80' }} />
+                          )}
+                          <p className="text-xs capitalize font-medium" style={{ color: 'var(--brand-texto)' }}>
+                            {dataFmt}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
+                            {presentes} 🥋
+                          </span>
+                          {ensinadas > 0 && (
+                            <span className="text-xs" style={{ color: '#4ADE80' }}>
+                              {ensinadas} téc.
+                            </span>
+                          )}
+                          <span className="text-[10px]" style={{ color: 'var(--brand-gold)' }}>→</span>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ─── ABA: ALUNOS ────────────────────────────────────────── */}
+        {aba === 'alunos' && (
+          <div className="space-y-2">
+            {alunosMatriculados.length === 0 ? (
+              <p className="text-sm text-center py-8" style={{ color: 'var(--brand-texto-muted)' }}>
+                Nenhum aluno matriculado
+              </p>
+            ) : alunosMatriculados.map(aluno => {
+              const presencasMesAluno = presencasPorAluno[aluno.id] ?? 0
+              const pct = totalAulasMes > 0
+                ? Math.round((presencasMesAluno / totalAulasMes) * 100)
+                : null
+              return (
+                <Link key={aluno.id} href={`/alunos/${aluno.id}`}
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
+                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <div className={`w-1.5 h-10 rounded-full flex-shrink-0 ${FAIXA_COR[aluno.faixa] ?? 'bg-white'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate" style={{ color: 'var(--brand-texto)' }}>
+                      {aluno.nome}
+                    </p>
+                    <p className="text-xs capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
+                      {aluno.faixa}
+                    </p>
+                  </div>
+                  {pct !== null && (
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold"
+                        style={{ color: pct >= 70 ? '#4ADE80' : pct >= 40 ? '#FBBF24' : '#F87171' }}>
+                        {pct}%
+                      </p>
+                      <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+                        presença
+                      </p>
+                    </div>
+                  )}
+                </Link>
+              )
+            })}
+
+            {/* Gerenciar matrículas — disponível, mas não é o foco da aba */}
+            <div className="pt-4 mt-2" style={{ borderTop: '1px solid var(--brand-border)' }}>
+              <p className="text-[9px] uppercase tracking-widest mb-3" style={{ color: 'var(--brand-texto-muted)' }}>
+                Gerenciar matrículas
+              </p>
+              <EnrollmentManager
+                turmaId={id}
+                matriculados={alunosMatriculados}
+                disponiveis={disponiveis}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ─── ABA: CONFIG ────────────────────────────────────────── */}
+        {aba === 'config' && (
+          <div className="space-y-8">
+            <EditarTurmaForm
+              turmaId={id}
+              nomeAtual={turma.nome}
+              diasAtuais={(turma.dias_semana as string[] | null) ?? []}
+              horarioAtual={turma.horario as string | null}
+              autoAbrirHorasAtual={turma.auto_abrir_horas as number | null}
+            />
+            <GerarAulasForm
+              turma={{ id: turma.id, dias_semana: turma.dias_semana as string[] | null, horario: turma.horario as string | null }}
+              academiaId={professor.academia_id}
+            />
+          </div>
+        )}
+
       </main>
+
+      {/* CTA fixo acima da bottom nav (só na aba Dados) */}
+      {aba === 'dados' && (
+        <div className="fixed left-0 right-0 px-5 pt-3 pb-3 z-40"
+          style={{
+            bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+            background: 'var(--brand-fundo)',
+            borderTop: '1px solid var(--brand-border)',
+          }}>
+          <Link href={`/aulas/nova?turma_id=${id}`}
+            className="block w-full py-3.5 rounded-xl font-bold text-base uppercase tracking-widest text-center active:scale-[0.98] transition-transform"
+            style={{ background: 'var(--brand-gold)', color: '#000' }}>
+            Abrir Nova Aula
+          </Link>
+        </div>
+      )}
+
     </div>
   )
 }

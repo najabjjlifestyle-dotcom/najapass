@@ -115,7 +115,7 @@ export default function AttendanceList({
   }
 
   return (
-    <div className="px-6 pt-6" style={{ paddingBottom: isLocked ? '2.5rem' : '7rem' }}>
+    <div className="px-6 pt-6" style={{ paddingBottom: isLocked ? '2.5rem' : '11rem' }}>
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
           {presentes.size} presente{presentes.size !== 1 ? 's' : ''} de {alunos.length}
@@ -275,10 +275,17 @@ export default function AttendanceList({
         )}
       </div>
 
+      {/* Barra ancorada ACIMA da bottom nav (56px + safe area) — com bottom-0
+          e mesmo z-index, a nav (renderizada depois no layout) cobria a
+          metade de baixo do botão e o toque acertava a nav. */}
       {!isLocked && (
         <div
-          className="fixed bottom-0 left-0 right-0 px-5 pt-4 pb-safe z-50"
-          style={{ background: 'var(--brand-fundo)', borderTop: '1px solid var(--brand-border)' }}
+          className="fixed left-0 right-0 px-5 pt-3 pb-3 z-40"
+          style={{
+            bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+            background: 'var(--brand-fundo)',
+            borderTop: '1px solid var(--brand-border)',
+          }}
         >
           <button
             onClick={() => router.push(`/aulas/${aulaId}/feedback`)}

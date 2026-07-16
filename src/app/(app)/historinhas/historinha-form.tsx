@@ -84,7 +84,7 @@ export default function HistorinhaForm({ id, nomeInicial = '', tecnicasIniciais 
         </h1>
       </header>
 
-      <main className="px-5 pt-5 pb-36 space-y-6">
+      <main className="px-5 pt-5 pb-56 space-y-6">
         <div>
           <label className="block text-[9px] uppercase tracking-widest mb-2"
             style={{ color: 'var(--brand-texto-muted)' }}>
@@ -204,11 +204,12 @@ export default function HistorinhaForm({ id, nomeInicial = '', tecnicasIniciais 
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 px-5 py-4 space-y-2"
+      {/* Ancorado acima da bottom nav — bottom-0 ficava coberto por ela */}
+      <div className="fixed left-0 right-0 px-5 py-3 space-y-2 z-40"
         style={{
+          bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
           background: 'var(--brand-surf)',
           borderTop: '1px solid var(--brand-border)',
-          paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
         }}>
         <button
           onClick={handleSalvar}

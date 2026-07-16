@@ -869,6 +869,24 @@ Query de `/turmas` adiciona `alunos_turmas(id)` com filtro `.eq('alunos_turmas.a
 
 ---
 
+### EP-24 · Turma como Hub Central de Dados
+
+#### B-077 · Turma cockpit: 3 abas (Dados / Alunos / Config)
+**Prioridade:** P0 | **Estimativa:** L  
+Redesign completo de `/turmas/[id]`. Abre na aba Dados (padrão): stats strip (aulas/mês, alunos, média presença), insights do RPC `insights_turma`, histórico compacto, CTA fixo "Abrir Nova Aula". Aba Alunos: lista com % de presença no mês por aluno. Aba Config: EditarTurmaForm + GerarAulasForm (gestão administrativa). Página de Planejamento linka nome da turma para `/turmas/[id]`.
+
+**Referência:** `HANDOFF-018-turma-como-hub-dados.md` (seção B-077).
+
+---
+
+#### B-078 · Histórico global: linha do tempo compacta
+**Prioridade:** P0 | **Estimativa:** S  
+Remove `aula_tecnicas` da query de `/aulas` e elimina chips de técnicas dos cards da lista. Cada aula vira uma linha compacta: data + turma + N🥋. Técnicas disponíveis só no detalhe da aula. Página fica visualmente muito mais rápida de escanear.
+
+**Referência:** `HANDOFF-018-turma-como-hub-dados.md` (seção B-078).
+
+---
+
 ## Ordem de Implementação Sugerida
 
 ```

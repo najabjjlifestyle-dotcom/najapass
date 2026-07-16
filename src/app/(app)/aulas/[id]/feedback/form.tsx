@@ -119,7 +119,7 @@ export default function FeedbackForm({
         </p>
       </header>
 
-      <main className="px-5 pt-5 pb-32">
+      <main className="px-5 pt-5 pb-48">
         {tecnicas.length === 0 ? (
           <p className="text-sm text-center py-10" style={{ color: 'var(--brand-texto-muted)' }}>
             Nenhuma técnica planejada para esta aula.
@@ -176,8 +176,13 @@ export default function FeedbackForm({
         )}
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 px-5 pt-4 pb-safe z-50"
-        style={{ background: 'var(--brand-fundo)', borderTop: '1px solid var(--brand-border)' }}>
+      {/* Ancorada acima da bottom nav — bottom-0 ficava coberta por ela */}
+      <div className="fixed left-0 right-0 px-5 pt-3 pb-3 z-40"
+        style={{
+          bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+          background: 'var(--brand-fundo)',
+          borderTop: '1px solid var(--brand-border)',
+        }}>
         {reforcos.size > 0 && (
           <p className="text-[10px] text-center mb-2 uppercase tracking-widest" style={{ color: '#FB923C' }}>
             {reforcos.size} técnica{reforcos.size !== 1 ? 's' : ''} para reforço na próxima aula

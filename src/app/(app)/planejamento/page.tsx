@@ -137,18 +137,23 @@ export default async function PlanejamentoPage() {
               className="rounded-2xl overflow-hidden"
               style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
 
-              {/* Header da turma */}
-              <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
-                <p className="font-bold text-sm uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
-                  {turma.nome}
-                </p>
-                {(turma.dias_semana?.length || turma.horario) && (
-                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                    {turma.dias_semana?.map(d => DIAS_ABBR[d] ?? d).join(' / ')}
-                    {turma.horario ? ` · ${turma.horario.substring(0, 5)}` : ''}
+              {/* Header da turma — toca pra abrir o cockpit da turma */}
+              <Link href={`/turmas/${turma.id}`}
+                className="flex items-center justify-between px-4 py-3 active:opacity-70 transition-opacity"
+                style={{ borderBottom: '1px solid var(--brand-border)' }}>
+                <div>
+                  <p className="font-bold text-sm uppercase tracking-wider" style={{ color: 'var(--brand-texto)' }}>
+                    {turma.nome}
                   </p>
-                )}
-              </div>
+                  {(turma.dias_semana?.length || turma.horario) && (
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                      {turma.dias_semana?.map(d => DIAS_ABBR[d] ?? d).join(' / ')}
+                      {turma.horario ? ` · ${turma.horario.substring(0, 5)}` : ''}
+                    </p>
+                  )}
+                </div>
+                <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--brand-gold)' }}>→</span>
+              </Link>
 
               {/* Última aula */}
               {ultimaAula ? (
