@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-13 (v2.20 — fix: feedback de toque e navegação)
+**Atualizado em:** 2026-07-16 (v2.21 — B-077/B-078: turma cockpit + histórico compacto)
 
 ---
 
@@ -91,15 +91,10 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-072 | Remover ✗ durante aula ao vivo | UX |
 | B-073 | Insights por turma no Planejamento (RPC insights_turma + UI) | Planejamento |
 | B-074 | Histórico: presentes por aula + chips de turma | Histórico |
-
----
-
-## 📋 Backlog — EP-23: UX Mobile (Sprint 21)
-
-| ID | Card | Épico |
-|---|---|---|
 | B-075 | Nova Aula: turma como cards + tema como chips (zero selects nativos) | UX |
 | B-076 | Turmas lista: contagem de alunos ativos por turma | UX |
+| B-077 | Turma cockpit: 3 abas Dados / Alunos / Config | Turmas |
+| B-078 | Histórico global: linha do tempo compacta (sem chips) | Histórico |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
@@ -107,6 +102,7 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 > Tradução do currículo (sem cards no backlog) na branch `feat/sprint19-traducao-curriculo` (a partir da `main`, aguardando merge).
 > B-069/B-070/B-071/B-072 na branch `feat/sprint19-loop-simplificado` (a partir da `main` após merge das sprints 17 e 18) — ver seção de detalhes abaixo.
 > B-073/B-074 na branch `feat/sprint20-planejamento-dados` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-075/B-076 na branch `feat/sprint21-banho-loja-selects` (mergeada); B-077/B-078 na branch `feat/sprint22-turma-cockpit` (a partir da `main`) — ver seções de detalhes abaixo.
 
 ---
 
@@ -327,6 +323,23 @@ Bug reportado pelo usuário: "muitos botões que eu clico e ou demora muito ou n
 - `globals.css` — `touch-action: manipulation` + `-webkit-tap-highlight-color: transparent` em `button/a/input/select/textarea/label`: elimina o atraso que o navegador reserva pra detectar duplo-toque/zoom (iOS principalmente) e o flash cinza nativo por cima dos nossos estados de `active:`.
 
 Resultado: todo toque tem resposta visual imediata — ação mostra progresso no próprio botão (já mostrava), navegação mostra skeleton na hora em vez de tela parada.
+
+---
+
+## 🔍 Detalhes B-077 / B-078 (branch `feat/sprint22-turma-cockpit`, a partir da `main`, HANDOFF-018)
+
+**B-077 — Turma como cockpit:** `/turmas/[id]` reescrita — deixou de abrir num painel de admin (editar/matricular/gerar aulas empilhados) e virou hub de análise com 3 abas via `?aba=` (mesmo padrão URL-based de `/aulas` e `/relatorios`):
+- **Dados** (default): stats strip (aulas/mês, alunos, presença média), os 3 blocos de insight da RPC `insights_turma` (⏱ técnicas há mais tempo sem aparecer, 🔁 mais ensinadas no mês, 👻 alunos sumindo), histórico compacto das últimas 10 aulas (data · N🥋 · N téc. · →) e CTA fixo "Abrir Nova Aula" que pré-seleciona a turma via `?turma_id=`.
+- **Alunos**: lista dos matriculados com **% de presença nos últimos 30 dias** (verde ≥70 / amarelo ≥40 / vermelho <40), cada um linkando pro perfil; `EnrollmentManager` fica no rodapé da aba como "Gerenciar matrículas".
+- **Config**: `EditarTurmaForm` + `GerarAulasForm` — disponíveis, mas fora do fluxo principal.
+
+Em `/planejamento`, o header de cada card de turma virou link pro cockpit (`/turmas/[id]`); os botões Planejar/Ver plano seguem indo pra aula. **Correção ao handoff:** o % de presença por aluno era calculado sobre a lista `limit(10)` do histórico — turma 3x/semana tem ~13 aulas em 30 dias, o corte distorceria o %. Adicionada query própria (só `id`, sem limit) das finalizadas dos últimos 30 dias como base do cálculo. O `BackButton` usa `useBack` (volta pra `/planejamento` ou `/turmas`, de onde o professor veio) em vez do `/planejamento` fixo do handoff.
+
+**B-078 — Histórico global compacto:** `ConteudoTab` de `/aulas` parou de buscar/renderizar `aula_tecnicas` — o card virou uma linha de timeline (data grande à esquerda · turma + hora/status · N🥋 · →). Mais aulas visíveis por tela, sem o peso dos chips; o detalhe completo continua a um toque. Os chips de técnica introduzidos no B-074 saem daqui, mas a informação continua no cockpit da turma e no detalhe da aula.
+
+**Correção extra (bug real, achado ao implementar o CTA fixo):** as barras fixas de rodapé existentes — "Finalizar Aula" (`attendance-list.tsx`), "Concluir aula" (`feedback/form.tsx`) e o rodapé salvar/excluir de `historinha-form.tsx` — usavam `bottom-0` com z-index igual (ou menor) que o da bottom nav, que renderiza depois no layout e por isso **cobria a metade de baixo desses botões**; toque na área coberta acertava a nav e navegava pra outra tela (parte do "clico e não vai" reportado). Todas as barras (incluindo o CTA novo do cockpit) agora ancoram em `bottom: calc(56px + env(safe-area-inset-bottom))` — acima da nav — com clearance de conteúdo ajustada.
+
+Sem migrations nesta sprint (reusa a RPC `insights_turma` do B-073, já aplicada).
 
 ---
 

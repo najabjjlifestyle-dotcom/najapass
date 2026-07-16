@@ -3,17 +3,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import BackButton from '@/components/back-button'
 
-function formatarDataCurta(data: string) {
-  return new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', {
-    weekday: 'short', day: '2-digit', month: 'short',
-  })
-}
-
-type AulaTecnicaRow = { tipo: string; reforco: boolean; tecnicas: { nome: string } | null }
 type AulaRow = {
   id: string; data: string; hora_inicio: string | null; status: string
   turmas: { nome: string } | null
-  aula_tecnicas: AulaTecnicaRow[] | null
   presencas: { id: string }[] | null
 }
 type FrequenciaStats = {
@@ -126,7 +118,7 @@ async function ConteudoTab({ acadId, turmaFiltro }: { acadId: string; turmaFiltr
 
   let query = supabase
     .from('aulas')
-    .select('id, data, hora_inicio, status, turmas(nome), aula_tecnicas(tipo, reforco, tecnicas(nome)), presencas(id)')
+    .select('id, data, hora_inicio, status, turmas(nome), presencas(id)')
     .eq('academia_id', acadId)
     .in('status', ['finalizada', 'aberta'])
     .order('data', { ascending: false })
@@ -169,66 +161,45 @@ async function ConteudoTab({ acadId, turmaFiltro }: { acadId: string; turmaFiltr
           <p className="text-[9px] uppercase tracking-widest px-5 py-2 capitalize" style={{ color: 'var(--brand-gold)' }}>
             {grupo.label}
           </p>
-          <div className="px-5 space-y-2 mb-2">
+          <div className="px-5 space-y-1.5 mb-2">
             {grupo.aulas.map(aula => {
               const turma = aula.turmas
-              const ensinadas = (aula.aula_tecnicas ?? []).filter(t => t.tipo === 'ensinada' && t.tecnicas)
+              const presentes = (aula.presencas ?? []).length
+              const d = new Date(aula.data + 'T12:00:00')
               return (
                 <Link key={aula.id} href={`/aulas/${aula.id}`}
-                  className="block px-4 py-3 rounded-xl active:scale-[0.98] transition-transform"
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl active:scale-[0.98] transition-transform"
                   style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>
-                        {turma?.nome ?? 'Aula Avulsa'}
-                      </p>
-                      <p className="text-[10px] capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
-                        {formatarDataCurta(aula.data)}
-                        {aula.hora_inicio ? ` · ${aula.hora_inicio.substring(0, 5)}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {(aula.presencas?.length ?? 0) > 0 && (
-                        <span className="text-[10px] font-bold" style={{ color: 'var(--brand-texto-muted)' }}>
-                          {aula.presencas!.length} 🥋
-                        </span>
-                      )}
-                      {aula.status === 'aberta' ? (
-                        <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
-                          Ao vivo
-                        </span>
-                      ) : ensinadas.length > 0 ? (
-                        <span className="text-[10px]" style={{ color: '#4ADE80' }}>
-                          {ensinadas.length} téc.
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  {ensinadas.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {ensinadas.slice(0, 5).map((t, i) => (
-                        <span key={i}
-                          className="px-2 py-0.5 rounded text-[9px] font-bold"
-                          style={{
-                            background: t.reforco ? 'rgba(251,146,60,0.1)' : 'var(--brand-gold-dim)',
-                            border: `1px solid ${t.reforco ? 'rgba(251,146,60,0.25)' : 'var(--brand-gold-border)'}`,
-                            color: t.reforco ? '#FB923C' : 'var(--brand-gold)',
-                          }}>
-                          {t.reforco && '↺ '}{t.tecnicas!.nome}
-                        </span>
-                      ))}
-                      {ensinadas.length > 5 && (
-                        <span className="px-2 py-0.5 rounded text-[9px]"
-                          style={{ color: 'var(--brand-texto-muted)', border: '1px solid var(--brand-border)' }}>
-                          +{ensinadas.length - 5}
-                        </span>
-                      )}
-                    </div>
-                  ) : aula.status === 'finalizada' ? (
-                    <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
-                      Nenhuma técnica registrada
+
+                  {/* Data */}
+                  <div className="text-center w-8 flex-shrink-0">
+                    <p className="text-sm font-bold leading-none" style={{ color: 'var(--brand-texto)' }}>
+                      {d.getDate().toString().padStart(2, '0')}
                     </p>
-                  ) : null}
+                    <p className="text-[8px] uppercase mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                      {d.toLocaleDateString('pt-BR', { month: 'short' })}
+                    </p>
+                  </div>
+
+                  {/* Turma + status */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate" style={{ color: 'var(--brand-texto)' }}>
+                      {turma?.nome ?? 'Aula avulsa'}
+                    </p>
+                    <p className="text-[10px]" style={{ color: aula.status === 'aberta' ? '#4ADE80' : 'var(--brand-texto-muted)' }}>
+                      {aula.hora_inicio ? `${aula.hora_inicio.substring(0, 5)} · ` : ''}
+                      {aula.status === 'aberta' ? 'ao vivo' : 'finalizada'}
+                    </p>
+                  </div>
+
+                  {/* Presença */}
+                  {presentes > 0 && (
+                    <span className="text-xs font-bold flex-shrink-0" style={{ color: 'var(--brand-texto-muted)' }}>
+                      {presentes} 🥋
+                    </span>
+                  )}
+
+                  <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--brand-gold)' }}>→</span>
                 </Link>
               )
             })}
