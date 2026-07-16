@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-13 (v2.19 — B-075/B-076: selects → pickers + turmas com contagem)
+**Atualizado em:** 2026-07-13 (v2.20 — fix: feedback de toque e navegação)
 
 ---
 
@@ -311,6 +311,22 @@ Correção: `TecnicasAula` ganhou prop `aulaAgendada`. Introduzido `editavel = a
 **B-076 — Turmas com contagem de alunos** (`turmas/page.tsx`): query ganhou `alunos_turmas(id)` com `.eq('alunos_turmas.ativo', true)` (filtra o array aninhado; turmas sem alunos continuam aparecendo com array vazio, conforme comportamento do PostgREST). Cada card mostra "X aluno(s)" no canto direito do nome. Sem migration.
 
 **Sem migrations nesta sprint.** Nota: os `<select>` de fluxos secundários (cadastro/edição de aluno, editar turma, avisos) ficaram de fora de propósito — o handoff foca só no fluxo diário do professor.
+
+---
+
+## 🔍 Fix — feedback de toque e navegação (branch `fix/tap-feedback-loading`, a partir da `main`)
+
+Bug reportado pelo usuário: "muitos botões que eu clico e ou demora muito ou não vai". Auditoria de TODOS os componentes interativos (27 arquivos com `onClick` + todos os `<Link>` estilizados como botão) concluiu:
+
+**Botões de ação (server actions): todos já corretos.** Os 18 componentes que disparam actions têm `disabled` durante o pending + label de progresso ("Aprovando...", "Abrindo...", "Salvando..."), e os toggles (presença, check-in, matrícula) são otimistas. Nenhuma mudança necessária.
+
+**A causa real era navegação sem feedback:** o app não tinha NENHUM `loading.tsx` — tocar em qualquer link (bottom nav, cards do dashboard, "Planejar", abas, chips de filtro) deixava a tela atual congelada até o servidor terminar todas as queries da próxima página (Supabase, várias queries por página, facilmente 1s+). Pro usuário, o toque "não foi". Correção:
+
+- `src/app/(app)/loading.tsx` — skeleton instantâneo (header + blocos fantasma com `animate-pulse`, tokens da marca) pra toda navegação nas rotas do professor. A `BottomNav` vive no layout, então permanece visível e responsiva durante o load.
+- `src/app/(app)/aluno/loading.tsx` — boundary próprio pro portal do aluno, pra `AlunoBottomNav` (que vive no layout do segmento) não ser substituída pelo fallback do nível de cima.
+- `globals.css` — `touch-action: manipulation` + `-webkit-tap-highlight-color: transparent` em `button/a/input/select/textarea/label`: elimina o atraso que o navegador reserva pra detectar duplo-toque/zoom (iOS principalmente) e o flash cinza nativo por cima dos nossos estados de `active:`.
+
+Resultado: todo toque tem resposta visual imediata — ação mostra progresso no próprio botão (já mostrava), navegação mostra skeleton na hora em vez de tela parada.
 
 ---
 
