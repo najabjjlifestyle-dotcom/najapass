@@ -13,15 +13,13 @@ type Step = 'role' | 'academia-form' | 'waiting'
 export default function RoleSelect({
   academias,
   solicitacao,
-  initialStep,
 }: {
   academias: Academia[]
   solicitacao: Solicitacao
-  initialStep?: Step
 }) {
   const router = useRouter()
   const [step, setStep] = useState<Step>(
-    solicitacao?.status === 'pendente' ? 'waiting' : (initialStep ?? 'role')
+    solicitacao?.status === 'pendente' ? 'waiting' : 'role'
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(

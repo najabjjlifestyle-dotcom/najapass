@@ -64,14 +64,14 @@ export default function LandingPage() {
       {/* ── CTAs ── */}
       <div className="px-6 pt-6 space-y-3" style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}>
         <Link
-          href="/login?role=professor"
+          href="/login"
           className="block w-full text-center py-4 rounded-2xl font-bold text-base uppercase tracking-widest transition-transform active:scale-[0.98]"
           style={{ background: 'var(--brand-gold)', color: '#000' }}
         >
           Sou Professor
         </Link>
         <Link
-          href="/login?role=aluno"
+          href="/login"
           className="block w-full text-center py-4 rounded-2xl font-bold text-base uppercase tracking-widest transition-transform active:scale-[0.98]"
           style={{ background: 'transparent', border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }}
         >
