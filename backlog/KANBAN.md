@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-16 (v2.21 — B-077/B-078: turma cockpit + histórico compacto)
+**Atualizado em:** 2026-07-17 (v2.22 — B-079: homepage landing page)
 
 ---
 
@@ -95,6 +95,7 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-076 | Turmas lista: contagem de alunos ativos por turma | UX |
 | B-077 | Turma cockpit: 3 abas Dados / Alunos / Config | Turmas |
 | B-078 | Histórico global: linha do tempo compacta (sem chips) | Histórico |
+| B-079 | Homepage / landing page para novos usuários | Marketing |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
@@ -102,7 +103,8 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 > Tradução do currículo (sem cards no backlog) na branch `feat/sprint19-traducao-curriculo` (a partir da `main`, aguardando merge).
 > B-069/B-070/B-071/B-072 na branch `feat/sprint19-loop-simplificado` (a partir da `main` após merge das sprints 17 e 18) — ver seção de detalhes abaixo.
 > B-073/B-074 na branch `feat/sprint20-planejamento-dados` (a partir da `main`) — ver seção de detalhes abaixo.
-> B-075/B-076 na branch `feat/sprint21-banho-loja-selects` (mergeada); B-077/B-078 na branch `feat/sprint22-turma-cockpit` (a partir da `main`) — ver seções de detalhes abaixo.
+> B-075/B-076 na branch `feat/sprint21-banho-loja-selects` (mergeada); B-077/B-078 na branch `feat/sprint22-turma-cockpit` (mergeada) — ver seções de detalhes abaixo.
+> B-079 na branch `feat/sprint23-homepage` (a partir da `main`) — ver seção de detalhes abaixo.
 
 ---
 
@@ -340,6 +342,18 @@ Em `/planejamento`, o header de cada card de turma virou link pro cockpit (`/tur
 **Correção extra (bug real, achado ao implementar o CTA fixo):** as barras fixas de rodapé existentes — "Finalizar Aula" (`attendance-list.tsx`), "Concluir aula" (`feedback/form.tsx`) e o rodapé salvar/excluir de `historinha-form.tsx` — usavam `bottom-0` com z-index igual (ou menor) que o da bottom nav, que renderiza depois no layout e por isso **cobria a metade de baixo desses botões**; toque na área coberta acertava a nav e navegava pra outra tela (parte do "clico e não vai" reportado). Todas as barras (incluindo o CTA novo do cockpit) agora ancoram em `bottom: calc(56px + env(safe-area-inset-bottom))` — acima da nav — com clearance de conteúdo ajustada.
 
 Sem migrations nesta sprint (reusa a RPC `insights_turma` do B-073, já aplicada).
+
+---
+
+## 🔍 Detalhes B-079 (branch `feat/sprint23-homepage`, a partir da `main`, HANDOFF-019)
+
+**B-079 — Homepage / landing page:** `/` deixou de redirecionar todo mundo pro login. Quem não está logado vê a landing (`components/landing-page.tsx` — Server Component: cobra, branding, tagline, dois blocos de pitch professor/aluno, CTAs "Sou Professor" → `/login?role=professor` e "Sou Aluno" → `/login?role=aluno`, safe-area no rodapé). Quem já tem conta continua redirecionado normalmente (dashboard/onboarding/aluno). A role escolhida na landing viaja pelo login e pré-seleciona em boas-vindas: professor cai direto no `/onboarding`, aluno abre já no passo de escolher academia (adaptado ao UI real de boas-vindas, que são dois botões de ação, não um estado de "role selecionada").
+
+**Correção ao handoff (crítica — a landing não apareceria sem isso):** o handoff não mencionou o `middleware.ts`, que redirecionava QUALQUER rota não-autenticada (menos `/login` e `/api`) direto pro `/login` — ou seja, interceptava `/` antes do `page.tsx` renderizar a landing. Adicionada a raiz `/` como rota pública no middleware. Verificado no preview: `/` renderiza a landing pra deslogado, CTAs com hrefs corretos, `/login?role=professor` renderiza sem crash.
+
+**Correção ao handoff (menor):** `login/page.tsx` é `'use client'` e `useSearchParams()` no Next 15 exige boundary de Suspense senão o build quebra — o componente foi envolto num `<Suspense>` (`LoginPage` wrapper → `LoginForm` interno). `boas-vindas` fica sob `(app)`, não `(auth)` como o doc dizia. Usei `<img>` em vez de `next/image` pra bater com o padrão do login. `npm run build` passou (`/` dinâmica, `/login` estática).
+
+Sem migrations. Sem mudança de schema.
 
 ---
 

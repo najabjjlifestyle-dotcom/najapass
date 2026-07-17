@@ -1,13 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Step = 'email' | 'code'
 
+// useSearchParams exige boundary de Suspense no Next 15 — o wrapper isola.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }} />}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const role = searchParams.get('role') // 'professor' | 'aluno' | null
   const [step, setStep] = useState<Step>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -67,7 +78,11 @@ export default function LoginPage() {
         .eq('user_id', data.user.id)
         .maybeSingle()
 
-      router.replace(aluno ? '/aluno' : '/boas-vindas')
+      // Propaga a role escolhida na landing pra boas-vindas pré-selecionar
+      const boasVindasHref = role === 'professor' || role === 'aluno'
+        ? `/boas-vindas?role=${role}`
+        : '/boas-vindas'
+      router.replace(aluno ? '/aluno' : boasVindasHref)
     }
   }
 
