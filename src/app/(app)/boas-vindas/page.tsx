@@ -2,7 +2,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import RoleSelect from './role-select'
 
-export default async function BoasVindasPage() {
+export default async function BoasVindasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>
+}) {
+  const { role } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -57,10 +62,17 @@ export default async function BoasVindasPage() {
       }
     : null
 
+  // Role vinda da landing (?role=). Só honra quando não há solicitação
+  // pendente (aí a tela de "aguardando aprovação" tem prioridade).
+  const pendente = solicitacaoFormatada?.status === 'pendente'
+  if (role === 'professor' && !pendente) redirect('/onboarding')
+  const initialStep = role === 'aluno' && !pendente ? 'academia-form' : undefined
+
   return (
     <RoleSelect
       academias={academias ?? []}
       solicitacao={solicitacaoFormatada}
+      initialStep={initialStep}
     />
   )
 }

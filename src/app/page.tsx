@@ -1,10 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import LandingPage from '@/components/landing-page'
 
 export default async function RootPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+
+  // Não logado: mostra a landing em vez de mandar direto pro login
+  if (!user) return <LandingPage />
 
   const { data: professor } = await supabase
     .from('professores')

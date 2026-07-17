@@ -25,10 +25,14 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Rotas públicas pra quem não está logado: login, a landing (raiz) e API.
+  // Sem a raiz aqui, o middleware redirecionava `/` direto pro login e a
+  // landing page (renderizada em page.tsx) nunca aparecia.
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
+  const isLanding = request.nextUrl.pathname === '/'
   const isApiRoute = request.nextUrl.pathname.startsWith('/api')
 
-  if (!user && !isAuthRoute && !isApiRoute) {
+  if (!user && !isAuthRoute && !isLanding && !isApiRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

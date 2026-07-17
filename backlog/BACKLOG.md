@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-12 (v2.0)  
+**Última atualização:** 2026-07-17 (v2.1)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v2.1: Adicionado EP-25 (Homepage / Landing Page) com card B-079. Landing page com pitch do app + CTAs "Sou Professor" / "Sou Aluno" para usuários não autenticados.
 - v2.0: Adicionado EP-21 (Loop Simplificado do Professor) com cards B-069 a B-072. Abrir Agora, sticky Finalizar, feedback revisado com "Quais técnicas ensinou?", remove ✗ ao vivo.
 - v1.9: Adicionados EP-20 (Banho de Usabilidade + Jornada do Aluno) com cards B-064 a B-068. Jornada técnica, turma tech history, relatorios acessível, backbutton inteligente, checkin com ensinadas.
 - v1.8: Adicionados EP-19 (Planejamento Avançado) com cards B-062 e B-063. Filtro de técnicas por tema e Histórinhas (sequências).
@@ -884,6 +885,25 @@ Redesign completo de `/turmas/[id]`. Abre na aba Dados (padrão): stats strip (a
 Remove `aula_tecnicas` da query de `/aulas` e elimina chips de técnicas dos cards da lista. Cada aula vira uma linha compacta: data + turma + N🥋. Técnicas disponíveis só no detalhe da aula. Página fica visualmente muito mais rápida de escanear.
 
 **Referência:** `HANDOFF-018-turma-como-hub-dados.md` (seção B-078).
+
+---
+
+### EP-25 · Homepage / Landing Page
+
+#### B-079 · Landing page para novos usuários
+**Prioridade:** P1 | **Estimativa:** S  
+Como novo usuário que recebeu o link do app, quero entender o que é o NajaPass antes de fazer login.
+
+**Critérios de aceite:**
+- Usuário não autenticado acessa `/` e vê a landing page (não é redirecionado para `/login`)
+- Landing mostra: cobra + "NajaBJJ / NajaPass" + tagline + bloco para professores + bloco para alunos
+- CTA primário (gold): "Sou Professor" → `/login?role=professor`
+- CTA secundário (outline): "Sou Aluno" → `/login?role=aluno`
+- Usuário autenticado continua sendo redirecionado normalmente (zero regressão)
+- Login passa `?role` para `/boas-vindas` ao criar perfil novo
+- `/boas-vindas` pré-seleciona role se recebida via URL
+
+**Referência:** `HANDOFF-019-homepage-landing.md` na raiz do projeto.
 
 ---
 
