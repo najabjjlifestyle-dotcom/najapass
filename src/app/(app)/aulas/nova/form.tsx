@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { abrirAula } from '../actions'
-import { criarTema } from '../../tecnicas/actions'
 import BackButton from '@/components/back-button'
 
 type Turma = { id: string; nome: string }
@@ -12,6 +11,16 @@ type Tema = { id: string; nome: string }
 type TecnicaOpt = { id: string; nome: string; categoria_id: string | null; faixas: string[] }
 type HistorinhaTecnica = { ordem: number; tecnica_id: string; tecnicas: { nome: string } | null }
 type Historinha = { id: string; nome: string; historinha_tecnicas: HistorinhaTecnica[] | null }
+
+// Faixas adultas usadas no currículo global (tecnicas.faixas). Técnica com
+// faixas vazio serve pra qualquer faixa.
+const FAIXAS = [
+  { value: 'branca', label: 'Branca' },
+  { value: 'azul', label: 'Azul' },
+  { value: 'roxa', label: 'Roxa' },
+  { value: 'marrom', label: 'Marrom' },
+  { value: 'preta', label: 'Preta' },
+]
 
 export default function NovaAulaForm({
   turmas,
@@ -36,15 +45,13 @@ export default function NovaAulaForm({
     defaultTurmaId && turmas.some(t => t.id === defaultTurmaId) ? defaultTurmaId : ''
   )
   const intentRef = useRef<HTMLInputElement>(null)
-  const [temaId, setTemaId] = useState('')
   const [planejadas, setPlanejadas] = useState<Set<string>>(new Set())
-  const [temasList, setTemasList] = useState<Tema[]>(temas)
-  const [showNovoTema, setShowNovoTema] = useState(false)
-  const [novoTemaNome, setNovoTemaNome] = useState('')
-  const [criandoTema, setCriandoTema] = useState(false)
-  const [temaError, setTemaError] = useState('')
   const [buscaTecnica, setBuscaTecnica] = useState('')
   const [categoriaExpandida, setCategoriaExpandida] = useState<string | null>(null)
+  // Filtro por faixa/graduação — mostra só técnicas daquela faixa (as sem
+  // faixa definida servem todas). O "tema" da aula não é mais escolhido à
+  // mão: deriva das categorias das posições selecionadas.
+  const [faixaFiltro, setFaixaFiltro] = useState<string | null>(null)
 
   const hoje = new Date().toISOString().split('T')[0]
   const horaAtual = new Date().toTimeString().slice(0, 5)
@@ -59,10 +66,13 @@ export default function NovaAulaForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Agrupa TODAS as técnicas por categoria — seleção de posições é
-  // desacoplada do "Tema da aula" (que agora é só um label de display).
+  function tecnicaNaFaixa(t: TecnicaOpt) {
+    return !faixaFiltro || t.faixas.length === 0 || t.faixas.includes(faixaFiltro)
+  }
+
+  // Agrupa TODAS as técnicas por categoria — a categoria é o "tema".
   const categorias = useMemo(() => {
-    const nomePorId = new Map(temasList.map(t => [t.id, t.nome]))
+    const nomePorId = new Map(temas.map(t => [t.id, t.nome]))
     const mapa: Record<string, { id: string; nome: string; tecnicas: TecnicaOpt[] }> = {}
     for (const t of tecnicas) {
       const catId = t.categoria_id ?? '__sem_categoria'
@@ -71,20 +81,17 @@ export default function NovaAulaForm({
       mapa[catId].tecnicas.push(t)
     }
     return Object.values(mapa).sort((a, b) => a.nome.localeCompare(b.nome))
-  }, [tecnicas, temasList])
+  }, [tecnicas, temas])
 
-  // Quando um tema está selecionado, o picker foca só naquela categoria
-  const categoriasVisiveis = temaId
-    ? categorias.filter(cat => cat.id === temaId)
+  // Filtro por faixa: esconde técnicas fora da faixa e categorias que ficam vazias
+  const categoriasVisiveis = faixaFiltro
+    ? categorias
+        .map(cat => ({ ...cat, tecnicas: cat.tecnicas.filter(tecnicaNaFaixa) }))
+        .filter(cat => cat.tecnicas.length > 0)
     : categorias
 
-  // Auto-expande a categoria correspondente ao tema selecionado
-  useEffect(() => {
-    if (temaId) setCategoriaExpandida(temaId)
-  }, [temaId])
-
   const resultadosBusca = buscaTecnica.trim().length >= 2
-    ? tecnicas.filter(t => t.nome.toLowerCase().includes(buscaTecnica.toLowerCase()))
+    ? tecnicas.filter(t => t.nome.toLowerCase().includes(buscaTecnica.toLowerCase()) && tecnicaNaFaixa(t))
     : []
 
   // Reforços da última aula desta turma
@@ -107,23 +114,6 @@ export default function NovaAulaForm({
       else next.add(id)
       return next
     })
-  }
-
-  async function handleCriarTema() {
-    const nome = novoTemaNome.trim()
-    if (!nome) return
-    setCriandoTema(true)
-    setTemaError('')
-    const result = await criarTema(nome)
-    setCriandoTema(false)
-
-    if (result?.error) { setTemaError(result.error); return }
-    if (result?.tema) {
-      setTemasList(prev => [...prev, result.tema!].sort((a, b) => a.nome.localeCompare(b.nome)))
-      setTemaId(result.tema.id)
-    }
-    setNovoTemaNome('')
-    setShowNovoTema(false)
   }
 
   function handleTurmaChange(id: string) {
@@ -220,57 +210,6 @@ export default function NovaAulaForm({
               style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Tema da aula</label>
-              <button type="button" onClick={() => setShowNovoTema(v => !v)}
-                className="text-xs underline underline-offset-2" style={{ color: 'var(--brand-texto-muted)' }}>
-                + Novo tema
-              </button>
-            </div>
-            {/* hidden input carrega o valor pro FormData (chips são type=button) */}
-            <input type="hidden" name="tema_id" value={temaId} />
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              <button type="button" onClick={() => setTemaId('')}
-                className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.96]"
-                style={!temaId
-                  ? { background: 'var(--brand-gold)', color: '#000' }
-                  : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
-                }>
-                Geral
-              </button>
-              {temasList.map(t => {
-                const ativo = temaId === t.id
-                return (
-                  <button key={t.id} type="button" onClick={() => setTemaId(t.id)}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.96]"
-                    style={ativo
-                      ? { background: 'var(--brand-gold)', color: '#000' }
-                      : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
-                    }>
-                    {t.nome}
-                  </button>
-                )
-              })}
-            </div>
-
-            {showNovoTema && (
-              <div className="flex gap-2 mt-2">
-                <input type="text" value={novoTemaNome} onChange={e => setNovoTemaNome(e.target.value)}
-                  placeholder="Nome do tema" autoFocus
-                  className="flex-1 px-3 py-2 rounded-xl bg-transparent placeholder-white/30 text-sm focus:outline-none"
-                  style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
-                <button type="button" onClick={handleCriarTema}
-                  disabled={criandoTema || !novoTemaNome.trim()}
-                  className="px-4 py-2 text-sm font-bold uppercase tracking-wider rounded-xl disabled:opacity-40 active:scale-[0.98] transition-transform"
-                  style={{ background: 'var(--brand-gold)', color: '#000' }}>
-                  {criandoTema ? '...' : 'Criar'}
-                </button>
-              </div>
-            )}
-            {temaError && <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{temaError}</p>}
-          </div>
-
           {/* Histórinhas — sequências prontas pra aplicar de uma vez */}
           {historinhas.length > 0 && (
             <div>
@@ -321,7 +260,7 @@ export default function NovaAulaForm({
             </div>
           )}
 
-          {/* Posições a ensinar — desacoplado do tema, múltiplas categorias */}
+          {/* Posições a ensinar — a categoria de cada posição vira o tema da aula */}
           <div>
             <label className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
               Posições a ensinar
@@ -332,7 +271,32 @@ export default function NovaAulaForm({
               )}
             </label>
 
-            {/* Chips selecionados — sempre visíveis */}
+            {/* Filtro por faixa (graduação) */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
+              <button type="button" onClick={() => setFaixaFiltro(null)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.96]"
+                style={!faixaFiltro
+                  ? { background: 'var(--brand-gold)', color: '#000' }
+                  : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
+                }>
+                Todas
+              </button>
+              {FAIXAS.map(f => {
+                const ativo = faixaFiltro === f.value
+                return (
+                  <button key={f.value} type="button" onClick={() => setFaixaFiltro(ativo ? null : f.value)}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.96]"
+                    style={ativo
+                      ? { background: 'var(--brand-gold)', color: '#000' }
+                      : { background: 'transparent', border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }
+                    }>
+                    {f.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Chips selecionados — sempre visíveis (independente do filtro) */}
             {planejadas.size > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3 pb-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
                 {[...planejadas].map(id => {
@@ -378,11 +342,16 @@ export default function NovaAulaForm({
                   )
                 })}
               </div>
+            ) : categoriasVisiveis.length === 0 ? (
+              <p className="text-xs py-2" style={{ color: 'var(--brand-texto-muted)' }}>
+                Nenhuma posição para esta faixa.
+              </p>
             ) : (
               <div className="space-y-2">
                 {categoriasVisiveis.map(cat => {
                   const temSelecionadas = cat.tecnicas.some(t => planejadas.has(t.id))
-                  const isExpanded = categoriaExpandida === cat.id || temSelecionadas
+                  // Com filtro de faixa ativo, já mostra as posições expandidas
+                  const isExpanded = categoriaExpandida === cat.id || temSelecionadas || !!faixaFiltro
                   return (
                     <div key={cat.id} className="rounded-xl overflow-hidden"
                       style={{ border: '1px solid var(--brand-border)', background: 'var(--brand-surf)' }}>
@@ -427,10 +396,10 @@ export default function NovaAulaForm({
                   )
                 })}
 
-                {temaId && (
+                {faixaFiltro && (
                   <p className="text-center text-[10px] py-1">
-                    <span style={{ color: 'var(--brand-texto-muted)' }}>Filtrando por tema · </span>
-                    <button type="button" onClick={() => setTemaId('')}
+                    <span style={{ color: 'var(--brand-texto-muted)' }}>Filtrando por faixa {faixaFiltro} · </span>
+                    <button type="button" onClick={() => setFaixaFiltro(null)}
                       className="underline underline-offset-2" style={{ color: 'var(--brand-gold)' }}>
                       Ver todas
                     </button>
