@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-17 (v2.22 — B-079: homepage landing page)
+**Atualizado em:** 2026-07-17 (v2.23 — multi-tema derivado + filtro por faixa no picker)
 
 ---
 
@@ -354,6 +354,18 @@ Sem migrations nesta sprint (reusa a RPC `insights_turma` do B-073, já aplicada
 **Correção ao handoff (menor):** `login/page.tsx` é `'use client'` e `useSearchParams()` no Next 15 exige boundary de Suspense senão o build quebra — o componente foi envolto num `<Suspense>` (`LoginPage` wrapper → `LoginForm` interno). `boas-vindas` fica sob `(app)`, não `(auth)` como o doc dizia. Usei `<img>` em vez de `next/image` pra bater com o padrão do login. `npm run build` passou (`/` dinâmica, `/login` estática).
 
 Sem migrations. Sem mudança de schema.
+
+---
+
+## 🔍 Multi-tema derivado + filtro por faixa no picker (branch `feat/multi-tema-filtro-faixa`, a partir da `main`)
+
+Pedido direto do usuário: "sinto falta de colocar mais de um tema na aula e por graduação". Duas decisões confirmadas com ele antes de implementar (via pergunta): tema múltiplo → **derivar das posições** (não campo manual); graduação → **filtrar posições por faixa**.
+
+**Múltiplos temas (derivado):** o campo "Tema da aula" (chip único) saiu de `/aulas/nova`. Como o picker de posições já é multi-categoria, o(s) tema(s) da aula agora são simplesmente as categorias das posições escolhidas — sem seleção redundante. `aulas.tema_id` deixa de ser preenchido em aulas novas (fica null; a coluna continua pra compat). Todo lugar que mostrava "Tema: X" (único, do `tema_id`) passou a derivar as categorias das técnicas da aula, com fallback pro `tema_id` antigo pra não regredir aulas já existentes: detalhe da aula (`aulas/[id]` — "Tema:" / "Temas:" com as categorias), `/semana` (deriva do `aula_tecnicas` que já buscava), home do aluno (check-in card — query ganhou `categorias_tecnicas(nome)`). O componente `tecnicas-aula.tsx` já agrupava as posições por categoria, então o multi-tema já aparecia ali. Removido o "+ Novo tema" do form (criar categoria continua existindo em `/tecnicas/nova`, onde faz sentido).
+
+**Filtro por faixa (graduação):** o picker de posições ganhou uma strip de chips de faixa (Todas / Branca / Azul / Roxa / Marrom / Preta). Filtra as técnicas usando `tecnicas.faixas` — que já existia no schema mas era ignorado nas telas do professor (achado da auditoria de complexidade). Técnica sem faixa definida serve todas. Com uma faixa ativa, as categorias visíveis já vêm expandidas (mostrando direto as posições daquela faixa) e categorias sem match somem. A busca por nome também respeita o filtro. Isso **substitui** o antigo filtro "por tema" do picker (B-062) — que perdeu o sentido junto com o campo de tema único.
+
+Sem migrations. Sem mudança de schema (reusa `tema_id` só como fallback de leitura e `tecnicas.faixas` que já existia).
 
 ---
 

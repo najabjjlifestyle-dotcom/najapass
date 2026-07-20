@@ -120,6 +120,10 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     reforco: r.reforco,
   }))
 
+  // Temas da aula = categorias das posições que ela tem (multi). Fallback pro
+  // tema_id antigo, pra aulas criadas antes de o tema virar derivado.
+  const temasDerivados = [...new Set(tecnicasNaAula.map(t => t.categoria).filter(Boolean))] as string[]
+
   const naAulaIds = new Set(tecnicasNaAula.map(t => t.id))
 
   type RawTec = { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null }
@@ -213,9 +217,10 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
             {dataFormatada}
             {aula.hora_inicio ? ` · ${(aula.hora_inicio as string).substring(0, 5)}` : ''}
           </p>
-          {temaNome && (
+          {(temasDerivados.length > 0 ? temasDerivados : (temaNome ? [temaNome] : [])).length > 0 && (
             <p className="text-sm font-bold mt-1" style={{ color: 'var(--brand-gold)' }}>
-              Tema: {temaNome}
+              {temasDerivados.length > 1 ? 'Temas: ' : 'Tema: '}
+              {(temasDerivados.length > 0 ? temasDerivados : [temaNome]).join(' · ')}
             </p>
           )}
           {aula.video_url && (

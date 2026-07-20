@@ -45,19 +45,22 @@ export default async function AlunoHomePage() {
     const [{ data: quemVaiData }, { data: tecnicasData }] = await Promise.all([
       supabase.rpc('quem_vai', { p_aula_id: aula.id }),
       supabase.from('aula_tecnicas')
-        .select('tipo, tecnicas(nome)')
+        .select('tipo, tecnicas(nome, categorias_tecnicas(nome))')
         .eq('aula_id', aula.id)
         .in('tipo', ['planejada', 'ensinada']),
     ])
     const confirmados = (quemVaiData ?? []) as { nome: string; visitante: boolean }[]
-    const tecs = (tecnicasData ?? []) as unknown as { tipo: string; tecnicas: { nome: string } | null }[]
+    type TecRow = { tipo: string; tecnicas: { nome: string; categorias_tecnicas: { nome: string } | null } | null }
+    const tecs = (tecnicasData ?? []) as unknown as TecRow[]
     const planejadas = tecs.filter(t => t.tipo === 'planejada').map(t => t.tecnicas?.nome).filter((n): n is string => Boolean(n))
     const ensinadas = tecs.filter(t => t.tipo === 'ensinada').map(t => t.tecnicas?.nome).filter((n): n is string => Boolean(n))
+    // Tema derivado das categorias das posições (fallback pro tema_id antigo)
+    const temasDerivados = [...new Set(tecs.map(t => t.tecnicas?.categorias_tecnicas?.nome).filter(Boolean))] as string[]
     return {
       id: aula.id,
       video_url: aula.video_url,
       turma_nome: aula.turmas?.nome ?? null,
-      tema: aula.tema?.nome ?? null,
+      tema: temasDerivados.length > 0 ? temasDerivados.join(' · ') : (aula.tema?.nome ?? null),
       confirmados,
       planejadas,
       ensinadas,

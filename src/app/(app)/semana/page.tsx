@@ -137,6 +137,10 @@ export default async function SemanaPage() {
                     const planejadas = tecsDaAula.filter(t => t.tipo === 'planejada')
                     const ensinadas = tecsDaAula.filter(t => t.tipo === 'ensinada')
                     const comReforco = tecsDaAula.filter(t => t.reforco)
+                    // Temas derivados das categorias das posições (fallback pro tema_id antigo)
+                    const temasDaAula = [...new Set(
+                      tecsDaAula.map(t => t.tecnicas?.categorias_tecnicas?.nome).filter(Boolean)
+                    )] as string[]
 
                     return (
                       <Link key={aula.id} href={`/aulas/${aula.id}`}
@@ -149,7 +153,9 @@ export default async function SemanaPage() {
                               {aula.turmas?.nome ?? 'Aula avulsa'}
                             </p>
                             <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
-                              {aula.tema?.nome ? `Tema: ${aula.tema.nome}` : 'Sem tema definido'}
+                              {temasDaAula.length > 0
+                                ? temasDaAula.join(' · ')
+                                : (aula.tema?.nome ?? 'Sem tema definido')}
                               {aula.hora_inicio ? ` · ${(aula.hora_inicio as string).substring(0, 5)}` : ''}
                             </p>
                           </div>
