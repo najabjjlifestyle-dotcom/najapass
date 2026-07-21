@@ -9,20 +9,13 @@ export default async function RootPage() {
   // Não logado: mostra a landing em vez de mandar direto pro login
   if (!user) return <LandingPage />
 
-  const { data: professor } = await supabase
-    .from('professores')
-    .select('id, academia_id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // Logado: professor e aluno em paralelo (antes eram sequenciais)
+  const [professorRes, alunoRes] = await Promise.all([
+    supabase.from('professores').select('id, academia_id').eq('user_id', user.id).maybeSingle(),
+    supabase.from('alunos').select('id').eq('user_id', user.id).maybeSingle(),
+  ])
 
-  if (professor?.academia_id) redirect('/dashboard')
-  if (professor) redirect('/onboarding')
-
-  const { data: aluno } = await supabase
-    .from('alunos')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  redirect(aluno ? '/aluno' : '/boas-vindas')
+  if (professorRes.data?.academia_id) redirect('/dashboard')
+  if (professorRes.data) redirect('/onboarding')
+  redirect(alunoRes.data ? '/aluno' : '/boas-vindas')
 }

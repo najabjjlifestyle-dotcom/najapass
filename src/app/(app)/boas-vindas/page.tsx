@@ -2,27 +2,25 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import RoleSelect from './role-select'
 
-export default async function BoasVindasPage() {
+export default async function BoasVindasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>
+}) {
+  const { role } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: professor } = await supabase
-    .from('professores')
-    .select('academia_id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // Professor e aluno em paralelo (antes eram sequenciais)
+  const [professorRes, alunoRes] = await Promise.all([
+    supabase.from('professores').select('academia_id').eq('user_id', user.id).maybeSingle(),
+    supabase.from('alunos').select('id').eq('user_id', user.id).maybeSingle(),
+  ])
 
-  if (professor?.academia_id) redirect('/dashboard')
-  if (professor) redirect('/onboarding')
-
-  const { data: aluno } = await supabase
-    .from('alunos')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (aluno) redirect('/aluno')
+  if (professorRes.data?.academia_id) redirect('/dashboard')
+  if (professorRes.data) redirect('/onboarding')
+  if (alunoRes.data) redirect('/aluno')
 
   // Professor pré-cadastrado por outro professor → vincular automaticamente
   const { data: profPreReg } = await supabase
@@ -37,30 +35,36 @@ export default async function BoasVindasPage() {
     redirect('/dashboard')
   }
 
-  const { data: solicitacao } = await supabase
-    .from('solicitacoes')
-    .select('status, academias(nome)')
-    .eq('user_id', user.id)
-    .order('criado_em', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // Unificação com a landing: a role já foi escolhida lá. Professor vai
+  // direto pro onboarding — sem repetir a pergunta "BEM-VINDO".
+  if (role === 'professor') redirect('/onboarding')
 
-  const { data: academias } = await supabase
-    .from('academias')
-    .select('id, nome, cidade')
-    .order('nome')
+  // Solicitação + academias em paralelo (antes eram sequenciais)
+  const [solicitacaoRes, academiasRes] = await Promise.all([
+    supabase
+      .from('solicitacoes')
+      .select('status, academias(nome)')
+      .eq('user_id', user.id)
+      .order('criado_em', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from('academias').select('id, nome, cidade').order('nome'),
+  ])
 
-  const solicitacaoFormatada = solicitacao
+  const solicitacaoFormatada = solicitacaoRes.data
     ? {
-        status: solicitacao.status,
-        academia_nome: (solicitacao.academias as unknown as { nome: string } | null)?.nome ?? '',
+        status: solicitacaoRes.data.status,
+        academia_nome: (solicitacaoRes.data.academias as unknown as { nome: string } | null)?.nome ?? '',
       }
     : null
 
   return (
     <RoleSelect
-      academias={academias ?? []}
+      academias={academiasRes.data ?? []}
       solicitacao={solicitacaoFormatada}
+      // Aluno vindo da landing pula a tela "BEM-VINDO" e abre direto o
+      // formulário de escolher academia.
+      initialStep={role === 'aluno' ? 'academia-form' : 'role'}
     />
   )
 }

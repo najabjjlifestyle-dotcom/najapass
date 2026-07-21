@@ -5,6 +5,7 @@
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v2.2: Adicionado B-080 ao EP-25. Fix de performance (tela branca: loading.tsx + queries paralelas em boas-vindas) + unificação do fluxo de entrada (landing page pula tela BEM-VINDO do boas-vindas).
 - v2.1: Adicionado EP-25 (Homepage / Landing Page) com card B-079. Landing page com pitch do app + CTAs "Sou Professor" / "Sou Aluno" para usuários não autenticados.
 - v2.0: Adicionado EP-21 (Loop Simplificado do Professor) com cards B-069 a B-072. Abrir Agora, sticky Finalizar, feedback revisado com "Quais técnicas ensinou?", remove ✗ ao vivo.
 - v1.9: Adicionados EP-20 (Banho de Usabilidade + Jornada do Aluno) com cards B-064 a B-068. Jornada técnica, turma tech history, relatorios acessível, backbutton inteligente, checkin com ensinadas.
@@ -903,7 +904,23 @@ Como novo usuário que recebeu o link do app, quero entender o que é o NajaPass
 - Login passa `?role` para `/boas-vindas` ao criar perfil novo
 - `/boas-vindas` pré-seleciona role se recebida via URL
 
-**Referência:** `HANDOFF-019-homepage-landing.md` na raiz do projeto.
+**Referência:** `HANDOFF-020-performance-unificacao-entrada.md` na raiz do projeto (substitui HANDOFF-019).
+
+---
+
+#### B-080 · Performance: tela branca + unificação boas-vindas
+**Prioridade:** P0 | **Estimativa:** S  
+Eliminar tela branca ao carregar o app e remover a tela "BEM-VINDO" redundante após o login.
+
+**Critérios de aceite:**
+- `src/app/loading.tsx` e `src/app/(auth)/loading.tsx` criados (fundo escuro imediato, sem flash branco)
+- `boas-vindas/page.tsx`: queries em paralelo com `Promise.all` (professor + aluno simultâneos; solicitacoes + academias simultâneos)
+- `login/page.tsx` lê `?role` da URL e propaga para `/boas-vindas?role=X`
+- `role=professor` em `/boas-vindas` faz redirect imediato para `/onboarding` (sem render)
+- `role=aluno` em `/boas-vindas` pula step `'role'`, abre direto `'academia-form'`
+- Fallback: `/boas-vindas` sem `?role` continua mostrando tela "BEM-VINDO" (compatibilidade com links antigos)
+
+**Referência:** `HANDOFF-020-performance-unificacao-entrada.md` na raiz do projeto.
 
 ---
 
