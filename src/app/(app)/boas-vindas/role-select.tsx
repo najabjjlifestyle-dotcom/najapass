@@ -13,13 +13,15 @@ type Step = 'role' | 'academia-form' | 'waiting'
 export default function RoleSelect({
   academias,
   solicitacao,
+  initialStep = 'role',
 }: {
   academias: Academia[]
   solicitacao: Solicitacao
+  initialStep?: Step
 }) {
   const router = useRouter()
   const [step, setStep] = useState<Step>(
-    solicitacao?.status === 'pendente' ? 'waiting' : 'role'
+    solicitacao?.status === 'pendente' ? 'waiting' : initialStep
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(
@@ -156,8 +158,7 @@ export default function RoleSelect({
       <div className="w-full max-w-sm space-y-4">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.webp" alt="Naja BJJ" className="w-16 mx-auto mb-4 rounded-full"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          <img src="/cobra.webp" alt="Naja BJJ" className="w-20 mx-auto mb-2 object-contain select-none" />
           <h1 className="font-bold text-3xl uppercase tracking-widest" style={{ color: 'var(--brand-texto)' }}>
             Bem-vindo
           </h1>

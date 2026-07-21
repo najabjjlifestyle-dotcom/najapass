@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-17 (v2.23 — multi-tema derivado + filtro por faixa no picker)
+**Atualizado em:** 2026-07-17 (v2.24 — B-079/B-080: landing page + fix tela branca)
 
 ---
 
@@ -96,6 +96,7 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-077 | Turma cockpit: 3 abas Dados / Alunos / Config | Turmas |
 | B-078 | Histórico global: linha do tempo compacta (sem chips) | Histórico |
 | B-079 | Homepage / landing page para novos usuários | Marketing |
+| B-080 | Performance (tela branca) + unificação do fluxo de entrada | Marketing/Perf |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
@@ -366,6 +367,22 @@ Pedido direto do usuário: "sinto falta de colocar mais de um tema na aula e por
 **Filtro por faixa (graduação):** o picker de posições ganhou uma strip de chips de faixa (Todas / Branca / Azul / Roxa / Marrom / Preta). Filtra as técnicas usando `tecnicas.faixas` — que já existia no schema mas era ignorado nas telas do professor (achado da auditoria de complexidade). Técnica sem faixa definida serve todas. Com uma faixa ativa, as categorias visíveis já vêm expandidas (mostrando direto as posições daquela faixa) e categorias sem match somem. A busca por nome também respeita o filtro. Isso **substitui** o antigo filtro "por tema" do picker (B-062) — que perdeu o sentido junto com o campo de tema único.
 
 Sem migrations. Sem mudança de schema (reusa `tema_id` só como fallback de leitura e `tecnicas.faixas` que já existia).
+
+---
+
+## 🔍 Detalhes B-080 (branch `feat/sprint24-unificacao-entrada`, a partir da `main`, HANDOFF-020)
+
+B-079 (landing) já tinha sido feito no HANDOFF-019 e mergeado. Este handoff (que supersede o 019) adicionou o B-080: performance + unificação do fluxo de entrada.
+
+**Performance (tela branca):** `page.tsx` (raiz) e `boas-vindas/page.tsx` faziam queries de perfil sequenciais (professor → aluno → pré-cadastro → solicitação → academias). Paralelizadas com `Promise.all` (professor+aluno juntos; solicitação+academias juntas). Novos `src/app/loading.tsx` (raiz) e `src/app/(auth)/loading.tsx` — só o fundo escuro, matam o flash branco enquanto o servidor decide entre landing e redirect (o `(app)/loading.tsx` com skeleton já existia).
+
+**Unificação do fluxo de entrada:** as telas "landing" (`/`) e "BEM-VINDO" (`/boas-vindas`) faziam a MESMA pergunta (Sou Professor / Sou Aluno) — o usuário respondia duas vezes. Agora a escolha da landing carrega via `?role`: CTAs → `/login?role=X` → login propaga → `/boas-vindas?role=X`, onde **professor vai direto pro `/onboarding`** e **aluno abre direto o formulário de academia** (`initialStep='academia-form'`), pulando a tela "BEM-VINDO". Essa tela vira **fallback** só pra quem acessa `/boas-vindas` direto sem `?role` (link antigo, etc.). `login/page.tsx` voltou a ler `?role` (com wrapper de `<Suspense>`, exigido pelo Next 15); `role-select.tsx` ganhou prop `initialStep`.
+
+> **Reversão consciente do fix `fix/boas-vindas-role-skip`:** aquele fix tinha *removido* esse mesmo pulo por `?role` porque na época pulava o BEM-VINDO de forma que pareceu bug. O usuário reavaliou (mandou print das duas telas fazendo a mesma pergunta) e decidiu que a unificação é o comportamento desejado — agora é decisão intencional, com a landing como ponto único de escolha e o BEM-VINDO como fallback.
+
+**Extra:** a tela BEM-VINDO (fallback) tinha um `<img src="/logo.webp">` de um asset inexistente (aparecia como ícone quebrado no print do usuário) — trocado por `/cobra.webp`, que já existe.
+
+Sem migrations. Sem mudança de schema.
 
 ---
 
