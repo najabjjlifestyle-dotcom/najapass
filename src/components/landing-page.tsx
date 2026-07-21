@@ -77,9 +77,13 @@ export default function LandingPage() {
         >
           Sou Aluno
         </Link>
-        <p className="text-center text-xs pt-1 uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-          Já tem conta? Use o mesmo e-mail.
-        </p>
+        {/* Entrada pra quem já tem conta — /login sem role roteia pelo
+            perfil existente (dashboard / aluno / aguardando aprovação). */}
+        <Link href="/login"
+          className="block text-center text-xs pt-2 uppercase tracking-widest active:opacity-70 transition-opacity"
+          style={{ color: 'var(--brand-texto-sec)' }}>
+          Já tenho conta · <span style={{ color: 'var(--brand-gold)' }}>Entrar →</span>
+        </Link>
       </div>
     </div>
   )
