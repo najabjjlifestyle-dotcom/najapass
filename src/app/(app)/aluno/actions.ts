@@ -67,6 +67,63 @@ export async function updateFotoPropria(fotoUrl: string) {
   return { success: true }
 }
 
+export async function dismissCelebracao() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  // Via RPC SECURITY DEFINER: o aluno não tem UPDATE direto em `alunos`
+  // (só SELECT), então um update normal seria bloqueado pelo RLS sem erro
+  // e a flag nunca zeraria — prendendo o aluno em loop na celebração.
+  await supabase.rpc('dismissar_celebracao_propria')
+
+  revalidatePath('/aluno')
+}
+
+export async function salvarAnotacao(aulaId: string, texto: string) {
+  const textoCleaned = texto.trim().slice(0, 2000)
+  if (!textoCleaned) return { error: 'Anotação vazia.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { data: aluno } = await supabase
+    .from('alunos').select('id').eq('user_id', user.id).maybeSingle()
+  if (!aluno) return { error: 'Aluno não encontrado.' }
+
+  const { error } = await supabase
+    .from('anotacoes_treino')
+    .upsert(
+      { aluno_id: aluno.id, aula_id: aulaId, texto: textoCleaned },
+      { onConflict: 'aluno_id,aula_id' }
+    )
+
+  if (error) return { error: 'Erro ao salvar anotação.' }
+  revalidatePath(`/aluno/aula/${aulaId}/anotacao`)
+  revalidatePath('/aluno/historico')
+  return { success: true }
+}
+
+export async function deletarAnotacao(aulaId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { data: aluno } = await supabase
+    .from('alunos').select('id').eq('user_id', user.id).maybeSingle()
+  if (!aluno) return { error: 'Aluno não encontrado.' }
+
+  await supabase
+    .from('anotacoes_treino')
+    .delete()
+    .eq('aluno_id', aluno.id)
+    .eq('aula_id', aulaId)
+
+  revalidatePath('/aluno/historico')
+  return { success: true }
+}
+
 export async function updatePerfilProprio(dataNascimento: string, condicoesSaude: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

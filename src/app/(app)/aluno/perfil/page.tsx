@@ -46,7 +46,7 @@ function BeltBar({ faixa, grau }: { faixa: string; grau: number }) {
 export default async function AlunoPerfilPage() {
   const { aluno, supabase } = await getAlunoOuRedireciona()
 
-  const [{ data: turmasData }, { count: total }, { data: academia }] = await Promise.all([
+  const [{ data: turmasData }, { count: total }, { data: academia }, { count: aulasNaFaixa }] = await Promise.all([
     supabase.from('alunos_turmas')
       .select('turmas(id, nome, dias_semana, horario)')
       .eq('aluno_id', aluno.id).eq('ativo', true),
@@ -54,6 +54,11 @@ export default async function AlunoPerfilPage() {
       .select('id', { count: 'exact', head: true })
       .eq('aluno_id', aluno.id),
     supabase.from('academias').select('nome').eq('id', aluno.academia_id).maybeSingle(),
+    // Aulas desde que recebeu a faixa atual (graduado_em; senão matrícula).
+    supabase.from('presencas')
+      .select('aulas!inner(data)', { count: 'exact', head: true })
+      .eq('aluno_id', aluno.id)
+      .gte('aulas.data', (aluno.graduado_em ?? aluno.matriculado_em ?? '1970-01-01').substring(0, 10)),
   ])
 
   const turmas = (turmasData ?? [])
@@ -141,6 +146,29 @@ export default async function AlunoPerfilPage() {
               </p>
             </div>
           </div>
+
+          {/* Linha do tempo da faixa — aulas desde que recebeu a faixa atual */}
+          {(aulasNaFaixa ?? 0) > 0 && (
+            <div className="pt-3 mt-1" style={{ borderTop: '1px solid var(--brand-border)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[9px] uppercase tracking-widest capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Aulas como faixa {aluno.faixa}
+                </p>
+                <p className="text-xs font-bold" style={{ color: 'var(--brand-gold)' }}>
+                  {aulasNaFaixa}
+                </p>
+              </div>
+              <p className="text-[11px]" style={{ color: 'var(--brand-texto-sec)' }}>
+                {aulasNaFaixa! >= 100
+                  ? `${aulasNaFaixa} aulas. Uma jornada e tanto. 🥋`
+                  : aulasNaFaixa! >= 50
+                  ? `${aulasNaFaixa} aulas sólidas nesta faixa.`
+                  : aulasNaFaixa! >= 20
+                  ? `${aulasNaFaixa} aulas. Está construindo a base.`
+                  : `${aulasNaFaixa} aula${aulasNaFaixa! > 1 ? 's' : ''} nesta faixa. Começando a jornada.`}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* ── Análise de graduação — celebra conquista / avisa próxima faixa ── */}

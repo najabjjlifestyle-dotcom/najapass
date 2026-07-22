@@ -37,7 +37,7 @@ export async function graduarAluno(alunoId: string, faixa: string, grau: number)
 
   const { error } = await supabase
     .from('alunos')
-    .update(updates)
+    .update({ ...updates, celebrar_graduacao: true })
     .eq('id', alunoId)
 
   if (error) return { error: 'Erro ao graduar aluno.' }

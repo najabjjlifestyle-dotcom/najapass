@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import CheckinCard from './checkin'
 import AvatarUpload from '@/components/avatar-upload'
@@ -24,8 +25,15 @@ type HomeInsights = {
 export default async function AlunoHomePage() {
   const { aluno, supabase } = await getAlunoOuRedireciona()
 
-  const { data: insightsRaw } = await supabase.rpc('aluno_home_insights', { p_aluno_id: aluno.id })
+  // Celebração de graduação pendente — tem prioridade sobre tudo
+  if (aluno.celebrar_graduacao) redirect('/aluno/celebracao')
+
+  const [{ data: insightsRaw }, { data: streakData }] = await Promise.all([
+    supabase.rpc('aluno_home_insights', { p_aluno_id: aluno.id }),
+    supabase.rpc('calcular_streak_aluno', { p_aluno_id: aluno.id }),
+  ])
   const insights = insightsRaw as HomeInsights | null
+  const streak = (streakData as number | null) ?? 0
 
   // Perfil incompleto: falta nascimento OU saúde nunca foi preenchida (null).
   // condicoes_saude === '' conta como preenchido ("sem condições").
@@ -237,6 +245,15 @@ export default async function AlunoHomePage() {
                 {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
               </span>
             </div>
+            {/* Streak — só aparece com ≥ 1 semana seguida */}
+            {streak > 0 && (
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-xs">🔥</span>
+                <span className="text-[11px] font-bold" style={{ color: 'var(--brand-gold)' }}>
+                  {streak} semana{streak > 1 ? 's' : ''} seguida{streak > 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <PushSubscribeButton />
