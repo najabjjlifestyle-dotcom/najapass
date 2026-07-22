@@ -28,12 +28,21 @@ export default async function AlunoHomePage() {
   // Celebração de graduação pendente — tem prioridade sobre tudo
   if (aluno.celebrar_graduacao) redirect('/aluno/celebracao')
 
-  const [{ data: insightsRaw }, { data: streakData }] = await Promise.all([
+  const [{ data: insightsRaw }, { data: streakData }, { data: ultimaFotoData }] = await Promise.all([
     supabase.rpc('aluno_home_insights', { p_aluno_id: aluno.id }),
     supabase.rpc('calcular_streak_aluno', { p_aluno_id: aluno.id }),
+    // Foto da última aula finalizada que o aluno participou (pra "última aula")
+    supabase.from('presencas')
+      .select('registrado_em, aulas!inner(foto_url, status)')
+      .eq('aluno_id', aluno.id)
+      .eq('aulas.status', 'finalizada')
+      .order('registrado_em', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
   const insights = insightsRaw as HomeInsights | null
   const streak = (streakData as number | null) ?? 0
+  const fotoUltimaAula = (ultimaFotoData?.aulas as unknown as { foto_url: string | null } | null)?.foto_url ?? null
 
   // Perfil incompleto: falta nascimento OU saúde nunca foi preenchida (null).
   // condicoes_saude === '' conta como preenchido ("sem condições").
@@ -457,23 +466,34 @@ export default async function AlunoHomePage() {
             const d = new Date(ua.data + 'T12:00:00')
             const dataFmt = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' })
             return (
-              <div className="rounded-2xl p-4" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
-                  Última aula
-                </p>
-                <p className="text-sm font-bold capitalize" style={{ color: 'var(--brand-texto)' }}>
-                  {dataFmt}{ua.turma_nome ? ` · ${ua.turma_nome}` : ''}
-                </p>
-                {ua.tecnicas.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {ua.tecnicas.map((t, i) => (
-                      <span key={i} className="text-[10px] font-bold px-2.5 py-1 rounded-lg"
-                        style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+              <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                {fotoUltimaAula && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={fotoUltimaAula}
+                    alt="Foto do último treino"
+                    className="w-full object-cover"
+                    style={{ maxHeight: 200 }}
+                  />
                 )}
+                <div className="p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                    Última aula
+                  </p>
+                  <p className="text-sm font-bold capitalize" style={{ color: 'var(--brand-texto)' }}>
+                    {dataFmt}{ua.turma_nome ? ` · ${ua.turma_nome}` : ''}
+                  </p>
+                  {ua.tecnicas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {ua.tecnicas.map((t, i) => (
+                        <span key={i} className="text-[10px] font-bold px-2.5 py-1 rounded-lg"
+                          style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )
           })()}
