@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import AvatarUpload from '@/components/avatar-upload'
 import LogoutButton from '@/components/logout-button'
@@ -169,6 +170,14 @@ export default async function AlunoPerfilPage() {
               </p>
             </div>
           )}
+
+          {/* Compartilhar graduação — abre o card instagramável full-screen */}
+          <Link
+            href="/aluno/momento/graduacao"
+            className="block w-full text-center py-2 rounded-xl text-[10px] uppercase tracking-widest mt-1 active:opacity-70"
+            style={{ border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }}>
+            📸 Compartilhar graduação
+          </Link>
         </div>
 
         {/* ── Análise de graduação — celebra conquista / avisa próxima faixa ── */}
