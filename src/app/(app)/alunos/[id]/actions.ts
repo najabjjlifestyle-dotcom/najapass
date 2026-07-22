@@ -13,13 +13,36 @@ export async function graduarAluno(alunoId: string, faixa: string, grau: number)
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sessão expirada.' }
 
+  // Estado atual pra saber o que mudou e datar só o evento certo.
+  const { data: atual } = await supabase
+    .from('alunos')
+    .select('faixa, grau')
+    .eq('id', alunoId)
+    .single()
+
+  const hoje = new Date().toISOString()
+  const updates: { faixa: string; grau: number; graduado_em?: string; grau_em?: string | null } = { faixa, grau }
+
+  if (atual) {
+    if (atual.faixa !== faixa) {
+      // Trocou de faixa: data a nova faixa e zera o marco de grau
+      // (grau só data se a promoção já veio com graus).
+      updates.graduado_em = hoje
+      updates.grau_em = grau > 0 ? hoje : null
+    } else if (grau > atual.grau) {
+      // Mesma faixa, ganhou grau: data o último grau.
+      updates.grau_em = hoje
+    }
+  }
+
   const { error } = await supabase
     .from('alunos')
-    .update({ faixa, grau })
+    .update(updates)
     .eq('id', alunoId)
 
   if (error) return { error: 'Erro ao graduar aluno.' }
   revalidatePath(`/alunos/${alunoId}`)
+  revalidatePath('/aluno/perfil')
   return { success: true }
 }
 

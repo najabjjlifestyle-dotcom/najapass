@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { updatePerfilProprio } from '../actions'
 
 export default function PerfilForm({
@@ -12,6 +13,7 @@ export default function PerfilForm({
   condicoesSaudeAtual: string | null
   diaMensalidadeAtual: number | null
 }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [dataNascimento, setDataNascimento] = useState(dataNascimentoAtual ?? '')
   const [condicoesSaude, setCondicoesSaude] = useState(condicoesSaudeAtual ?? '')
@@ -27,6 +29,7 @@ export default function PerfilForm({
       const res = await updatePerfilProprio(dataNascimento, condicoesSaude, diaMensalidade)
       if (res?.error) { setError(res.error); return }
       setOpen(false)
+      router.refresh()
     })
   }
 

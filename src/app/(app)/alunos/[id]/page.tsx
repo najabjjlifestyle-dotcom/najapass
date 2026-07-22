@@ -31,6 +31,11 @@ function proximoAniversario(dataNasc: string | null): { diasAte: number; idade: 
   return { diasAte, idade }
 }
 
+function fmtData(iso: string | null): string | null {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
 type PresencaRow = {
   aula_id: string
   aulas: { data: string; tema: string | null; turmas: { nome: string } | null } | null
@@ -51,7 +56,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url, data_nascimento, condicoes_saude, dia_mensalidade')
+    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url, data_nascimento, condicoes_saude, dia_mensalidade, graduado_em, grau_em')
     .eq('id', id)
     .single()
 
@@ -131,6 +136,31 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
             )}
           </div>
         </div>
+
+        {/* Graduação — datas da faixa atual e do último grau */}
+        {(aluno.graduado_em || aluno.grau_em) && (
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Graduação</p>
+            <div className="grid grid-cols-2 gap-3">
+              {aluno.graduado_em && (
+                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                    Faixa {aluno.faixa} desde
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>{fmtData(aluno.graduado_em)}</p>
+                </div>
+              )}
+              {aluno.grau_em && (
+                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                    {aluno.grau}º grau desde
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>{fmtData(aluno.grau_em)}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">

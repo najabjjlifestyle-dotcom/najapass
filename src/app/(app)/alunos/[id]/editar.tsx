@@ -35,6 +35,7 @@ export default function EditarAlunoForm({
       const res = await updateAluno(alunoId, nome, email, telefone, dataNascimento, condicoesSaude, diaMensalidade)
       if (res?.error) { setError(res.error); return }
       setOpen(false)
+      router.refresh()
     })
   }
 

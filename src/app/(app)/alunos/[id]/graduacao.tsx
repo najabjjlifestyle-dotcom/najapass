@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { graduarAluno } from './actions'
 
 const FAIXAS = ['branca','cinza','amarela','laranja','verde','azul','roxa','marrom','preta'] as const
@@ -16,6 +17,7 @@ export default function GraduacaoForm({
   faixaAtual: string
   grauAtual: number
 }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [faixa, setFaixa] = useState(faixaAtual)
   const [grau, setGrau] = useState(grauAtual)
@@ -28,6 +30,7 @@ export default function GraduacaoForm({
       const res = await graduarAluno(alunoId, faixa, grau)
       if (res?.error) { setError(res.error); return }
       setOpen(false)
+      router.refresh()
     })
   }
 

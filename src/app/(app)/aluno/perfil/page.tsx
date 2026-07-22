@@ -107,6 +107,36 @@ export default async function AlunoPerfilPage() {
           )}
         </div>
 
+        {(aluno.graduado_em || aluno.grau_em) && (
+          <div>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+              Graduação
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {aluno.graduado_em && (
+                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                    Faixa {aluno.faixa} desde
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>
+                    {new Date(aluno.graduado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              )}
+              {aluno.grau_em && (
+                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                    {aluno.grau}º grau desde
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>
+                    {new Date(aluno.grau_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {turmas.length > 0 && (
           <div>
             <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>

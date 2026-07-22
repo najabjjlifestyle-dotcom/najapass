@@ -400,6 +400,10 @@ Sem migrations. Sem mudança de schema.
 
 **B-083 — Banner:** `/aluno` exibe card-link dourado "Complete seu perfil" quando `!data_nascimento || condicoes_saude === null`. Usa `--brand-gold-dim` + `--brand-gold-border`. Desaparece automaticamente quando perfil completo.
 
+**Extensão (feedback do Mestre pós-entrega):**
+- **Bugfix "informações somem ao salvar":** os forms (`perfil-form.tsx`, `editar.tsx`, `graduacao.tsx`) faziam só `setOpen(false)` no sucesso — o `revalidatePath` do server action não re-renderizava a view no cliente, então a seção condicional (escondida quando tudo é null) continuava escondida após o 1º save. Corrigido com `router.refresh()` após cada save.
+- **Datas de graduação (B-082 ext):** migration `20260722000001_graduacao_datas.sql` adiciona `graduado_em` + `grau_em` (TIMESTAMPTZ). `graduarAluno` compara faixa/grau atual e data só o evento certo (troca de faixa → `graduado_em` + zera grau; grau maior na mesma faixa → `grau_em`). Exibido como seção "Graduação" no professor (`/alunos/[id]`) e no aluno (`/aluno/perfil`). Sem backfill — preenche a partir da próxima graduação.
+
 ---
 
 ## 🟡 Em Progresso
