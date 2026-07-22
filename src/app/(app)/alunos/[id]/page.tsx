@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import GraduacaoForm from './graduacao'
 import EditarAlunoForm from './editar'
+import NotasProfessor from './notas'
 import AvatarUpload from '@/components/avatar-upload'
 import { updateFotoAluno } from './actions'
 import BackButton from '@/components/back-button'
@@ -83,6 +84,13 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
   const { data: jornadaRaw } = await supabase.rpc('jornada_tecnica_aluno', { p_aluno_id: id })
   const jornada = (jornadaRaw ?? []) as JornadaCat[]
+
+  const { data: notasData } = await supabase
+    .from('notas_professor')
+    .select('id, texto, criado_em')
+    .eq('aluno_id', id)
+    .order('criado_em', { ascending: false })
+    .limit(20)
 
   const trinta_dias = new Date()
   trinta_dias.setDate(trinta_dias.getDate() - 30)
@@ -344,8 +352,29 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
           </div>
         )}
 
+        {/* Notas privadas do professor */}
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+            🔒 Observações do professor
+          </p>
+          <NotasProfessor
+            alunoId={aluno.id}
+            notas={(notasData ?? []).map(n => ({ id: n.id, texto: n.texto, criado_em: n.criado_em }))}
+          />
+        </div>
+
         {/* Graduação */}
         <GraduacaoForm alunoId={aluno.id} faixaAtual={aluno.faixa ?? 'branca'} grauAtual={aluno.grau ?? 0} />
+
+        {/* Card de graduação instagramável (abre em nova aba) */}
+        <a
+          href={`/alunos/${aluno.id}/card-graduacao`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center py-2.5 rounded-xl text-xs uppercase tracking-widest active:opacity-70"
+          style={{ border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }}>
+          📸 Card de graduação →
+        </a>
 
         {/* Editar dados / inativar */}
         <EditarAlunoForm

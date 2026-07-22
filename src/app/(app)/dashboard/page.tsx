@@ -31,6 +31,21 @@ type DashboardInsights = {
   reforcos_pendentes: number
 }
 
+type ChurnAluno = {
+  aluno_id: string
+  aluno_nome: string
+  foto_url: string | null
+  presencas_recentes: number
+  presencas_anteriores: number
+}
+
+type AlumDoMes = {
+  aluno_id: string
+  aluno_nome: string
+  foto_url: string | null
+  presencas_mes: number
+}
+
 const DIAS_ABBR = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 // ── page ─────────────────────────────────────────────────────────────────────
@@ -74,6 +89,8 @@ export default async function DashboardPage() {
     { data: agendadasData },
     { data: semanaData },
     { data: insightsRaw },
+    { data: churnData },
+    { data: alumDoMesRaw },
   ] = await Promise.all([
     supabase.from('alunos').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativo', true),
     supabase.from('turmas').select('id', { count: 'exact', head: true }).eq('academia_id', acadId).eq('ativa', true),
@@ -102,10 +119,15 @@ export default async function DashboardPage() {
       .in('status', ['agendada', 'aberta', 'finalizada'])
       .order('data'),
     supabase.rpc('professor_dashboard_insights', { p_academia_id: acadId }).then(r => r.error ? { data: null } : r),
+    // .then de fallback: se a migration ainda não rodou, não derruba o dashboard
+    supabase.rpc('alunos_em_risco_churn', { p_academia_id: acadId }).then(r => r.error ? { data: null } : r),
+    supabase.rpc('aluno_do_mes', { p_academia_id: acadId }).then(r => r.error ? { data: null } : r),
   ])
 
   const nome = professor.nome
   const insights = insightsRaw as DashboardInsights | null
+  const churn = (churnData as ChurnAluno[] | null) ?? []
+  const alumDoMes = (alumDoMesRaw as AlumDoMes[] | null)?.[0] ?? null
 
   // ── Hoje: técnicas planejadas das aulas ainda agendadas (chips do card) ──
   const aulasHojeIds = (aulasHojeData ?? []).map(a => a.id)
@@ -281,6 +303,17 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {/* ── CHURN — alunos frequentes que sumiram ── */}
+      {churn.length > 0 && (
+        <section className="px-4 mb-4 space-y-1.5">
+          {churn.map(c => (
+            <InsightCard key={c.aluno_id} cor="orange" href={`/alunos/${c.aluno_id}`}>
+              ⚠ <b style={{ color: '#ccc' }}>{primeiroNome(c.aluno_nome)}</b> treinava {c.presencas_anteriores}x/mês e sumiu — só {c.presencas_recentes} nos últimos 30 dias →
+            </InsightCard>
+          ))}
+        </section>
+      )}
+
       {/* ── SEMANA (mini-grid) ── */}
       <section className="px-4 mb-4">
         <Link href="/semana" className="block active:opacity-80 transition-opacity">
@@ -310,26 +343,51 @@ export default async function DashboardPage() {
         </Link>
       </section>
 
-      {/* ── Stats Strip ── */}
-      <div className="grid grid-cols-3 gap-1.5 px-4 mb-4">
-        {[
-          { valor: String(aulasMes ?? 0), label: 'aulas no mês' },
-          { valor: String(totalAlunos ?? 0), label: 'alunos ativos' },
-          { valor: String(turmasAtivas ?? 0), label: 'turmas ativas' },
-        ].map(s => (
-          <div
-            key={s.label}
-            className="rounded-xl px-3 py-2.5"
-            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-            <p className="text-[18px] font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>
-              {s.valor}
-            </p>
-            <p className="text-[9px] uppercase tracking-wide mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
-              {s.label}
-            </p>
-          </div>
-        ))}
-      </div>
+      {/* ── Stats Strip + Aluno do Mês ── */}
+      <section className="px-4 mb-4">
+        <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+          {[
+            { valor: String(aulasMes ?? 0), label: 'aulas no mês' },
+            { valor: String(totalAlunos ?? 0), label: 'alunos ativos' },
+            { valor: String(turmasAtivas ?? 0), label: 'turmas ativas' },
+          ].map(s => (
+            <div
+              key={s.label}
+              className="rounded-xl px-3 py-2.5"
+              style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="text-[18px] font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>
+                {s.valor}
+              </p>
+              <p className="text-[9px] uppercase tracking-wide mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Aluno do mês — só quando há presenças no mês corrente */}
+        {alumDoMes && (
+          <Link href={`/alunos/${alumDoMes.aluno_id}`}
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
+            style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+            <Avatar nome={alumDoMes.aluno_nome} fotoUrl={alumDoMes.foto_url} size={36} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
+                🏅 Aluno do mês
+              </p>
+              <p className="font-bold text-sm truncate" style={{ color: 'var(--brand-texto)' }}>
+                {primeiroNome(alumDoMes.aluno_nome)}
+              </p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-xl font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>
+                {alumDoMes.presencas_mes}
+              </p>
+              <p className="text-[9px]" style={{ color: 'var(--brand-texto-muted)' }}>treinos</p>
+            </div>
+          </Link>
+        )}
+      </section>
 
       {/* ── Feed: Últimas Aulas ── */}
       {(ultimasAulas?.length ?? 0) > 0 && (

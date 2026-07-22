@@ -106,6 +106,37 @@ export async function updateFotoAluno(alunoId: string, fotoUrl: string) {
   return { success: true }
 }
 
+export async function adicionarNota(alunoId: string, texto: string) {
+  const textoCleaned = texto.trim().slice(0, 1000)
+  if (!textoCleaned) return { error: 'Nota vazia.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { data: prof } = await supabase
+    .from('professores').select('id').eq('user_id', user.id).maybeSingle()
+  if (!prof) return { error: 'Professor não encontrado.' }
+
+  const { error } = await supabase
+    .from('notas_professor')
+    .insert({ professor_id: prof.id, aluno_id: alunoId, texto: textoCleaned })
+
+  if (error) return { error: 'Erro ao salvar nota.' }
+  revalidatePath(`/alunos/${alunoId}`)
+  return { success: true }
+}
+
+export async function deletarNota(notaId: string, alunoId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  await supabase.from('notas_professor').delete().eq('id', notaId)
+  revalidatePath(`/alunos/${alunoId}`)
+  return { success: true }
+}
+
 export async function reativarAluno(alunoId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
