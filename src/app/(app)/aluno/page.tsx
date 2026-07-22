@@ -7,12 +7,16 @@ import { updateFotoPropria } from './actions'
 import PushSubscribeButton from './push-subscribe'
 import ConfirmarPresencaButton from './confirmar-button'
 import { graduacaoInsight } from '@/lib/graduacao-insight'
+import JornadaBanner from '@/components/jornada-banner'
 
 const FAIXA_HEX: Record<string, string> = {
   branca: '#FFFFFF', cinza: '#9CA3AF', amarela: '#FBBF24',
   laranja: '#F97316', verde: '#16A34A', azul: '#2563EB',
   roxa: '#7C3AED', marrom: '#92400E', preta: '#111111',
 }
+
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 
 type HomeInsights = {
   tecnica_reforcar: { nome: string; categoria_nome: string; categoria_id: string; ultima_vez: string } | null
@@ -51,6 +55,30 @@ export default async function AlunoHomePage() {
   // Análise de graduação — na home só quando notável (conquista recente
   // ou próxima faixa perto), pra não repetir mensagem ambiente todo dia.
   const gradInsight = graduacaoInsight(aluno.faixa, aluno.grau, aluno.graduado_em, aluno.grau_em)
+
+  // ── Momentos da Jornada (banners instagramáveis) ──
+  const hojeDate = new Date()
+  const mesHoje = hojeDate.getMonth() + 1
+  const diaHoje = hojeDate.getDate()
+
+  // Datas do banco vêm como 'YYYY-MM-DD' → comparar em UTC evita drift de fuso.
+  const dataNasc = aluno.data_nascimento ? new Date(aluno.data_nascimento) : null
+  const isAniversario = dataNasc !== null
+    && (dataNasc.getUTCMonth() + 1) === mesHoje
+    && dataNasc.getUTCDate() === diaHoje
+
+  let isAnual = false
+  let anosNaAcademia = 0
+  if (aluno.matriculado_em) {
+    const dataMatricula = new Date(aluno.matriculado_em)
+    anosNaAcademia = hojeDate.getFullYear() - dataMatricula.getUTCFullYear()
+    const anivAcad = new Date(hojeDate.getFullYear(), dataMatricula.getUTCMonth(), dataMatricula.getUTCDate())
+    const diffAniv = Math.abs(hojeDate.getTime() - anivAcad.getTime()) / 86400000
+    isAnual = anosNaAcademia >= 1 && diffAniv <= 7
+  }
+
+  const isMensal = diaHoje <= 7
+  const momentoPrimario = isAniversario ? 'aniversario' : isAnual ? 'anual' : null
 
   // Aulas ativas na academia
   const { data: aulasAtivasData } = await supabase
@@ -269,6 +297,39 @@ export default async function AlunoHomePage() {
       </header>
 
       <main className="px-4 pt-5 space-y-5">
+
+        {/* ── Momentos da Jornada — banners instagramáveis dismissíveis ── */}
+        {(momentoPrimario || isMensal) && (
+          <div className="space-y-2">
+            {momentoPrimario === 'aniversario' && (
+              <JornadaBanner
+                tipo="aniversario"
+                emoji="🎂"
+                titulo={`Feliz aniversário, ${aluno.nome.split(' ')[0]}!`}
+                subtitulo="Toque para ver seu card e compartilhar →"
+                href="/aluno/momento/aniversario"
+              />
+            )}
+            {momentoPrimario === 'anual' && (
+              <JornadaBanner
+                tipo="anual"
+                emoji="🏆"
+                titulo={`${anosNaAcademia} ${anosNaAcademia === 1 ? 'ano' : 'anos'} no tatame!`}
+                subtitulo="Veja seu ano em treinos →"
+                href="/aluno/momento/anual"
+              />
+            )}
+            {isMensal && (
+              <JornadaBanner
+                tipo="mensal"
+                emoji="📅"
+                titulo={`Seu ${MESES[mesHoje - 1]} no tatame`}
+                subtitulo="Veja o resumo do mês →"
+                href="/aluno/momento/mensal"
+              />
+            )}
+          </div>
+        )}
 
         {/* Complete seu perfil — some sozinho quando nascimento + saúde preenchidos */}
         {perfilIncompleto && (

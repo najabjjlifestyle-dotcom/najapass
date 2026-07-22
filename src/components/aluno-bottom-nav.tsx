@@ -17,7 +17,8 @@ export default function AlunoBottomNav() {
   if (
     pathname === '/aluno/sem-conta' ||
     pathname === '/aluno/celebracao' ||
-    pathname.startsWith('/aluno/aula/')
+    pathname.startsWith('/aluno/aula/') ||
+    pathname.startsWith('/aluno/momento')
   ) return null
 
   return (
