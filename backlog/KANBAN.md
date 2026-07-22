@@ -403,6 +403,8 @@ Sem migrations. Sem mudança de schema.
 **Extensão (feedback do Mestre pós-entrega):**
 - **Bugfix "informações somem ao salvar":** os forms (`perfil-form.tsx`, `editar.tsx`, `graduacao.tsx`) faziam só `setOpen(false)` no sucesso — o `revalidatePath` do server action não re-renderizava a view no cliente, então a seção condicional (escondida quando tudo é null) continuava escondida após o 1º save. Corrigido com `router.refresh()` após cada save.
 - **Datas de graduação (B-082 ext):** migration `20260722000001_graduacao_datas.sql` adiciona `graduado_em` + `grau_em` (TIMESTAMPTZ). `graduarAluno` compara faixa/grau atual e data só o evento certo (troca de faixa → `graduado_em` + zera grau; grau maior na mesma faixa → `grau_em`). Exibido como seção "Graduação" no professor (`/alunos/[id]`) e no aluno (`/aluno/perfil`). Sem backfill — preenche a partir da próxima graduação.
+- **Bugfix REAL "aluno não salva":** o aluno só tem `SELECT` do próprio registro em `alunos` (RLS) — o UPDATE direto atualizava 0 linhas SEM erro, então "salvava" mas nada mudava. Migration `20260722000002_atualizar_perfil_proprio.sql` cria RPC `SECURITY DEFINER` (mesmo padrão de `atualizar_foto_propria`), e `updatePerfilProprio` passou a chamá-lo. dia_mensalidade fica fora do RPC (é do professor).
+- **Banho de loja no perfil do aluno:** `/aluno/perfil` repaginada — hero da graduação com faixa de BJJ estilizada (barra na cor + ponteira com os 4 graus, preenchidos/vazios) e datas de faixa/grau SEMPRE visíveis (fallback "Não registrada"/"Sem graus ainda"). Menu "Meu treino" (turmas + academia) com ícones lucide, seção "Meus dados". Graduação no professor também virou sempre-visível.
 
 ---
 

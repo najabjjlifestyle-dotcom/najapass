@@ -17,16 +17,13 @@ export default function PerfilForm({
   const [open, setOpen] = useState(false)
   const [dataNascimento, setDataNascimento] = useState(dataNascimentoAtual ?? '')
   const [condicoesSaude, setCondicoesSaude] = useState(condicoesSaudeAtual ?? '')
-  // Mensalidade é definida pelo professor — o aluno vê mas não edita.
-  // Reenviamos o valor atual pra não sobrescrever com null no update.
-  const [diaMensalidade] = useState(diaMensalidadeAtual?.toString() ?? '')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
   function handleSalvar() {
     setError('')
     startTransition(async () => {
-      const res = await updatePerfilProprio(dataNascimento, condicoesSaude, diaMensalidade)
+      const res = await updatePerfilProprio(dataNascimento, condicoesSaude)
       if (res?.error) { setError(res.error); return }
       setOpen(false)
       router.refresh()

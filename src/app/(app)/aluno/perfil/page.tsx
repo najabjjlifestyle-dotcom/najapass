@@ -4,6 +4,7 @@ import LogoutButton from '@/components/logout-button'
 import { updateFotoPropria } from '../actions'
 import PushSubscribeButton from '../push-subscribe'
 import PerfilForm from './perfil-form'
+import { CalendarDays, MapPin } from 'lucide-react'
 
 const FAIXA_HEX: Record<string, string> = {
   branca: '#FFFFFF', cinza: '#9CA3AF', amarela: '#FBBF24',
@@ -14,6 +15,31 @@ const FAIXA_HEX: Record<string, string> = {
 const DIAS_ABBR: Record<string, string> = {
   domingo: 'Dom', segunda: 'Seg', terca: 'Ter', quarta: 'Qua',
   quinta: 'Qui', sexta: 'Sex', sabado: 'Sáb',
+}
+
+function fmtLongo(iso: string | null): string | null {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+// Faixa de BJJ estilizada: barra na cor da faixa + ponteira com os 4 graus
+// (preenchidos em branco, vazios em cinza — os graus aparecem mesmo com 0).
+function BeltBar({ faixa, grau }: { faixa: string; grau: number }) {
+  const cor = FAIXA_HEX[faixa] ?? '#FFFFFF'
+  const rankCor = faixa === 'preta' ? '#DC2626' : '#111111'
+  return (
+    <div className="flex items-stretch h-11 rounded-lg overflow-hidden"
+      style={{ background: cor, border: '1px solid rgba(255,255,255,0.18)' }}>
+      <div className="flex-1" />
+      <div className="flex items-center justify-center gap-[4px] px-3" style={{ background: rankCor, minWidth: 92 }}>
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="w-[4px] h-6 rounded-sm"
+            style={{ background: i < grau ? '#FFFFFF' : 'rgba(255,255,255,0.18)' }} />
+        ))}
+      </div>
+      <div style={{ width: 18, background: cor }} />
+    </div>
+  )
 }
 
 export default async function AlunoPerfilPage() {
@@ -50,6 +76,9 @@ export default async function AlunoPerfilPage() {
       })()
     : null
 
+  const graduadoEm = fmtLongo(aluno.graduado_em)
+  const grauEm = fmtLongo(aluno.grau_em)
+
   return (
     <div>
       <div style={{ height: 3, background: FAIXA_HEX[aluno.faixa] ?? '#FFFFFF' }} />
@@ -67,18 +96,52 @@ export default async function AlunoPerfilPage() {
           <h1 className="text-lg font-bold leading-tight truncate" style={{ color: 'var(--brand-texto)' }}>
             {aluno.nome}
           </h1>
-          <div className="flex items-center gap-1.5 mt-1">
-            <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: FAIXA_HEX[aluno.faixa] ?? '#FFFFFF' }} />
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--brand-texto-muted)' }}>
-              {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
-            </p>
-          </div>
+          <p className="text-[11px] uppercase tracking-widest mt-1 capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
+            Faixa {aluno.faixa}{aluno.grau > 0 ? ` · ${aluno.grau}º grau` : ''}
+          </p>
         </div>
         <PushSubscribeButton />
       </header>
 
       <main className="px-5 pt-5 pb-10 space-y-5">
 
+        {/* ── Hero da graduação — faixa + graus + datas, sempre visível ── */}
+        <div className="rounded-2xl p-5 space-y-4"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <BeltBar faixa={aluno.faixa} grau={aluno.grau} />
+
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-2xl font-bold capitalize leading-none" style={{ color: 'var(--brand-texto)' }}>
+                Faixa {aluno.faixa}
+              </p>
+              <p className="text-sm mt-1" style={{ color: 'var(--brand-gold)' }}>
+                {aluno.grau > 0 ? `${aluno.grau}º grau` : 'Lisa'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-4" style={{ borderTop: '1px solid var(--brand-border)' }}>
+            <div>
+              <p className="text-[9px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                Faixa desde
+              </p>
+              <p className="text-sm" style={{ color: graduadoEm ? 'var(--brand-texto-sec)' : 'var(--brand-texto-muted)' }}>
+                {graduadoEm ?? 'Não registrada'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                Último grau
+              </p>
+              <p className="text-sm" style={{ color: grauEm ? 'var(--brand-texto-sec)' : 'var(--brand-texto-muted)' }}>
+                {grauEm ?? (aluno.grau > 0 ? 'Não registrado' : 'Sem graus ainda')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Stats ── */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl py-4 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
             <p className="text-[28px] font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>{total ?? 0}</p>
@@ -86,102 +149,88 @@ export default async function AlunoPerfilPage() {
               aulas no Naja BJJ
             </p>
           </div>
-          {desde ? (
-            <div className="rounded-2xl py-4 px-2 text-center flex flex-col justify-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-              <p className="text-sm font-bold leading-tight" style={{ color: 'var(--brand-gold)' }}>
-                {tempoNaAcademia}
-              </p>
-              <p className="text-[9px] uppercase tracking-widest mt-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                na academia · desde {desde}
-              </p>
+          <div className="rounded-2xl py-4 px-2 text-center flex flex-col justify-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            {desde ? (
+              <>
+                <p className="text-sm font-bold leading-tight" style={{ color: 'var(--brand-gold)' }}>
+                  {tempoNaAcademia}
+                </p>
+                <p className="text-[9px] uppercase tracking-widest mt-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  na academia · desde {desde}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-bold leading-tight" style={{ color: 'var(--brand-texto-muted)' }}>
+                  —
+                </p>
+                <p className="text-[9px] uppercase tracking-widest mt-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  tempo de casa
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── Menu ── */}
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-widest px-1" style={{ color: 'var(--brand-texto-muted)' }}>
+            Meu treino
+          </p>
+
+          {turmas.map(t => (
+            <div key={t.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+              style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+                <CalendarDays size={16} style={{ color: 'var(--brand-gold)' }} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold uppercase tracking-wider text-sm truncate" style={{ color: 'var(--brand-texto)' }}>
+                  {t.nome}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  {t.dias_semana?.map(d => (
+                    <span key={d}
+                      className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+                      style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)' }}>
+                      {DIAS_ABBR[d] ?? d}
+                    </span>
+                  ))}
+                  {t.horario && (
+                    <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>· {t.horario.substring(0, 5)}</span>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="rounded-2xl py-4 text-center flex flex-col justify-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-              <p className="text-[28px] font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>
-                {aluno.grau}
-              </p>
-              <p className="text-[9px] uppercase tracking-widest mt-2" style={{ color: 'var(--brand-texto-muted)' }}>
-                {aluno.grau === 1 ? 'grau' : 'graus'}
-              </p>
+          ))}
+
+          {academia?.nome && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+              style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+                <MapPin size={16} style={{ color: 'var(--brand-gold)' }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Academia</p>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--brand-texto)' }}>{academia.nome}</p>
+              </div>
             </div>
           )}
         </div>
 
-        {(aluno.graduado_em || aluno.grau_em) && (
-          <div>
-            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-              Graduação
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {aluno.graduado_em && (
-                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                    Faixa {aluno.faixa} desde
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>
-                    {new Date(aluno.graduado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
-              )}
-              {aluno.grau_em && (
-                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                    {aluno.grau}º grau desde
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>
-                    {new Date(aluno.grau_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {turmas.length > 0 && (
-          <div>
-            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-              Minhas turmas
-            </p>
-            <div className="space-y-2">
-              {turmas.map(t => (
-                <div key={t.id} className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  <p className="font-bold uppercase tracking-wider text-sm" style={{ color: 'var(--brand-texto)' }}>
-                    {t.nome}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    {t.dias_semana?.map(d => (
-                      <span key={d}
-                        className="text-[9px] font-bold uppercase px-2 py-0.5 rounded"
-                        style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
-                        {DIAS_ABBR[d] ?? d}
-                      </span>
-                    ))}
-                    {t.horario && (
-                      <span className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>· {t.horario.substring(0, 5)}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {academia?.nome && (
-          <div>
-            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
-              Academia
-            </p>
-            <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-              <p className="text-sm font-medium" style={{ color: 'var(--brand-texto)' }}>{academia.nome}</p>
-            </div>
-          </div>
-        )}
-
-        <PerfilForm
-          dataNascimentoAtual={aluno.data_nascimento}
-          condicoesSaudeAtual={aluno.condicoes_saude}
-          diaMensalidadeAtual={aluno.dia_mensalidade}
-        />
+        {/* ── Dados pessoais ── */}
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-widest px-1" style={{ color: 'var(--brand-texto-muted)' }}>
+            Meus dados
+          </p>
+          <PerfilForm
+            dataNascimentoAtual={aluno.data_nascimento}
+            condicoesSaudeAtual={aluno.condicoes_saude}
+            diaMensalidadeAtual={aluno.dia_mensalidade}
+          />
+        </div>
 
         <LogoutButton />
       </main>
