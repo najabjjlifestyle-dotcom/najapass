@@ -3,6 +3,7 @@ import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 type AulaPresenca = {
   id: string | null
   data: string | null
+  foto_url: string | null
   turmas: { nome: string } | null
   aula_tecnicas: { tipo: string; tecnicas: { nome: string } | null }[] | null
 }
@@ -30,7 +31,7 @@ export default async function AlunoHistoricoPage() {
     supabase.from('presencas').select('registrado_em')
       .eq('aluno_id', aluno.id).order('registrado_em', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('presencas')
-      .select('registrado_em, aulas(id, data, turmas(nome), aula_tecnicas(tipo, tecnicas(nome)))')
+      .select('registrado_em, aulas(id, data, foto_url, turmas(nome), aula_tecnicas(tipo, tecnicas(nome)))')
       .eq('aluno_id', aluno.id)
       .order('registrado_em', { ascending: false })
       .limit(50),
@@ -53,6 +54,7 @@ export default async function AlunoHistoricoPage() {
       return {
         aulaId: aula?.id ?? null,
         data: aula?.data ?? null,
+        foto_url: aula?.foto_url ?? null,
         turma: aula?.turmas?.nome ?? 'Aula avulsa',
         tecnicas,
         registrado_em: p.registrado_em,
@@ -108,7 +110,17 @@ export default async function AlunoHistoricoPage() {
                   ? new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
                   : ''
                 return (
-                  <div key={i} className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <div key={i} className="rounded-2xl overflow-hidden" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                    {p.foto_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.foto_url}
+                        alt={`Treino ${p.turma}`}
+                        className="w-full object-cover"
+                        style={{ maxHeight: 160 }}
+                      />
+                    )}
+                    <div className="px-4 py-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-medium" style={{ color: 'var(--brand-texto-sec)' }}>{p.turma}</p>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -133,6 +145,7 @@ export default async function AlunoHistoricoPage() {
                         ))}
                       </div>
                     )}
+                    </div>
                   </div>
                 )
               })}
