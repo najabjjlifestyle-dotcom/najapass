@@ -4,6 +4,7 @@ import LogoutButton from '@/components/logout-button'
 import { updateFotoPropria } from '../actions'
 import PushSubscribeButton from '../push-subscribe'
 import PerfilForm from './perfil-form'
+import { graduacaoInsight } from '@/lib/graduacao-insight'
 import { CalendarDays, MapPin } from 'lucide-react'
 
 const FAIXA_HEX: Record<string, string> = {
@@ -20,71 +21,6 @@ const DIAS_ABBR: Record<string, string> = {
 function fmtLongo(iso: string | null): string | null {
   if (!iso) return null
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
-}
-
-// Próxima faixa na progressão (cobre a trilha adulto e a infantil).
-const PROXIMA_FAIXA: Record<string, string> = {
-  branca: 'azul', cinza: 'amarela', amarela: 'laranja', laranja: 'verde',
-  verde: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta',
-}
-
-// Análise motivacional de graduação — celebra conquista recente ou
-// avisa quando a próxima faixa está perto (retenção: não sumir dos treinos).
-function graduacaoInsight(faixa: string, grau: number, graduadoEm: string | null, grauEm: string | null) {
-  const DIA = 1000 * 60 * 60 * 24
-  const recente = (iso: string | null) => !!iso && (Date.now() - new Date(iso).getTime()) < 45 * DIA
-  const proxima = PROXIMA_FAIXA[faixa]
-
-  // 1. No grau máximo com próxima faixa à vista — nudge mais forte de retenção
-  if (proxima && grau >= 4) {
-    return {
-      emoji: '🔥',
-      titulo: `A faixa ${proxima} está logo ali`,
-      texto: `Você chegou ao 4º grau da faixa ${faixa} — a ${proxima} vem da consistência no tatame. Sumir agora reseta esse ritmo. Bora manter a presença!`,
-    }
-  }
-  // 2. Trocou de faixa há pouco
-  if (recente(graduadoEm)) {
-    return {
-      emoji: '🎉',
-      titulo: `Parabéns pela faixa ${faixa}!`,
-      texto: proxima
-        ? `Conquista nova é combustível. Continue aparecendo e comece a somar graus rumo à faixa ${proxima}.`
-        : 'Você chegou ao topo. Siga treinando e inspirando a academia.',
-    }
-  }
-  // 3. Ganhou grau há pouco
-  if (recente(grauEm)) {
-    return {
-      emoji: '⭐',
-      titulo: `${grau}º grau conquistado!`,
-      texto: proxima
-        ? `Cada grau te aproxima da faixa ${proxima}. Mantenha a frequência que a evolução continua.`
-        : 'Mais um marco. Continue firme no tatame.',
-    }
-  }
-  // 4. Perto da próxima faixa (3º grau)
-  if (proxima && grau === 3) {
-    return {
-      emoji: '🥋',
-      titulo: `Rumo à faixa ${proxima}`,
-      texto: `3º grau da faixa ${faixa} — você está na reta. Cada treino conta pra chegar na ${proxima}.`,
-    }
-  }
-  // 5. Progresso geral
-  if (proxima) {
-    return {
-      emoji: '💪',
-      titulo: `Construindo a faixa ${proxima}`,
-      texto: 'Graduação é presença somada no tempo. Quanto mais constante, mais rápido você evolui.',
-    }
-  }
-  // 6. Faixa preta — topo da jornada
-  return {
-    emoji: '🖤',
-    titulo: 'Faixa preta',
-    texto: 'O ápice da jornada. Agora é legado — siga treinando e formando novos faixas-pretas.',
-  }
 }
 
 // Faixa de BJJ estilizada: barra na cor da faixa + ponteira com os 4 graus
