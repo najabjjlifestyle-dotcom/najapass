@@ -4,6 +4,7 @@ import LogoutButton from '@/components/logout-button'
 import { updateFotoPropria } from '../actions'
 import PushSubscribeButton from '../push-subscribe'
 import PerfilForm from './perfil-form'
+import { graduacaoInsight } from '@/lib/graduacao-insight'
 import { CalendarDays, MapPin } from 'lucide-react'
 
 const FAIXA_HEX: Record<string, string> = {
@@ -78,6 +79,7 @@ export default async function AlunoPerfilPage() {
 
   const graduadoEm = fmtLongo(aluno.graduado_em)
   const grauEm = fmtLongo(aluno.grau_em)
+  const insight = graduacaoInsight(aluno.faixa, aluno.grau, aluno.graduado_em, aluno.grau_em)
 
   return (
     <div>
@@ -138,6 +140,16 @@ export default async function AlunoPerfilPage() {
                 {grauEm ?? (aluno.grau > 0 ? 'Não registrado' : 'Sem graus ainda')}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* ── Análise de graduação — celebra conquista / avisa próxima faixa ── */}
+        <div className="rounded-2xl p-4 flex gap-3 items-start"
+          style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+          <span className="text-2xl leading-none flex-shrink-0">{insight.emoji}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-bold" style={{ color: 'var(--brand-gold)' }}>{insight.titulo}</p>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--brand-texto-sec)' }}>{insight.texto}</p>
           </div>
         </div>
 

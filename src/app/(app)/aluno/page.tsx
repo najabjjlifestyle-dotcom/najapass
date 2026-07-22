@@ -5,6 +5,7 @@ import AvatarUpload from '@/components/avatar-upload'
 import { updateFotoPropria } from './actions'
 import PushSubscribeButton from './push-subscribe'
 import ConfirmarPresencaButton from './confirmar-button'
+import { graduacaoInsight } from '@/lib/graduacao-insight'
 
 const FAIXA_HEX: Record<string, string> = {
   branca: '#FFFFFF', cinza: '#9CA3AF', amarela: '#FBBF24',
@@ -29,6 +30,10 @@ export default async function AlunoHomePage() {
   // Perfil incompleto: falta nascimento OU saúde nunca foi preenchida (null).
   // condicoes_saude === '' conta como preenchido ("sem condições").
   const perfilIncompleto = !aluno.data_nascimento || aluno.condicoes_saude === null
+
+  // Análise de graduação — na home só quando notável (conquista recente
+  // ou próxima faixa perto), pra não repetir mensagem ambiente todo dia.
+  const gradInsight = graduacaoInsight(aluno.faixa, aluno.grau, aluno.graduado_em, aluno.grau_em)
 
   // Aulas ativas na academia
   const { data: aulasAtivasData } = await supabase
@@ -338,6 +343,21 @@ export default async function AlunoHomePage() {
 
         {/* Insights */}
         <div className="space-y-3">
+          {/* Análise de graduação — celebra conquista / avisa próxima faixa */}
+          {gradInsight.notavel && (
+            <Link href="/aluno/perfil"
+              className="block rounded-2xl p-4 active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+              <div className="flex gap-3 items-start">
+                <span className="text-2xl leading-none flex-shrink-0">{gradInsight.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold" style={{ color: 'var(--brand-gold)' }}>{gradInsight.titulo}</p>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--brand-texto-sec)' }}>{gradInsight.texto}</p>
+                </div>
+              </div>
+            </Link>
+          )}
+
           {/* Hora de revisar — só aparece se há técnica stale (>21d) */}
           {insights?.tecnica_reforcar && (() => {
             const dias = Math.floor(
