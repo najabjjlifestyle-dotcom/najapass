@@ -5,6 +5,7 @@
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v2.3: Adicionado EP-26 (Dados do Aluno) com cards B-081 a B-083. Perfil completo: data nascimento, saúde, mensalidade, tempo de casa. Banner de perfil incompleto na home do aluno.
 - v2.2: Adicionado B-080 ao EP-25. Fix de performance (tela branca: loading.tsx + queries paralelas em boas-vindas) + unificação do fluxo de entrada (landing page pula tela BEM-VINDO do boas-vindas).
 - v2.1: Adicionado EP-25 (Homepage / Landing Page) com card B-079. Landing page com pitch do app + CTAs "Sou Professor" / "Sou Aluno" para usuários não autenticados.
 - v2.0: Adicionado EP-21 (Loop Simplificado do Professor) com cards B-069 a B-072. Abrir Agora, sticky Finalizar, feedback revisado com "Quais técnicas ensinou?", remove ✗ ao vivo.
@@ -45,6 +46,8 @@
 | EP-19 | Planejamento Avançado (filtro por tema + histórinhas) | 🟡 P1 |
 | EP-20 | Banho de Usabilidade + Jornada do Aluno | 🔴 P0 |
 | EP-21 | Loop Simplificado do Professor | 🔴 P0 |
+| EP-25 | Homepage / Landing Page | 🟡 P1 |
+| EP-26 | Perfil Completo do Aluno (dados pessoais + saúde + mensalidade) | 🟡 P1 |
 
 ---
 
@@ -921,6 +924,53 @@ Eliminar tela branca ao carregar o app e remover a tela "BEM-VINDO" redundante a
 - Fallback: `/boas-vindas` sem `?role` continua mostrando tela "BEM-VINDO" (compatibilidade com links antigos)
 
 **Referência:** `HANDOFF-020-performance-unificacao-entrada.md` na raiz do projeto.
+
+---
+
+### EP-26 · Perfil Completo do Aluno
+
+#### B-081 · Migration: data_nascimento, condicoes_saude, dia_mensalidade
+**Prioridade:** P1 | **Estimativa:** XS  
+Adicionar 3 colunas à tabela `alunos` para suportar dados pessoais expandidos.
+
+**Critérios de aceite:**
+- `data_nascimento DATE` adicionada à tabela `alunos`
+- `condicoes_saude TEXT` adicionada (LGPD — protegida por RLS existente)
+- `dia_mensalidade SMALLINT CHECK (1 AND 31)` adicionada
+- Migration idempotente (`ADD COLUMN IF NOT EXISTS`)
+
+**Referência:** `HANDOFF-021-perfil-completo-aluno.md` — card B-081.
+
+---
+
+#### B-082 · Perfil expandido: visão professor + visão aluno
+**Prioridade:** P1 | **Estimativa:** M  
+Professor vê e edita dados pessoais do aluno. Aluno edita seus próprios dados.
+
+**Critérios de aceite:**
+- `AlunoBasico` em `aluno-auth.ts` inclui `data_nascimento`, `condicoes_saude`, `dia_mensalidade`, `matriculado_em`
+- Página professor `/alunos/[id]` exibe seção "Dados pessoais" com: aniversário (badge 🎂 quando ≤7 dias), condições de saúde, dia de mensalidade
+- Formulário professor `/alunos/[id]/editar.tsx` inclui campos para os 3 novos dados
+- `updateAluno` em `actions.ts` atualiza os novos campos
+- Nova página aluno `/aluno/perfil` inclui `PerfilForm` para o aluno editar `data_nascimento`, `condicoes_saude`, `dia_mensalidade`
+- Página `/aluno/perfil` exibe "tempo de casa" usando `matriculado_em` ("na academia desde mês/ano")
+- Nova server action `updatePerfilProprio` em `aluno/actions.ts`
+
+**Referência:** `HANDOFF-021-perfil-completo-aluno.md` — card B-082.
+
+---
+
+#### B-083 · Banner "Complete seu perfil" na home do aluno
+**Prioridade:** P1 | **Estimativa:** XS  
+Aluno sem data de nascimento ou condições de saúde vê banner na home pedindo para completar o perfil.
+
+**Critérios de aceite:**
+- `perfilIncompleto = !aluno.data_nascimento || aluno.condicoes_saude === null`
+- Banner visível na `/aluno` quando perfil incompleto; usa `--brand-gold-dim` + `--brand-gold-border`
+- Banner é link para `/aluno/perfil`
+- Banner desaparece após perfil completo
+
+**Referência:** `HANDOFF-021-perfil-completo-aluno.md` — card B-083.
 
 ---
 

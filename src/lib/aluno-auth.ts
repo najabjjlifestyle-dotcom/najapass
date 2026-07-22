@@ -8,6 +8,10 @@ export type AlunoBasico = {
   grau: number
   academia_id: string
   foto_url: string | null
+  matriculado_em: string | null
+  data_nascimento: string | null
+  condicoes_saude: string | null
+  dia_mensalidade: number | null
 }
 
 export async function getAlunoOuRedireciona(): Promise<{
@@ -24,7 +28,7 @@ export async function getAlunoOuRedireciona(): Promise<{
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, academia_id, foto_url')
+    .select('id, nome, faixa, grau, academia_id, foto_url, matriculado_em, data_nascimento, condicoes_saude, dia_mensalidade')
     .eq('user_id', user.id)
     .maybeSingle()
 

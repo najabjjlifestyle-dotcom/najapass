@@ -23,7 +23,15 @@ export async function graduarAluno(alunoId: string, faixa: string, grau: number)
   return { success: true }
 }
 
-export async function updateAluno(alunoId: string, nome: string, email: string, telefone: string) {
+export async function updateAluno(
+  alunoId: string,
+  nome: string,
+  email: string,
+  telefone: string,
+  dataNascimento: string,
+  condicoesSaude: string,
+  diaMensalidade: string,
+) {
   const nomeTrim = nome.trim()
   if (!nomeTrim) return { error: 'Nome é obrigatório.' }
 
@@ -37,6 +45,9 @@ export async function updateAluno(alunoId: string, nome: string, email: string, 
       nome: nomeTrim,
       email: email.trim() || null,
       telefone: telefone.trim() || null,
+      data_nascimento: dataNascimento.trim() || null,   // vazio = não preenchido
+      condicoes_saude: condicoesSaude,                   // '' é válido = sem condições
+      dia_mensalidade: diaMensalidade ? Number(diaMensalidade) || null : null,
     })
     .eq('id', alunoId)
 

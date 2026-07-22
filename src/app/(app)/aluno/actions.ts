@@ -67,6 +67,35 @@ export async function updateFotoPropria(fotoUrl: string) {
   return { success: true }
 }
 
+export async function updatePerfilProprio(dataNascimento: string, condicoesSaude: string, diaMensalidade: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada.' }
+
+  const { data: aluno } = await supabase
+    .from('alunos')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!aluno) return { error: 'Perfil não encontrado.' }
+
+  const { error } = await supabase
+    .from('alunos')
+    .update({
+      data_nascimento: dataNascimento.trim() || null,
+      condicoes_saude: condicoesSaude,   // '' = sem condições (diferente de null = não preenchido)
+      dia_mensalidade: diaMensalidade ? Number(diaMensalidade) || null : null,
+    })
+    .eq('id', aluno.id)
+
+  if (error) return { error: 'Erro ao salvar informações.' }
+
+  revalidatePath('/aluno/perfil')
+  revalidatePath('/aluno')
+  return { success: true }
+}
+
 export async function cancelarCheckin(aulaId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

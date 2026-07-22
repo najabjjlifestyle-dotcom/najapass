@@ -3,6 +3,7 @@ import AvatarUpload from '@/components/avatar-upload'
 import LogoutButton from '@/components/logout-button'
 import { updateFotoPropria } from '../actions'
 import PushSubscribeButton from '../push-subscribe'
+import PerfilForm from './perfil-form'
 
 const FAIXA_HEX: Record<string, string> = {
   branca: '#FFFFFF', cinza: '#9CA3AF', amarela: '#FBBF24',
@@ -31,6 +32,23 @@ export default async function AlunoPerfilPage() {
   const turmas = (turmasData ?? [])
     .map(t => t.turmas as unknown as { id: string; nome: string; dias_semana: string[] | null; horario: string | null } | null)
     .filter(Boolean) as { id: string; nome: string; dias_semana: string[] | null; horario: string | null }[]
+
+  const desde = aluno.matriculado_em
+    ? new Date(aluno.matriculado_em).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    : null
+
+  const tempoNaAcademia = aluno.matriculado_em
+    ? (() => {
+        const meses = Math.floor((Date.now() - new Date(aluno.matriculado_em!).getTime()) / (1000 * 60 * 60 * 24 * 30.5))
+        if (meses < 1) return 'Menos de 1 mês'
+        if (meses < 12) return `${meses} ${meses > 1 ? 'meses' : 'mês'}`
+        const anos = Math.floor(meses / 12)
+        const resto = meses % 12
+        return resto > 0
+          ? `${anos} ano${anos > 1 ? 's' : ''} e ${resto} ${resto > 1 ? 'meses' : 'mês'}`
+          : `${anos} ano${anos > 1 ? 's' : ''}`
+      })()
+    : null
 
   return (
     <div>
@@ -61,11 +79,32 @@ export default async function AlunoPerfilPage() {
 
       <main className="px-5 pt-5 pb-10 space-y-5">
 
-        <div className="rounded-2xl py-4 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-          <p className="text-[28px] font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>{total ?? 0}</p>
-          <p className="text-[9px] uppercase tracking-widest mt-2" style={{ color: 'var(--brand-texto-muted)' }}>
-            aulas no Naja BJJ
-          </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl py-4 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            <p className="text-[28px] font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>{total ?? 0}</p>
+            <p className="text-[9px] uppercase tracking-widest mt-2" style={{ color: 'var(--brand-texto-muted)' }}>
+              aulas no Naja BJJ
+            </p>
+          </div>
+          {desde ? (
+            <div className="rounded-2xl py-4 px-2 text-center flex flex-col justify-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="text-sm font-bold leading-tight" style={{ color: 'var(--brand-gold)' }}>
+                {tempoNaAcademia}
+              </p>
+              <p className="text-[9px] uppercase tracking-widest mt-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                na academia · desde {desde}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl py-4 text-center flex flex-col justify-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="text-[28px] font-bold leading-none" style={{ color: 'var(--brand-gold)' }}>
+                {aluno.grau}
+              </p>
+              <p className="text-[9px] uppercase tracking-widest mt-2" style={{ color: 'var(--brand-texto-muted)' }}>
+                {aluno.grau === 1 ? 'grau' : 'graus'}
+              </p>
+            </div>
+          )}
         </div>
 
         {turmas.length > 0 && (
@@ -107,6 +146,12 @@ export default async function AlunoPerfilPage() {
             </div>
           </div>
         )}
+
+        <PerfilForm
+          dataNascimentoAtual={aluno.data_nascimento}
+          condicoesSaudeAtual={aluno.condicoes_saude}
+          diaMensalidadeAtual={aluno.dia_mensalidade}
+        />
 
         <LogoutButton />
       </main>
