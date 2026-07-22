@@ -14,7 +14,11 @@ const ITEMS = [
 export default function AlunoBottomNav() {
   const pathname = usePathname()
 
-  if (pathname === '/aluno/sem-conta') return null
+  if (
+    pathname === '/aluno/sem-conta' ||
+    pathname === '/aluno/celebracao' ||
+    pathname.startsWith('/aluno/aula/')
+  ) return null
 
   return (
     <nav

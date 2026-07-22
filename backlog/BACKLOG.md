@@ -1,10 +1,13 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-17 (v2.1)  
+**Última atualização:** 2026-07-22 (v2.6)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v2.6: Adicionado EP-29 (Jornada no Tatame) com cards B-096 a B-099. Cards instagramáveis de aniversário, anual, mensal e graduação para o aluno.
+- v2.5: Adicionado EP-28 (Professor Surreal) com cards B-089 a B-095. Notas privadas, churn precoce, aluno do mês, gap curricular, foto da turma, card de graduação.
+- v2.4: Adicionado EP-27 (Aluno Surreal) com cards B-084 a B-088. Streak semanal de treinos, linha do tempo da faixa, diário privado de treino, celebração de graduação.
 - v2.3: Adicionado EP-26 (Dados do Aluno) com cards B-081 a B-083. Perfil completo: data nascimento, saúde, mensalidade, tempo de casa. Banner de perfil incompleto na home do aluno.
 - v2.2: Adicionado B-080 ao EP-25. Fix de performance (tela branca: loading.tsx + queries paralelas em boas-vindas) + unificação do fluxo de entrada (landing page pula tela BEM-VINDO do boas-vindas).
 - v2.1: Adicionado EP-25 (Homepage / Landing Page) com card B-079. Landing page com pitch do app + CTAs "Sou Professor" / "Sou Aluno" para usuários não autenticados.
@@ -48,6 +51,9 @@
 | EP-21 | Loop Simplificado do Professor | 🔴 P0 |
 | EP-25 | Homepage / Landing Page | 🟡 P1 |
 | EP-26 | Perfil Completo do Aluno (dados pessoais + saúde + mensalidade) | 🟡 P1 |
+| EP-27 | Aluno Surreal (streak + faixa + diário + celebração) | 🟡 P1 |
+| EP-28 | Professor Surreal (notas + churn + aluno do mês + gap + foto + card grad.) | 🟡 P1 |
+| EP-29 | Jornada no Tatame (cards instagramáveis: aniversário, anual, mensal, graduação) | 🟡 P1 |
 
 ---
 
@@ -971,6 +977,252 @@ Aluno sem data de nascimento ou condições de saúde vê banner na home pedindo
 - Banner desaparece após perfil completo
 
 **Referência:** `HANDOFF-021-perfil-completo-aluno.md` — card B-083.
+
+---
+
+### EP-27 · Aluno Surreal
+
+#### B-084 · Migration: anotacoes_treino + celebrar_graduacao + RPC streak
+**Prioridade:** P1 | **Estimativa:** XS  
+Migration com nova tabela de diário, flag de celebração e RPC de streak semanal.
+
+**Critérios de aceite:**
+- `anotacoes_treino(id, aluno_id, aula_id, texto, criado_em)` criada com RLS (aluno só vê as próprias)
+- `alunos.celebrar_graduacao BOOLEAN DEFAULT FALSE` adicionada
+- RPC `calcular_streak_aluno(p_aluno_id UUID) RETURNS INTEGER` criada (streaks semanais consecutivos)
+- Migration idempotente
+
+**Referência:** `HANDOFF-022-aluno-surreal.md` — card B-084.
+
+---
+
+#### B-085 · Streak semanal de treinos no header da home do aluno
+**Prioridade:** P1 | **Estimativa:** S  
+Header da `/aluno` exibe "🔥 X semanas seguidas" quando o aluno tem sequência ativa.
+
+**Critérios de aceite:**
+- `calcular_streak_aluno` chamada em paralelo com outros fetches da home
+- Streak ≥ 1: exibe "🔥 X semana(s) seguida(s)" abaixo do chip de faixa
+- Streak = 0: nada exibido
+- Semana atual sem treino ainda não quebra sequência das semanas anteriores
+- `celebrar_graduacao = true` → redirect para `/aluno/celebracao` antes de renderizar home
+
+**Referência:** `HANDOFF-022-aluno-surreal.md` — card B-085.
+
+---
+
+#### B-086 · Linha do tempo da faixa em /aluno/perfil
+**Prioridade:** P1 | **Estimativa:** XS  
+Perfil do aluno exibe quantas aulas ele treinou na faixa atual.
+
+**Critérios de aceite:**
+- Count de presenças desde `graduado_em` (fallback `matriculado_em`)
+- Exibido dentro do hero da graduação ("X aulas como faixa azul")
+- Frase contextual muda por volume (≥100, ≥50, ≥20, menos)
+- Bloco oculto quando count = 0
+
+**Referência:** `HANDOFF-022-aluno-surreal.md` — card B-086.
+
+---
+
+#### B-087 · Diário privado de treino
+**Prioridade:** P1 | **Estimativa:** M  
+Aluno pode anotar observações pessoais após cada aula. Privado — só o aluno vê.
+
+**Critérios de aceite:**
+- Nova página `/aluno/aula/[id]/anotacao` com textarea (max 2000 chars)
+- Actions `salvarAnotacao` (upsert) e `deletarAnotacao`
+- `/aluno/historico` mostra ✏️ (sem nota) ou 📝 (com nota) em cada aula; ambos linkam para a página
+- Card de check-in (`checkin.tsx`) mostra "✏️ Anotar treino →" após confirmar presença
+- Bottom nav oculta em `/aluno/aula/*`
+
+**Referência:** `HANDOFF-022-aluno-surreal.md` — card B-087.
+
+---
+
+#### B-088 · Celebração de graduação
+**Prioridade:** P1 | **Estimativa:** M  
+Quando o professor gradua um aluno, na próxima abertura do app o aluno vê uma tela especial de celebração.
+
+**Critérios de aceite:**
+- `graduarAluno` seta `celebrar_graduacao = true` no banco
+- `/aluno/page.tsx` redireciona para `/aluno/celebracao` se flag ativa
+- Tela: gradiente na cor da nova faixa, BeltBar, data, total de aulas, top 3 técnicas
+- Animação de entrada (fade + scale) no client component
+- Botão "Incrível! Vamos treinar 🥋" chama `dismissCelebracao()` e volta para `/aluno`
+- Após dismiss, flag = false, aluno não vê a tela novamente
+- Acesso direto sem flag ativa redireciona para `/aluno`
+- Bottom nav oculta em `/aluno/celebracao`
+
+**Referência:** `HANDOFF-022-aluno-surreal.md` — card B-088.
+
+---
+
+### EP-28 · Professor Surreal
+
+#### B-089 · Migration: notas_professor + aulas.foto_url + RPCs
+**Prioridade:** P1 | **Estimativa:** S  
+Tabela de notas privadas do professor por aluno, coluna de foto da turma e dois RPCs de inteligência.
+
+**Critérios de aceite:**
+- `notas_professor(id, professor_id, aluno_id, texto, criado_em)` criada com RLS
+- `aulas.foto_url TEXT` adicionada
+- RPC `aluno_do_mes(p_academia_id)` retorna o aluno com mais presenças no mês corrente
+- RPC `alunos_em_risco_churn(p_academia_id)` retorna alunos que sumiram (≥3 treinos/mês anterior, ≤1 recente)
+- Bucket `aulas-fotos` criado manualmente no Supabase Storage
+
+**Referência:** `HANDOFF-023-professor-surreal.md` — card B-089.
+
+---
+
+#### B-090 · Notas privadas por aluno
+**Prioridade:** P1 | **Estimativa:** M  
+Professor pode adicionar observações privadas no perfil de cada aluno. Aluno não vê.
+
+**Critérios de aceite:**
+- Seção "🔒 Observações do professor" no `/alunos/[id]`
+- Textarea + botão "+" adiciona nota (update otimista)
+- Notas listadas com data de criação e botão ✕ para deletar
+- RLS garante que somente professores da academia veem/editam as notas
+- Aluno nunca vê as notas (policy não inclui `alunos.user_id`)
+
+**Referência:** `HANDOFF-023-professor-surreal.md` — card B-090.
+
+---
+
+#### B-091 · Alerta de rotatividade precoce no dashboard
+**Prioridade:** P1 | **Estimativa:** S  
+Dashboard avisa quando um aluno frequente está sumindo.
+
+**Critérios de aceite:**
+- Card de alerta laranja por aluno em risco (máx. 3 simultâneos)
+- Toque no card vai para o perfil do aluno
+- Alerta aparece somente quando critério de churn é atingido
+
+**Referência:** `HANDOFF-023-professor-surreal.md` — card B-091.
+
+---
+
+#### B-092 · Aluno do mês no dashboard
+**Prioridade:** P1 | **Estimativa:** S  
+Card dourado com o aluno de maior frequência no mês corrente.
+
+**Critérios de aceite:**
+- Card visível apenas quando há presenças no mês corrente
+- Exibe foto, nome e contagem de treinos do mês
+- Toque vai para o perfil do aluno
+
+**Referência:** `HANDOFF-023-professor-surreal.md` — card B-092.
+
+---
+
+#### B-093 · Gap curricular por faixa em /relatorios
+**Prioridade:** P1 | **Estimativa:** M  
+Nova aba "Currículo" mostra quais técnicas de cada faixa não foram ensinadas nos últimos 90 dias.
+
+**Critérios de aceite:**
+- Nova aba "Currículo" em `/relatorios`
+- Exibe apenas faixas de alunos ativos da academia
+- Barra de progresso por faixa (ensinadas recentemente / total do currículo)
+- Chips das técnicas não cobertas
+- Ordenado por faixa (branca → preta)
+
+**Referência:** `HANDOFF-023-professor-surreal.md` — card B-093.
+
+---
+
+#### B-094 · Foto da turma pós-aula
+**Prioridade:** P2 | **Estimativa:** M  
+Professor pode registrar uma foto da turma após finalizar a aula.
+
+**Critérios de aceite:**
+- Seção "📸 Foto da turma" visível somente em aulas `finalizada`
+- Upload via bucket `aulas-fotos` (path: `aulas/{aulaId}.jpg`)
+- Foto exibida na tela da aula após upload
+- Possível trocar foto (upload substitui a anterior)
+
+**Referência:** `HANDOFF-023-professor-surreal.md` — card B-094.
+
+---
+
+#### B-095 · Card de graduação instagramável
+**Prioridade:** P1 | **Estimativa:** M  
+Página full-screen para o professor abrir após graduar um aluno, otimizada para screenshot/Instagram.
+
+**Critérios de aceite:**
+- Rota `/alunos/[id]/card-graduacao` abre em nova aba
+- Fundo escuro + gradiente radial na cor da nova faixa
+- BeltBar com grau, foto/inicial do aluno, nome, data de graduação, stats (aulas na faixa / total)
+- Link "📸 Card de graduação →" no perfil do aluno (abaixo do GraduacaoForm)
+- Página sem bottom nav nem header (clean screenshot)
+
+**Referência:** `HANDOFF-023-professor-surreal.md` — card B-095.
+
+---
+
+### EP-29 · Jornada no Tatame
+
+#### B-096 · Sem migration (dados já existentes)
+**Prioridade:** P1 | **Estimativa:** XS  
+Toda a feature usa dados já disponíveis no banco.
+
+**Critérios de aceite:**
+- Confirmar que `alunos.data_nascimento`, `alunos.matriculado_em`, `alunos.faixa`, `presencas`, `aula_tecnicas` estão acessíveis
+- Sem nova tabela ou coluna
+
+**Referência:** `HANDOFF-024-jornada-tatame.md` — card B-096.
+
+---
+
+#### B-097 · Banners de momentos na home do aluno
+**Prioridade:** P1 | **Estimativa:** S  
+Home do aluno exibe banners contextuais quando um "momento" da jornada está ativo.
+
+**Critérios de aceite:**
+- Banner 🎂 aparece no dia do aniversário do aluno (campo `data_nascimento`)
+- Banner 🏆 aparece ±7 dias do aniversário de matrícula (≥1 ano na academia)
+- Banner 📅 aparece nos primeiros 7 dias do mês
+- Botão ✕ dismiss local (some até recarregar)
+- Banners linkam para `/aluno/momento/[tipo]`
+- Componente `JornadaBanner` client-side, dismissível via useState
+
+**Referência:** `HANDOFF-024-jornada-tatame.md` — card B-097.
+
+---
+
+#### B-098 · Rotas instagramáveis `/aluno/momento/[tipo]`
+**Prioridade:** P1 | **Estimativa:** M  
+Server component que busca dados e renderiza o card correto por tipo.
+
+**Critérios de aceite:**
+- `/aluno/momento/aniversario` — busca `data_nascimento` + total de aulas
+- `/aluno/momento/anual` — busca anos na academia + aulas do último ano + técnica favorita
+- `/aluno/momento/mensal` — busca aulas do mês anterior
+- `/aluno/momento/graduacao` — busca aulas na faixa atual + total
+- Tipo inválido retorna 404
+- Bottom nav suprimida em todas as rotas `/aluno/momento/*`
+
+**Referência:** `HANDOFF-024-jornada-tatame.md` — card B-098.
+
+---
+
+#### B-099 · Cards instagramáveis (4 client components)
+**Prioridade:** P1 | **Estimativa:** L  
+Quatro telas full-screen com design premium, animações de entrada e branding NajaPass.
+
+**Critérios de aceite:**
+- Todos os cards: `min-h-dvh`, sem scroll em iPhone 14 (375×812)
+- Fundo `#080808` + gradiente radial na cor da faixa do aluno
+- Stat principal em `text-4xl font-bold` ou maior, estilo NajaPass
+- Botão "← Fechar" ou "← Perfil" com link correto
+- Rodapé discreto "najapass.com.br" presente em todos
+- **Aniversário:** total de aulas como stat principal + frase motivacional
+- **Anual:** grid 2×1 (aulas no ano + total) + técnica favorita + barra de faixa
+- **Mensal:** contagem de treinos + barra de progresso animada (meta 12 treinos)
+- **Graduação:** BeltBar com spring animation + grid de stats + faixa label grande
+- Link "📸 Compartilhar graduação" no `/aluno/perfil`
+
+**Referência:** `HANDOFF-024-jornada-tatame.md` — card B-099.
 
 ---
 

@@ -122,9 +122,18 @@ export default function CheckinCard({
       </div>
 
       {checked && (
-        <p className="text-xs mt-3 uppercase tracking-widest" style={{ color: 'rgba(0,0,0,0.5)' }}>
-          Check-in confirmado · toque para cancelar
-        </p>
+        <div className="mt-3">
+          <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(0,0,0,0.5)' }}>
+            Check-in confirmado · toque para cancelar
+          </p>
+          <a
+            href={`/aluno/aula/${aula.id}/anotacao`}
+            onClick={e => e.stopPropagation()}
+            className="inline-block text-xs mt-1.5 uppercase tracking-widest underline underline-offset-2"
+            style={{ color: 'rgba(0,0,0,0.45)' }}>
+            ✏️ Anotar treino →
+          </a>
+        </div>
       )}
 
       <button

@@ -1,6 +1,7 @@
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 
 type AulaPresenca = {
+  id: string | null
   data: string | null
   turmas: { nome: string } | null
   aula_tecnicas: { tipo: string; tecnicas: { nome: string } | null }[] | null
@@ -18,6 +19,7 @@ export default async function AlunoHistoricoPage() {
     { count: total },
     { data: ultimaPresenca },
     { data: presencasData },
+    { data: anotacoesData },
   ] = await Promise.all([
     supabase.from('presencas').select('id', { count: 'exact', head: true })
       .eq('aluno_id', aluno.id).gte('registrado_em', trintaDias.toISOString()),
@@ -28,11 +30,14 @@ export default async function AlunoHistoricoPage() {
     supabase.from('presencas').select('registrado_em')
       .eq('aluno_id', aluno.id).order('registrado_em', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('presencas')
-      .select('registrado_em, aulas(data, turmas(nome), aula_tecnicas(tipo, tecnicas(nome)))')
+      .select('registrado_em, aulas(id, data, turmas(nome), aula_tecnicas(tipo, tecnicas(nome)))')
       .eq('aluno_id', aluno.id)
       .order('registrado_em', { ascending: false })
       .limit(50),
+    supabase.from('anotacoes_treino').select('aula_id').eq('aluno_id', aluno.id),
   ])
+
+  const anotacoesSet = new Set((anotacoesData ?? []).map(a => a.aula_id))
 
   const diasDesdeUltima = ultimaPresenca?.registrado_em
     ? Math.floor((Date.now() - new Date(ultimaPresenca.registrado_em).getTime()) / 86400000)
@@ -46,6 +51,7 @@ export default async function AlunoHistoricoPage() {
         .map(at => at.tecnicas?.nome)
         .filter((n): n is string => Boolean(n))
       return {
+        aulaId: aula?.id ?? null,
         data: aula?.data ?? null,
         turma: aula?.turmas?.nome ?? 'Aula avulsa',
         tecnicas,
@@ -105,7 +111,16 @@ export default async function AlunoHistoricoPage() {
                   <div key={i} className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-medium" style={{ color: 'var(--brand-texto-sec)' }}>{p.turma}</p>
-                      <p className="text-xs flex-shrink-0 ml-2 capitalize" style={{ color: 'var(--brand-texto-muted)' }}>{dataFmt}</p>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <p className="text-xs capitalize" style={{ color: 'var(--brand-texto-muted)' }}>{dataFmt}</p>
+                        {p.aulaId && (
+                          <a href={`/aluno/aula/${p.aulaId}/anotacao`}
+                            className="text-sm active:opacity-60"
+                            title={anotacoesSet.has(p.aulaId) ? 'Ver anotação' : 'Anotar treino'}>
+                            {anotacoesSet.has(p.aulaId) ? '📝' : '✏️'}
+                          </a>
+                        )}
+                      </div>
                     </div>
                     {p.tecnicas.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">

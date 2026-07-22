@@ -1,6 +1,8 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-22 (v2.25 — B-081/B-082/B-083: perfil completo do aluno)
+**Atualizado em:** 2026-07-22 (v2.28 — B-084→B-088: Aluno Surreal implementado, sprint25)
+
+> **Sprint 25 (HANDOFF-022 — Aluno Surreal) — branch `feat/sprint25-aluno-surreal`, IMPLEMENTADA:** streak semanal (🔥) no header da home, linha do tempo da faixa no perfil, diário privado de treino (`anotacoes_treino` + `/aluno/aula/[id]/anotacao` + ícone ✏️/📝 no histórico), tela de celebração de graduação (`/aluno/celebracao`). Migration `20260722000003_aluno_surreal.sql` (prefixo 003 pra não colidir com a sprint24). **2 fixes sobre o handoff:** (1) `dismissCelebracao` foi para RPC `SECURITY DEFINER` (`dismissar_celebracao_propria`) — o handoff usava UPDATE direto, bloqueado pelo RLS do aluno, o que o prenderia em loop na celebração; (2) `CREATE POLICY IF NOT EXISTS` (inválido em Postgres) trocado por DROP+CREATE.
 
 ---
 
@@ -100,6 +102,11 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-081 | Migration: data_nascimento, condicoes_saude, dia_mensalidade | Alunos |
 | B-082 | Perfil expandido: visão professor + visão aluno | Alunos |
 | B-083 | Banner "Complete seu perfil" na home do aluno | Alunos |
+| B-084 | Migration: anotacoes_treino + celebrar_graduacao + RPC streak | Aluno Surreal |
+| B-085 | Streak semanal de treinos no header da home do aluno | Aluno Surreal |
+| B-086 | Linha do tempo da faixa em /aluno/perfil | Aluno Surreal |
+| B-087 | Diário privado de treino | Aluno Surreal |
+| B-088 | Celebração de graduação | Aluno Surreal |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
@@ -110,6 +117,9 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 > B-075/B-076 na branch `feat/sprint21-banho-loja-selects` (mergeada); B-077/B-078 na branch `feat/sprint22-turma-cockpit` (mergeada) — ver seções de detalhes abaixo.
 > B-079/B-080 na branch `feat/sprint23-homepage` (a partir da `main`) — ver seção de detalhes abaixo.
 > B-081/B-082/B-083 na branch `feat/sprint24-perfil-aluno` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-084/B-085/B-086/B-087/B-088 na branch `feat/sprint25-aluno-surreal` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-089/B-090/B-091/B-092/B-093/B-094/B-095 na branch `feat/sprint26-professor-surreal` (a partir da `main`) — HANDOFF-023 escrito, aguardando implementação.
+> B-096/B-097/B-098/B-099 na branch `feat/sprint27-jornada-tatame` (a partir da `main`) — HANDOFF-024 escrito, aguardando implementação.
 
 ---
 
@@ -405,6 +415,58 @@ Sem migrations. Sem mudança de schema.
 - **Datas de graduação (B-082 ext):** migration `20260722000001_graduacao_datas.sql` adiciona `graduado_em` + `grau_em` (TIMESTAMPTZ). `graduarAluno` compara faixa/grau atual e data só o evento certo (troca de faixa → `graduado_em` + zera grau; grau maior na mesma faixa → `grau_em`). Exibido como seção "Graduação" no professor (`/alunos/[id]`) e no aluno (`/aluno/perfil`). Sem backfill — preenche a partir da próxima graduação.
 - **Bugfix REAL "aluno não salva":** o aluno só tem `SELECT` do próprio registro em `alunos` (RLS) — o UPDATE direto atualizava 0 linhas SEM erro, então "salvava" mas nada mudava. Migration `20260722000002_atualizar_perfil_proprio.sql` cria RPC `SECURITY DEFINER` (mesmo padrão de `atualizar_foto_propria`), e `updatePerfilProprio` passou a chamá-lo. dia_mensalidade fica fora do RPC (é do professor).
 - **Banho de loja no perfil do aluno:** `/aluno/perfil` repaginada — hero da graduação com faixa de BJJ estilizada (barra na cor + ponteira com os 4 graus, preenchidos/vazios) e datas de faixa/grau SEMPRE visíveis (fallback "Não registrada"/"Sem graus ainda"). Menu "Meu treino" (turmas + academia) com ícones lucide, seção "Meus dados". Graduação no professor também virou sempre-visível.
+
+---
+
+## 🔍 Detalhes B-084/B-085/B-086/B-087/B-088 (branch `feat/sprint25-aluno-surreal`, a partir da `main`, HANDOFF-022)
+
+**B-084 — Migration:** nova tabela `anotacoes_treino` (diário privado — uma nota por aluno por aula, max 2000 chars, RLS só o próprio aluno vê). Nova coluna `alunos.celebrar_graduacao BOOLEAN DEFAULT FALSE`. Nova RPC `calcular_streak_aluno(UUID) RETURNS INTEGER`: conta semanas ISO consecutivas com ao menos 1 presença em aula finalizada; semana atual em andamento sem treino não quebra o streak.
+
+**B-085 — Streak:** RPC chamada em paralelo no `AlunoHomePage`. Resultado ≥ 1 → "🔥 X semana(s) seguida(s)" abaixo do chip de faixa no header. Zero → nada exibido. Redirect para `/aluno/celebracao` se `celebrar_graduacao = true`. `AlunoBasico` em `aluno-auth.ts` ganha o campo `celebrar_graduacao`.
+
+**B-086 — Linha do tempo da faixa:** query de presenças desde `graduado_em` (fallback `matriculado_em`) adicionada ao `Promise.all` do `/aluno/perfil`. Bloco "X aulas como faixa [faixa]" dentro do hero de graduação com frase contextual por volume.
+
+**B-087 — Diário do treino:** nova página `/aluno/aula/[id]/anotacao` (server component valida presença + carrega nota existente) + `AnotacaoForm` (upsert com textarea + save verde ao confirmar). `salvarAnotacao` e `deletarAnotacao` no `aluno/actions.ts`. `/aluno/historico` ganha ✏️/📝 por aula (links). `checkin.tsx` mostra "✏️ Anotar treino →" após check-in confirmado. Bottom nav oculta em `/aluno/aula/*`.
+
+**B-088 — Celebração de graduação:** `graduarAluno` seta `celebrar_graduacao = true`. `/aluno/page.tsx` redireciona para `/aluno/celebracao` se flag ativa. `CelebracaoPage` (server): total aulas + top 3 técnicas. `CelebracaoScreen` (client): full-screen com gradiente na cor da nova faixa, BeltBar animado (scale + fade-in), stats, CTA "Incrível! 🥋" que chama `dismissCelebracao()` e faz `router.replace('/aluno')`. Acesso direto sem flag → redirect `/aluno`. Bottom nav oculta.
+
+---
+
+## 🔍 Sprint 26 — Professor Surreal (branch `feat/sprint26-professor-surreal`, HANDOFF-023)
+
+**Status:** HANDOFF escrito · aguardando implementação
+
+**Escopo:** B-089 · B-090 · B-091 · B-092 · B-093 · B-094 · B-095
+
+B-089 — Migration: `notas_professor` (id, professor_id, aluno_id, texto, criado_em) + RLS. `aulas.foto_url TEXT`. RPC `aluno_do_mes(p_academia_id)` + RPC `alunos_em_risco_churn(p_academia_id)`. Bucket `aulas-fotos` criado manualmente no Supabase.
+
+B-090 — Notas privadas: `NotasProfessor` client component em `/alunos/[id]`. Textarea + botão "+" (update otimista). Actions `adicionarNota` / `deletarNota` com auth + RLS.
+
+B-091 — Churn: dashboard chama RPC `alunos_em_risco_churn`. Cards de alerta laranja linkando para `/alunos/[id]`.
+
+B-092 — Aluno do mês: dashboard chama RPC `aluno_do_mes`. Card dourado com foto, nome, contagem de treinos. Só aparece quando há presenças no mês corrente.
+
+B-093 — Gap curricular: nova aba "Currículo" em `/relatorios`. `CurriculoTab` server component — query local sem RPC. Barra de cobertura por faixa + chips das técnicas não ensinadas nos últimos 90 dias.
+
+B-094 — Foto da turma: `AulaFotoUpload` componente (base: `AvatarUpload`). Bucket `aulas-fotos`, path `aulas/{aulaId}.jpg`. Seção visível somente em aulas `finalizada`. Action `salvarFotoAula`.
+
+B-095 — Card instagramável: página `/alunos/[id]/card-graduacao` — full-screen sem nav, gradiente na cor da faixa, BeltBar, foto/inicial, nome, data de graduação, stats. Link "📸 Card de graduação →" no perfil do aluno.
+
+---
+
+## 🔍 Sprint 27 — Jornada no Tatame (branch `feat/sprint27-jornada-tatame`, HANDOFF-024)
+
+**Status:** HANDOFF escrito · aguardando implementação
+
+**Escopo:** B-096 · B-097 · B-098 · B-099
+
+B-096 — Sem migration: todos os dados já existem (`data_nascimento`, `matriculado_em`, `presencas`, `aula_tecnicas`).
+
+B-097 — Banners na home: lógica de detecção server-side (aniversário / aniversário academia / mensal). `JornadaBanner` client component dismissível (useState). Prioridade: aniversário > anual; mensal pode coexistir com qualquer um.
+
+B-098 — Rotas `/aluno/momento/[tipo]`: server component que busca dados por tipo e renderiza o client component correto. Tipos: `aniversario` · `anual` · `mensal` · `graduacao`. Tipo inválido → 404. Bottom nav suprimida via `aluno-bottom-nav.tsx`.
+
+B-099 — 4 client components instagramáveis: `MomentoAniversario` / `MomentoAnual` / `MomentoMensal` / `MomentoGraduacao`. Todos: `min-h-dvh`, sem scroll, fundo `#080808` + gradiente radial na cor da faixa, tipografia grande, animação fade/slide de entrada. Link "📸 Compartilhar graduação" adicionado ao `/aluno/perfil`.
 
 ---
 
