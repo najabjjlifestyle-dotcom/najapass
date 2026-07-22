@@ -1,6 +1,6 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-17 (v2.24 — B-079/B-080: landing page + fix tela branca)
+**Atualizado em:** 2026-07-22 (v2.25 — B-081/B-082/B-083: perfil completo do aluno)
 
 ---
 
@@ -97,6 +97,9 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-078 | Histórico global: linha do tempo compacta (sem chips) | Histórico |
 | B-079 | Homepage / landing page para novos usuários | Marketing |
 | B-080 | Performance (tela branca) + unificação do fluxo de entrada | Marketing/Perf |
+| B-081 | Migration: data_nascimento, condicoes_saude, dia_mensalidade | Alunos |
+| B-082 | Perfil expandido: visão professor + visão aluno | Alunos |
+| B-083 | Banner "Complete seu perfil" na home do aluno | Alunos |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
@@ -105,7 +108,8 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 > B-069/B-070/B-071/B-072 na branch `feat/sprint19-loop-simplificado` (a partir da `main` após merge das sprints 17 e 18) — ver seção de detalhes abaixo.
 > B-073/B-074 na branch `feat/sprint20-planejamento-dados` (a partir da `main`) — ver seção de detalhes abaixo.
 > B-075/B-076 na branch `feat/sprint21-banho-loja-selects` (mergeada); B-077/B-078 na branch `feat/sprint22-turma-cockpit` (mergeada) — ver seções de detalhes abaixo.
-> B-079 na branch `feat/sprint23-homepage` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-079/B-080 na branch `feat/sprint23-homepage` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-081/B-082/B-083 na branch `feat/sprint24-perfil-aluno` (a partir da `main`) — ver seção de detalhes abaixo.
 
 ---
 
@@ -383,6 +387,18 @@ B-079 (landing) já tinha sido feito no HANDOFF-019 e mergeado. Este handoff (qu
 **Extra:** a tela BEM-VINDO (fallback) tinha um `<img src="/logo.webp">` de um asset inexistente (aparecia como ícone quebrado no print do usuário) — trocado por `/cobra.webp`, que já existe.
 
 Sem migrations. Sem mudança de schema.
+
+---
+
+## 🔍 Detalhes B-081/B-082/B-083 (branch `feat/sprint24-perfil-aluno`, a partir da `main`, HANDOFF-021)
+
+**Contexto:** pedido do Mestre Naja (professor principal da plataforma) via mensagem direta: nome completo visível no perfil (para graduar e parabenizar), data de nascimento (aniversário), condições de saúde (ex: aluna diabética), além de data de entrada na academia e dia de vencimento de mensalidade (visual-only por ora).
+
+**B-081 — Migration:** 3 novas colunas em `alunos` — `data_nascimento DATE`, `condicoes_saude TEXT` (dado sensível LGPD, protegido pelo RLS existente), `dia_mensalidade SMALLINT CHECK (1 AND 31)`. Tudo com `ADD COLUMN IF NOT EXISTS`, idempotente, aplicar manualmente no SQL Editor do Supabase.
+
+**B-082 — Perfil expandido:** `AlunoBasico` (em `aluno-auth.ts`) passa a incluir `matriculado_em`, `data_nascimento`, `condicoes_saude`, `dia_mensalidade`. Visão professor (`/alunos/[id]`): nova seção "Dados pessoais" com badge 🎂 quando aniversário em ≤7 dias, campo de condições de saúde (visível só se preenchido), dia de mensalidade. Formulário professor (`/alunos/[id]/editar.tsx`) ganha campos para os 3 novos dados. Visão aluno (`/aluno/perfil`): novo `PerfilForm` onde o aluno preenche seus próprios dados + exibe "na academia desde mês/ano" via `matriculado_em` já existente. Nova action `updatePerfilProprio` em `aluno/actions.ts`.
+
+**B-083 — Banner:** `/aluno` exibe card-link dourado "Complete seu perfil" quando `!data_nascimento || condicoes_saude === null`. Usa `--brand-gold-dim` + `--brand-gold-border`. Desaparece automaticamente quando perfil completo.
 
 ---
 

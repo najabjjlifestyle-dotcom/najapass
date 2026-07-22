@@ -13,6 +13,24 @@ const FAIXA_COR: Record<string, string> = {
   roxa: 'bg-purple-400', marrom: 'bg-amber-700', preta: 'bg-gray-800 border border-white/20',
 }
 
+// Dias até o próximo aniversário + idade atual. Usa meio-dia pra evitar
+// deslocamento de timezone que jogaria a data pro dia anterior.
+function proximoAniversario(dataNasc: string | null): { diasAte: number; idade: number } | null {
+  if (!dataNasc) return null
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const nasc = new Date(dataNasc + 'T12:00:00')
+
+  const proxAniv = new Date(hoje.getFullYear(), nasc.getMonth(), nasc.getDate())
+  if (proxAniv < hoje) proxAniv.setFullYear(hoje.getFullYear() + 1)
+
+  const diasAte = Math.round((proxAniv.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+  // Idade que ele terá/tem hoje: anos entre nascimento e o ano do aniversário
+  // que ainda vai acontecer, menos 1 se o aniversário deste ciclo é no ano que vem.
+  const idade = proxAniv.getFullYear() - nasc.getFullYear() - (diasAte === 0 ? 0 : 1)
+  return { diasAte, idade }
+}
+
 type PresencaRow = {
   aula_id: string
   aulas: { data: string; tema: string | null; turmas: { nome: string } | null } | null
@@ -33,7 +51,7 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url')
+    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url, data_nascimento, condicoes_saude, dia_mensalidade')
     .eq('id', id)
     .single()
 
@@ -147,6 +165,74 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
           </div>
         )}
 
+        {/* Dados pessoais — só aparece se o aluno preencheu algo */}
+        {(aluno.data_nascimento || aluno.condicoes_saude !== null || aluno.dia_mensalidade) && (
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
+              Dados pessoais
+            </p>
+
+            {aluno.data_nascimento && (() => {
+              const aniv = proximoAniversario(aluno.data_nascimento)
+              const dataFormatada = new Date(aluno.data_nascimento + 'T12:00:00')
+                .toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+              return (
+                <div className="flex items-center justify-between px-4 py-3 rounded-2xl"
+                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                      Nascimento
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>
+                      {dataFormatada}
+                    </p>
+                    {aniv && (
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                        {aniv.idade} anos
+                      </p>
+                    )}
+                  </div>
+                  {aniv && aniv.diasAte <= 7 && (
+                    <span
+                      className="text-xs font-bold px-3 py-1 rounded-xl"
+                      style={{
+                        background: aniv.diasAte === 0 ? 'rgba(251,191,36,0.15)' : 'var(--brand-gold-dim)',
+                        border: `1px solid ${aniv.diasAte === 0 ? 'rgba(251,191,36,0.5)' : 'var(--brand-gold-border)'}`,
+                        color: 'var(--brand-gold)',
+                      }}>
+                      {aniv.diasAte === 0 ? '🎂 Hoje!' : `🎂 em ${aniv.diasAte}d`}
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
+
+            {aluno.condicoes_saude !== null && (
+              <div className="px-4 py-3 rounded-2xl"
+                style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Saúde
+                </p>
+                <p className="text-sm" style={{ color: aluno.condicoes_saude ? 'var(--brand-texto-sec)' : 'var(--brand-texto-muted)' }}>
+                  {aluno.condicoes_saude || 'Nenhuma condição informada'}
+                </p>
+              </div>
+            )}
+
+            {aluno.dia_mensalidade && (
+              <div className="px-4 py-3 rounded-2xl"
+                style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Mensalidade
+                </p>
+                <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>
+                  Dia {aluno.dia_mensalidade} de cada mês
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Turmas */}
         <div>
           <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Turmas</p>
@@ -240,6 +326,9 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
           emailAtual={aluno.email}
           telefoneAtual={aluno.telefone}
           ativo={aluno.ativo ?? true}
+          dataNascimentoAtual={aluno.data_nascimento ?? null}
+          condicoesSaudeAtual={aluno.condicoes_saude ?? null}
+          diaMensalidadeAtual={aluno.dia_mensalidade ?? null}
         />
 
         {/* Attendance history */}

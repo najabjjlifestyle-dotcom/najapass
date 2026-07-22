@@ -26,6 +26,10 @@ export default async function AlunoHomePage() {
   const { data: insightsRaw } = await supabase.rpc('aluno_home_insights', { p_aluno_id: aluno.id })
   const insights = insightsRaw as HomeInsights | null
 
+  // Perfil incompleto: falta nascimento OU saúde nunca foi preenchida (null).
+  // condicoes_saude === '' conta como preenchido ("sem condições").
+  const perfilIncompleto = !aluno.data_nascimento || aluno.condicoes_saude === null
+
   // Aulas ativas na academia
   const { data: aulasAtivasData } = await supabase
     .from('aulas')
@@ -234,6 +238,23 @@ export default async function AlunoHomePage() {
       </header>
 
       <main className="px-4 pt-5 space-y-5">
+
+        {/* Complete seu perfil — some sozinho quando nascimento + saúde preenchidos */}
+        {perfilIncompleto && (
+          <Link href="/aluno/perfil"
+            className="flex items-center justify-between px-4 py-3 rounded-2xl active:scale-[0.98] transition-transform"
+            style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-gold)' }}>
+                Complete seu perfil
+              </p>
+              <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
+                Adicione data de nascimento e informações de saúde
+              </p>
+            </div>
+            <span className="text-sm flex-shrink-0 ml-3" style={{ color: 'var(--brand-gold)' }}>→</span>
+          </Link>
+        )}
 
         {/* Avisos */}
         {(avisosData ?? []).length > 0 && (
