@@ -67,27 +67,17 @@ export async function updateFotoPropria(fotoUrl: string) {
   return { success: true }
 }
 
-export async function updatePerfilProprio(dataNascimento: string, condicoesSaude: string, diaMensalidade: string) {
+export async function updatePerfilProprio(dataNascimento: string, condicoesSaude: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sessão expirada.' }
 
-  const { data: aluno } = await supabase
-    .from('alunos')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (!aluno) return { error: 'Perfil não encontrado.' }
-
-  const { error } = await supabase
-    .from('alunos')
-    .update({
-      data_nascimento: dataNascimento.trim() || null,
-      condicoes_saude: condicoesSaude,   // '' = sem condições (diferente de null = não preenchido)
-      dia_mensalidade: diaMensalidade ? Number(diaMensalidade) || null : null,
-    })
-    .eq('id', aluno.id)
+  // Via RPC SECURITY DEFINER: o aluno não tem UPDATE direto em `alunos`
+  // (só SELECT), então um update normal seria bloqueado pelo RLS sem erro.
+  const { error } = await supabase.rpc('atualizar_perfil_proprio', {
+    p_data_nascimento: dataNascimento.trim() || null,
+    p_condicoes_saude: condicoesSaude,   // '' = sem condições (diferente de null = não preenchido)
+  })
 
   if (error) return { error: 'Erro ao salvar informações.' }
 

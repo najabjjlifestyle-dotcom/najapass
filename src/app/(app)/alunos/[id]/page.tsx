@@ -137,30 +137,28 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {/* Graduação — datas da faixa atual e do último grau */}
-        {(aluno.graduado_em || aluno.grau_em) && (
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Graduação</p>
-            <div className="grid grid-cols-2 gap-3">
-              {aluno.graduado_em && (
-                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                    Faixa {aluno.faixa} desde
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>{fmtData(aluno.graduado_em)}</p>
-                </div>
-              )}
-              {aluno.grau_em && (
-                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
-                    {aluno.grau}º grau desde
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>{fmtData(aluno.grau_em)}</p>
-                </div>
-              )}
+        {/* Graduação — datas da faixa atual e do último grau (sempre visível) */}
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>Graduação</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="text-[10px] uppercase tracking-widest mb-0.5 capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
+                Faixa {aluno.faixa} desde
+              </p>
+              <p className="text-sm" style={{ color: aluno.graduado_em ? 'var(--brand-texto-sec)' : 'var(--brand-texto-muted)' }}>
+                {fmtData(aluno.graduado_em) ?? 'Não registrada'}
+              </p>
+            </div>
+            <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+              <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                {aluno.grau > 0 ? `${aluno.grau}º grau desde` : 'Último grau'}
+              </p>
+              <p className="text-sm" style={{ color: aluno.grau_em ? 'var(--brand-texto-sec)' : 'var(--brand-texto-muted)' }}>
+                {fmtData(aluno.grau_em) ?? (aluno.grau > 0 ? 'Não registrado' : 'Sem graus ainda')}
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
