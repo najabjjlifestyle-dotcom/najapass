@@ -6,6 +6,8 @@ import TecnicasAula from './tecnicas-aula'
 import BackButton from '@/components/back-button'
 import AulaAgendadaActions from './agendada-actions'
 import DuplicarAulaButton from '@/components/duplicar-aula-button'
+import AulaFotoUpload from '@/components/aula-foto-upload'
+import { salvarFotoAula } from './actions'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
@@ -25,7 +27,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   const { data: aula } = await supabase
     .from('aulas')
-    .select('id, data, status, hora_inicio, turma_id, video_url, tema_id, turmas(nome), tema:categorias_tecnicas(nome)')
+    .select('id, data, status, hora_inicio, turma_id, video_url, tema_id, foto_url, turmas(nome), tema:categorias_tecnicas(nome)')
     .eq('id', id)
     .single()
 
@@ -287,6 +289,37 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         outrosAlunos={outrosAlunos}
         status={aula.status}
       />
+
+      {/* Foto da turma — só em aula finalizada */}
+      {aula.status === 'finalizada' && (
+        <div className="mt-4 px-5 pb-6">
+          <p className="text-[10px] uppercase tracking-widest mb-3" style={{ color: 'var(--brand-texto-muted)' }}>
+            📸 Foto da turma
+          </p>
+          {aula.foto_url ? (
+            <div className="relative rounded-2xl overflow-hidden" style={{ border: '1px solid var(--brand-border)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={aula.foto_url as string}
+                alt="Foto da turma"
+                className="w-full object-cover"
+                style={{ maxHeight: 320 }}
+              />
+              <AulaFotoUpload
+                aulaId={aula.id}
+                fotoUrlAtual={aula.foto_url as string}
+                persist={salvarFotoAula.bind(null, aula.id)}
+              />
+            </div>
+          ) : (
+            <AulaFotoUpload
+              aulaId={aula.id}
+              fotoUrlAtual={null}
+              persist={salvarFotoAula.bind(null, aula.id)}
+            />
+          )}
+        </div>
+      )}
     </div>
   )
 }

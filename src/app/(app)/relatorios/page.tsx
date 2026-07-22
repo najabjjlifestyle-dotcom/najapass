@@ -24,7 +24,8 @@ const PERIODOS = [
 const TABS = [
   { value: 'tecnicas', label: 'Técnicas' },
   { value: 'alunos', label: 'Alunos' },
-  { value: 'frequencia', label: 'Frequência' },
+  { value: 'frequencia', label: 'Freq.' },
+  { value: 'curriculo', label: 'Currículo' },
 ]
 
 export default async function RelatoriosPage({
@@ -94,6 +95,7 @@ export default async function RelatoriosPage({
         {aba === 'tecnicas' && <TecnicasTab acadId={acadId} dataInicio={dataInicio} dataFim={dataFim} />}
         {aba === 'alunos' && <AlunosTab acadId={acadId} dataInicio={dataInicio} dataFim={dataFim} />}
         {aba === 'frequencia' && <FrequenciaTab acadId={acadId} dataInicio={dataInicio} dataFim={dataFim} />}
+        {aba === 'curriculo' && <CurriculoTab acadId={acadId} />}
       </main>
     </div>
   )
@@ -371,6 +373,120 @@ async function AlunosTab({ acadId, dataInicio, dataFim }: { acadId: string; data
         </section>
       )}
     </>
+  )
+}
+
+// ── Aba: Currículo (gap por faixa) ─────────────────────────────────────────
+
+async function CurriculoTab({ acadId }: { acadId: string }) {
+  const supabase = await createClient()
+
+  const { data: alunosData } = await supabase
+    .from('alunos')
+    .select('faixa')
+    .eq('academia_id', acadId)
+    .eq('ativo', true)
+
+  const faixasPresentes = [...new Set((alunosData ?? []).map(a => a.faixa))].filter(Boolean)
+
+  const noventa = new Date()
+  noventa.setDate(noventa.getDate() - 90)
+  const noventaStr = noventa.toISOString().split('T')[0]
+
+  const { data: ensinadasData } = await supabase
+    .from('aula_tecnicas')
+    .select('tecnica_id, aulas!inner(academia_id, data, status)')
+    .eq('aulas.academia_id', acadId)
+    .eq('aulas.status', 'finalizada')
+    .gte('aulas.data', noventaStr)
+    .eq('tipo', 'ensinada')
+
+  const ensinadasIds = new Set((ensinadasData ?? []).map(r => r.tecnica_id))
+
+  const { data: curriculoData } = await supabase
+    .from('tecnicas')
+    .select('id, nome, faixas, categorias_tecnicas(nome)')
+    .or(`academia_id.eq.${acadId},global.eq.true`)
+
+  type TecCurr = {
+    id: string
+    nome: string
+    faixas: string[]
+    categorias_tecnicas: { nome: string } | null
+  }
+  const curriculo = (curriculoData ?? []) as unknown as TecCurr[]
+
+  const FAIXA_ORDER = ['branca', 'cinza', 'amarela', 'laranja', 'verde', 'azul', 'roxa', 'marrom', 'preta']
+  const faixasOrdenadas = FAIXA_ORDER.filter(f => faixasPresentes.includes(f))
+
+  const gapPorFaixa = faixasOrdenadas.map(faixa => {
+    const tecsDaFaixa = curriculo.filter(t =>
+      t.faixas?.length === 0 ? false : t.faixas?.includes(faixa)
+    )
+    const gap = tecsDaFaixa.filter(t => !ensinadasIds.has(t.id))
+    return { faixa, total: tecsDaFaixa.length, gap, ensinadas: tecsDaFaixa.length - gap.length }
+  }).filter(f => f.total > 0)
+
+  if (gapPorFaixa.length === 0) {
+    return (
+      <p className="text-sm text-center py-16" style={{ color: 'var(--brand-texto-muted)' }}>
+        Nenhum aluno ativo ou sem técnicas associadas por faixa no currículo.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[10px] px-1" style={{ color: 'var(--brand-texto-muted)' }}>
+        Técnicas por faixa não ensinadas nos últimos 90 dias
+      </p>
+      {gapPorFaixa.map(({ faixa, total, gap, ensinadas }) => {
+        const pct = total > 0 ? Math.round((ensinadas / total) * 100) : 0
+        return (
+          <div key={faixa} className="rounded-2xl p-4 space-y-3"
+            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-8 rounded-sm flex-shrink-0"
+                  style={{ background: FAIXA_COR_HEX[faixa] ?? '#fff' }} />
+                <p className="font-bold capitalize" style={{ color: 'var(--brand-texto)' }}>{faixa}</p>
+              </div>
+              <p className="text-xs font-bold" style={{ color: pct === 100 ? '#4ADE80' : 'var(--brand-gold)' }}>
+                {pct}% coberto
+              </p>
+            </div>
+            <div style={{ height: 3, background: 'var(--brand-border)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: 'var(--brand-gold)', borderRadius: 3 }} />
+            </div>
+            {gap.length > 0 ? (
+              <div>
+                <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: 'var(--brand-texto-muted)' }}>
+                  Não ensinadas recentemente
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {gap.slice(0, 8).map(t => (
+                    <span key={t.id}
+                      className="text-[10px] px-2 py-0.5 rounded-lg"
+                      style={{ border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }}>
+                      {t.nome}
+                    </span>
+                  ))}
+                  {gap.length > 8 && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-lg" style={{ color: '#555', border: '1px solid #1A1A1A' }}>
+                      +{gap.length - 8}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: '#4ADE80' }}>
+                ✓ Todas as técnicas desta faixa ensinadas recentemente
+              </p>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
