@@ -22,6 +22,71 @@ function fmtLongo(iso: string | null): string | null {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
+// Próxima faixa na progressão (cobre a trilha adulto e a infantil).
+const PROXIMA_FAIXA: Record<string, string> = {
+  branca: 'azul', cinza: 'amarela', amarela: 'laranja', laranja: 'verde',
+  verde: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta',
+}
+
+// Análise motivacional de graduação — celebra conquista recente ou
+// avisa quando a próxima faixa está perto (retenção: não sumir dos treinos).
+function graduacaoInsight(faixa: string, grau: number, graduadoEm: string | null, grauEm: string | null) {
+  const DIA = 1000 * 60 * 60 * 24
+  const recente = (iso: string | null) => !!iso && (Date.now() - new Date(iso).getTime()) < 45 * DIA
+  const proxima = PROXIMA_FAIXA[faixa]
+
+  // 1. No grau máximo com próxima faixa à vista — nudge mais forte de retenção
+  if (proxima && grau >= 4) {
+    return {
+      emoji: '🔥',
+      titulo: `A faixa ${proxima} está logo ali`,
+      texto: `Você chegou ao 4º grau da faixa ${faixa} — a ${proxima} vem da consistência no tatame. Sumir agora reseta esse ritmo. Bora manter a presença!`,
+    }
+  }
+  // 2. Trocou de faixa há pouco
+  if (recente(graduadoEm)) {
+    return {
+      emoji: '🎉',
+      titulo: `Parabéns pela faixa ${faixa}!`,
+      texto: proxima
+        ? `Conquista nova é combustível. Continue aparecendo e comece a somar graus rumo à faixa ${proxima}.`
+        : 'Você chegou ao topo. Siga treinando e inspirando a academia.',
+    }
+  }
+  // 3. Ganhou grau há pouco
+  if (recente(grauEm)) {
+    return {
+      emoji: '⭐',
+      titulo: `${grau}º grau conquistado!`,
+      texto: proxima
+        ? `Cada grau te aproxima da faixa ${proxima}. Mantenha a frequência que a evolução continua.`
+        : 'Mais um marco. Continue firme no tatame.',
+    }
+  }
+  // 4. Perto da próxima faixa (3º grau)
+  if (proxima && grau === 3) {
+    return {
+      emoji: '🥋',
+      titulo: `Rumo à faixa ${proxima}`,
+      texto: `3º grau da faixa ${faixa} — você está na reta. Cada treino conta pra chegar na ${proxima}.`,
+    }
+  }
+  // 5. Progresso geral
+  if (proxima) {
+    return {
+      emoji: '💪',
+      titulo: `Construindo a faixa ${proxima}`,
+      texto: 'Graduação é presença somada no tempo. Quanto mais constante, mais rápido você evolui.',
+    }
+  }
+  // 6. Faixa preta — topo da jornada
+  return {
+    emoji: '🖤',
+    titulo: 'Faixa preta',
+    texto: 'O ápice da jornada. Agora é legado — siga treinando e formando novos faixas-pretas.',
+  }
+}
+
 // Faixa de BJJ estilizada: barra na cor da faixa + ponteira com os 4 graus
 // (preenchidos em branco, vazios em cinza — os graus aparecem mesmo com 0).
 function BeltBar({ faixa, grau }: { faixa: string; grau: number }) {
@@ -78,6 +143,7 @@ export default async function AlunoPerfilPage() {
 
   const graduadoEm = fmtLongo(aluno.graduado_em)
   const grauEm = fmtLongo(aluno.grau_em)
+  const insight = graduacaoInsight(aluno.faixa, aluno.grau, aluno.graduado_em, aluno.grau_em)
 
   return (
     <div>
@@ -138,6 +204,16 @@ export default async function AlunoPerfilPage() {
                 {grauEm ?? (aluno.grau > 0 ? 'Não registrado' : 'Sem graus ainda')}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* ── Análise de graduação — celebra conquista / avisa próxima faixa ── */}
+        <div className="rounded-2xl p-4 flex gap-3 items-start"
+          style={{ background: 'var(--brand-gold-dim)', border: '1px solid var(--brand-gold-border)' }}>
+          <span className="text-2xl leading-none flex-shrink-0">{insight.emoji}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-bold" style={{ color: 'var(--brand-gold)' }}>{insight.titulo}</p>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--brand-texto-sec)' }}>{insight.texto}</p>
           </div>
         </div>
 
