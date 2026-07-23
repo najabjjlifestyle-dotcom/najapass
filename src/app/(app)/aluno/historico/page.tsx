@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 
 type AulaPresenca = {
@@ -109,8 +110,8 @@ export default async function AlunoHistoricoPage() {
                 const dataFmt = p.data
                   ? new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
                   : ''
-                return (
-                  <div key={i} className="rounded-2xl overflow-hidden" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                const conteudo = (
+                  <>
                     {p.foto_url && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -120,32 +121,41 @@ export default async function AlunoHistoricoPage() {
                         style={{ maxHeight: 160 }}
                       />
                     )}
-                    <div className="px-4 py-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-medium" style={{ color: 'var(--brand-texto-sec)' }}>{p.turma}</p>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <p className="text-xs capitalize" style={{ color: 'var(--brand-texto-muted)' }}>{dataFmt}</p>
-                        {p.aulaId && (
-                          <a href={`/aluno/aula/${p.aulaId}/anotacao`}
-                            className="text-sm active:opacity-60"
-                            title={anotacoesSet.has(p.aulaId) ? 'Ver anotação' : 'Anotar treino'}>
-                            {anotacoesSet.has(p.aulaId) ? '📝' : '✏️'}
-                          </a>
-                        )}
+                    <div className="px-4 py-3 pr-12">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium" style={{ color: 'var(--brand-texto-sec)' }}>{p.turma}</p>
+                        <p className="text-xs capitalize flex-shrink-0 ml-2" style={{ color: 'var(--brand-texto-muted)' }}>{dataFmt}</p>
                       </div>
+                      {p.tecnicas.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {p.tecnicas.map((t, j) => (
+                            <span key={j}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold"
+                              style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {p.tecnicas.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {p.tecnicas.map((t, j) => (
-                          <span key={j}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold"
-                            style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
-                            {t}
-                          </span>
-                        ))}
-                      </div>
+                  </>
+                )
+                return (
+                  <div key={i} className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                    {p.aulaId ? (
+                      <Link href={`/aluno/aula/${p.aulaId}`} className="block active:opacity-90 transition-opacity">
+                        {conteudo}
+                      </Link>
+                    ) : conteudo}
+                    {p.aulaId && (
+                      <Link href={`/aluno/aula/${p.aulaId}/anotacao`}
+                        className="absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm active:scale-90 transition-transform"
+                        style={{ background: 'var(--brand-fundo)', border: '1px solid var(--brand-border)' }}
+                        title={anotacoesSet.has(p.aulaId) ? 'Ver anotação' : 'Anotar treino'}
+                        aria-label="Minha anotação">
+                        {anotacoesSet.has(p.aulaId) ? '📝' : '✏️'}
+                      </Link>
                     )}
-                    </div>
                   </div>
                 )
               })}

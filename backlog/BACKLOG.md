@@ -1,10 +1,11 @@
 # Backlog — NajaPass Fase 1
 
-**Última atualização:** 2026-07-22 (v2.6)  
+**Última atualização:** 2026-07-22 (v2.7)  
 **Fase:** 1 — A Academia Digital  
 **Critério de done:** Feature funciona no mobile, testada por Mestre Naja, sem erros no console.
 
 ### Changelog
+- v2.7: Adicionado EP-30 (Aula Social) com cards B-100 a B-102. Página de detalhe da aula para o aluno (foto, técnicas, quem foi) + Cantinho da Resenha (comentários por aula).
 - v2.6: Adicionado EP-29 (Jornada no Tatame) com cards B-096 a B-099. Cards instagramáveis de aniversário, anual, mensal e graduação para o aluno.
 - v2.5: Adicionado EP-28 (Professor Surreal) com cards B-089 a B-095. Notas privadas, churn precoce, aluno do mês, gap curricular, foto da turma, card de graduação.
 - v2.4: Adicionado EP-27 (Aluno Surreal) com cards B-084 a B-088. Streak semanal de treinos, linha do tempo da faixa, diário privado de treino, celebração de graduação.
@@ -54,6 +55,7 @@
 | EP-27 | Aluno Surreal (streak + faixa + diário + celebração) | 🟡 P1 |
 | EP-28 | Professor Surreal (notas + churn + aluno do mês + gap + foto + card grad.) | 🟡 P1 |
 | EP-29 | Jornada no Tatame (cards instagramáveis: aniversário, anual, mensal, graduação) | 🟡 P1 |
+| EP-30 | Aula Social (detalhe da aula para o aluno + Cantinho da Resenha) | 🟡 P1 |
 
 ---
 
@@ -1223,6 +1225,61 @@ Quatro telas full-screen com design premium, animações de entrada e branding N
 - Link "📸 Compartilhar graduação" no `/aluno/perfil`
 
 **Referência:** `HANDOFF-024-jornada-tatame.md` — card B-099.
+
+---
+
+### EP-30 · Aula Social
+
+#### B-100 · Migration: tabela `resenhas_aula` + RLS
+**Prioridade:** P1 | **Estimativa:** S  
+Criar tabela de comentários por aula com políticas de segurança corretas.
+
+**Critérios de aceite:**
+- Tabela `resenhas_aula` com: id, aula_id, aluno_id, texto (1–280 chars), criado_em
+- RLS ativo: aluno só vê resenhas da sua academia
+- Aluno insere apenas em aulas da sua academia
+- Aluno deleta apenas as próprias resenhas
+- Professor pode deletar qualquer resenha da sua academia (moderação)
+- Migration idempotente
+
+**Referência:** `HANDOFF-025-detalhe-aula-resenha.md` — card B-100.
+
+---
+
+#### B-101 · Página de detalhe da aula para o aluno (`/aluno/aula/[id]`)
+**Prioridade:** P1 | **Estimativa:** M  
+O aluno clica na aula do histórico e entra numa página completa: foto da turma, técnicas ensinadas, quem foi e acesso ao diário.
+
+**Critérios de aceite:**
+- Clicar no card da aula em `/aluno/historico` abre `/aluno/aula/[id]` (e não mais direto para `/anotacao`)
+- Ícone ✏️/📝 permanece como link separado direto para `/aluno/aula/[id]/anotacao`
+- Foto da turma exibida quando `aulas.foto_url` existe
+- Técnicas agrupadas por categoria com chips coloridos por categoria
+- Lista "Quem foi" com avatares/iniciais e contagem total
+- Card "Anotar esse treino / Minha anotação" com preview da nota existente
+- Aula de academia diferente retorna 404
+- Bottom nav oculto (coberto pela regra `/aluno/aula/*`)
+
+**Referência:** `HANDOFF-025-detalhe-aula-resenha.md` — card B-101.
+
+---
+
+#### B-102 · Cantinho da Resenha (`ResenhaSection` client component)
+**Prioridade:** P1 | **Estimativa:** M  
+Seção de comentários informais no final da página de detalhe da aula — o espaço pós-treino digital do tatame.
+
+**Critérios de aceite:**
+- Empty state: "Ninguém falou nada ainda. Seja o primeiro a comentar esse treino!"
+- Input com placeholder "O que achou do treino? 🥋" (máx. 280 chars)
+- Enter envia; Shift+Enter nova linha
+- Contador de chars aparece quando ≤40 chars restantes (vermelho quando esgotado)
+- Post otimista: mensagem aparece imediatamente antes da resposta do servidor
+- Botão ✕ (visível no hover) apenas nas próprias resenhas
+- Delete otimista: mensagem some imediatamente
+- Tempo relativo: "agora" / "5min" / "2h" / "3d" / data após 7 dias
+- Título estilizado "🗣 Cantinho da Resenha" com linhas decorativas
+
+**Referência:** `HANDOFF-025-detalhe-aula-resenha.md` — card B-102.
 
 ---
 
