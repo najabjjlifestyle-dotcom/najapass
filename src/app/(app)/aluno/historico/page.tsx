@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
+import { LeaderboardMensal } from '@/components/aluno/leaderboard-mensal'
 
 type AulaPresenca = {
   id: string | null
@@ -15,6 +16,9 @@ export default async function AlunoHistoricoPage() {
   const trintaDias = new Date(); trintaDias.setDate(trintaDias.getDate() - 30)
   const noventaDias = new Date(); noventaDias.setDate(noventaDias.getDate() - 90)
 
+  const hojeDate = new Date()
+  const mesLabel = hojeDate.toLocaleDateString('pt-BR', { month: 'long' })
+
   const [
     { count: presencas30 },
     { count: presencas90 },
@@ -22,6 +26,7 @@ export default async function AlunoHistoricoPage() {
     { data: ultimaPresenca },
     { data: presencasData },
     { data: anotacoesData },
+    { data: rankingData },
   ] = await Promise.all([
     supabase.from('presencas').select('id', { count: 'exact', head: true })
       .eq('aluno_id', aluno.id).gte('registrado_em', trintaDias.toISOString()),
@@ -37,7 +42,16 @@ export default async function AlunoHistoricoPage() {
       .order('registrado_em', { ascending: false })
       .limit(50),
     supabase.from('anotacoes_treino').select('aula_id').eq('aluno_id', aluno.id),
+    // Ranking mensal da academia. .then de fallback caso a migration não rodou.
+    supabase.rpc('ranking_frequencia_mensal', {
+      p_academia_id: aluno.academia_id,
+      p_ano: hojeDate.getFullYear(),
+      p_mes: hojeDate.getMonth() + 1,
+    }).then(r => r.error ? { data: null } : r),
   ])
+
+  type RankingRow = { aluno_id: string; aluno_nome: string; foto_url: string | null; presencas_mes: number; posicao: number }
+  const ranking = (rankingData as RankingRow[] | null) ?? []
 
   const anotacoesSet = new Set((anotacoesData ?? []).map(a => a.aula_id))
 
@@ -93,6 +107,9 @@ export default async function AlunoHistoricoPage() {
             </span>
           </p>
         )}
+
+        {/* Ranking mensal da academia (some sozinho se ninguém treinou no mês) */}
+        <LeaderboardMensal ranking={ranking} meuAlunoId={aluno.id} mesLabel={mesLabel} />
 
         {presencas.length === 0 ? (
           <div className="text-center py-16">

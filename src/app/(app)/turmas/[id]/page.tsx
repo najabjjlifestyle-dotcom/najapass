@@ -56,7 +56,7 @@ export default async function TurmaPage({
 
   const { data: turma } = await supabase
     .from('turmas')
-    .select('id, nome, dias_semana, horario, ativa, auto_abrir_horas')
+    .select('id, nome, dias_semana, horario, ativa, auto_abrir_horas, duracao_minutos')
     .eq('id', id)
     .single()
 
@@ -382,6 +382,7 @@ export default async function TurmaPage({
               diasAtuais={(turma.dias_semana as string[] | null) ?? []}
               horarioAtual={turma.horario as string | null}
               autoAbrirHorasAtual={turma.auto_abrir_horas as number | null}
+              duracaoMinutosAtual={turma.duracao_minutos as number | null}
             />
             <GerarAulasForm
               turma={{ id: turma.id, dias_semana: turma.dias_semana as string[] | null, horario: turma.horario as string | null }}
