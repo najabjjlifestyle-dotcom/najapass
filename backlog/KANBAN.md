@@ -1,6 +1,12 @@
 # KANBAN — NajaPass
 
-**Atualizado em:** 2026-07-22 (v2.28 — B-084→B-088: Aluno Surreal implementado, sprint25)
+**Atualizado em:** 2026-07-22 (v2.30 — B-100→B-102: HANDOFF-025 Aula Social escrito, aguardando implementação)
+
+> **Sprint 28 (HANDOFF-025 — Aula Social) — branch `feat/sprint28-aula-social`, aguardando implementação:** página `/aluno/aula/[id]` como hub da aula (foto da turma, técnicas ensinadas, quem foi, link para diário), cards do histórico passam a linkar para essa página (ícone de diário permanece link separado), tabela `resenhas_aula` com RLS, `ResenhaSection` client component com post/delete otimista e "Cantinho da Resenha".
+
+> **Sprint 27 (HANDOFF-024 — Jornada no Tatame) — branch `feat/sprint27-jornada-tatame`, IMPLEMENTADA:** banners contextuais na home do aluno (🎂 aniversário, 🏆 anual, 📅 mensal), componente `JornadaBanner` dismissível, 4 páginas instagramáveis full-screen em `/aluno/momento/[tipo]` (aniversario · anual · mensal · graduacao), link "📸 Compartilhar graduação" no perfil do aluno. Bottom nav suprimida em `/aluno/momento/*`.
+
+> **Sprint 26 (HANDOFF-023 — Professor Surreal) — branch `feat/sprint26-professor-surreal`, IMPLEMENTADA:** notas privadas por aluno (`notas_professor` + `NotasProfessor` client component), alertas de churn precoce no dashboard (RPC `alunos_em_risco_churn`), "Aluno do Mês" no dashboard (RPC `aluno_do_mes`), nova aba "Currículo" em `/relatorios` com gap por faixa, foto da turma pós-aula (`aulas.foto_url` + bucket `aulas-fotos`), card de graduação instagramável em `/alunos/[id]/card-graduacao`.
 
 > **Sprint 25 (HANDOFF-022 — Aluno Surreal) — branch `feat/sprint25-aluno-surreal`, IMPLEMENTADA:** streak semanal (🔥) no header da home, linha do tempo da faixa no perfil, diário privado de treino (`anotacoes_treino` + `/aluno/aula/[id]/anotacao` + ícone ✏️/📝 no histórico), tela de celebração de graduação (`/aluno/celebracao`). Migration `20260722000003_aluno_surreal.sql` (prefixo 003 pra não colidir com a sprint24). **2 fixes sobre o handoff:** (1) `dismissCelebracao` foi para RPC `SECURITY DEFINER` (`dismissar_celebracao_propria`) — o handoff usava UPDATE direto, bloqueado pelo RLS do aluno, o que o prenderia em loop na celebração; (2) `CREATE POLICY IF NOT EXISTS` (inválido em Postgres) trocado por DROP+CREATE.
 
@@ -107,6 +113,17 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 | B-086 | Linha do tempo da faixa em /aluno/perfil | Aluno Surreal |
 | B-087 | Diário privado de treino | Aluno Surreal |
 | B-088 | Celebração de graduação | Aluno Surreal |
+| B-089 | Migration: notas_professor + aulas.foto_url + RPCs aluno_do_mes + churn | Professor Surreal |
+| B-090 | Notas privadas por aluno (professor) | Professor Surreal |
+| B-091 | Alerta de rotatividade precoce no dashboard | Professor Surreal |
+| B-092 | Aluno do mês no dashboard | Professor Surreal |
+| B-093 | Gap curricular por faixa em /relatorios (aba Currículo) | Professor Surreal |
+| B-094 | Foto da turma pós-aula | Professor Surreal |
+| B-095 | Card de graduação instagramável (/alunos/[id]/card-graduacao) | Professor Surreal |
+| B-096 | Sem migration — dados já existentes confirmados | Jornada no Tatame |
+| B-097 | Banners de momentos na home do aluno (JornadaBanner) | Jornada no Tatame |
+| B-098 | Rotas /aluno/momento/[tipo] com server component | Jornada no Tatame |
+| B-099 | 4 cards instagramáveis (aniversario/anual/mensal/graduacao) | Jornada no Tatame |
 
 > B-026 (deploy) já estava configurado na Vercel segundo o usuário — não verificado a partir do código.
 > B-037/B-038 concluídos na branch `feat/sprint8-mobile-makeover`; B-039/B-040/B-042 na branch `feat/sprint9-insights` (a partir da 008); B-043/B-044 (+ HANDOFF-006) na branch `feat/sprint11-portal-aluno-v2` (a partir da `main`); B-045/B-046/B-047 na branch `feat/sprint12-agendamento` (a partir da sprint11); B-048/B-049/B-050 na branch `feat/sprint13-aluno-insights` (a partir da `main`); B-051/B-052/B-053/B-054 na branch `feat/sprint14-fluxo-pendente` (a partir da `main`); B-055/B-056/B-057/B-058 na branch `feat/sprint15-cockpit-professor` (a partir da `main`); B-059/B-060/B-061 na branch `feat/sprint16-nav-planejamento` (a partir da `main`) — ver seção de detalhes abaixo.
@@ -118,8 +135,9 @@ Implementado ativando um recurso que já existia no schema desde a v1 mas nunca 
 > B-079/B-080 na branch `feat/sprint23-homepage` (a partir da `main`) — ver seção de detalhes abaixo.
 > B-081/B-082/B-083 na branch `feat/sprint24-perfil-aluno` (a partir da `main`) — ver seção de detalhes abaixo.
 > B-084/B-085/B-086/B-087/B-088 na branch `feat/sprint25-aluno-surreal` (a partir da `main`) — ver seção de detalhes abaixo.
-> B-089/B-090/B-091/B-092/B-093/B-094/B-095 na branch `feat/sprint26-professor-surreal` (a partir da `main`) — HANDOFF-023 escrito, aguardando implementação.
-> B-096/B-097/B-098/B-099 na branch `feat/sprint27-jornada-tatame` (a partir da `main`) — HANDOFF-024 escrito, aguardando implementação.
+> B-089/B-090/B-091/B-092/B-093/B-094/B-095 na branch `feat/sprint26-professor-surreal` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-096/B-097/B-098/B-099 na branch `feat/sprint27-jornada-tatame` (a partir da `main`) — ver seção de detalhes abaixo.
+> B-100/B-101/B-102 na branch `feat/sprint28-aula-social` (a partir da `main`) — ver seção de detalhes abaixo.
 
 ---
 
@@ -434,7 +452,7 @@ Sem migrations. Sem mudança de schema.
 
 ## 🔍 Sprint 26 — Professor Surreal (branch `feat/sprint26-professor-surreal`, HANDOFF-023)
 
-**Status:** HANDOFF escrito · aguardando implementação
+**Status:** ✅ IMPLEMENTADA
 
 **Escopo:** B-089 · B-090 · B-091 · B-092 · B-093 · B-094 · B-095
 
@@ -456,7 +474,7 @@ B-095 — Card instagramável: página `/alunos/[id]/card-graduacao` — full-sc
 
 ## 🔍 Sprint 27 — Jornada no Tatame (branch `feat/sprint27-jornada-tatame`, HANDOFF-024)
 
-**Status:** HANDOFF escrito · aguardando implementação
+**Status:** ✅ IMPLEMENTADA
 
 **Escopo:** B-096 · B-097 · B-098 · B-099
 
@@ -467,6 +485,29 @@ B-097 — Banners na home: lógica de detecção server-side (aniversário / ani
 B-098 — Rotas `/aluno/momento/[tipo]`: server component que busca dados por tipo e renderiza o client component correto. Tipos: `aniversario` · `anual` · `mensal` · `graduacao`. Tipo inválido → 404. Bottom nav suprimida via `aluno-bottom-nav.tsx`.
 
 B-099 — 4 client components instagramáveis: `MomentoAniversario` / `MomentoAnual` / `MomentoMensal` / `MomentoGraduacao`. Todos: `min-h-dvh`, sem scroll, fundo `#080808` + gradiente radial na cor da faixa, tipografia grande, animação fade/slide de entrada. Link "📸 Compartilhar graduação" adicionado ao `/aluno/perfil`.
+
+---
+
+## 🔍 Sprint 28 — Aula Social (branch `feat/sprint28-aula-social`, HANDOFF-025)
+
+**Status:** ⏳ Aguardando implementação
+
+**Escopo:** B-100 · B-101 · B-102
+
+B-100 — Migration `resenhas_aula`: tabela com RLS multicamada (aluno vê apenas academia, insere apenas na própria, deleta apenas as suas; professor deleta qualquer para moderar). Texto limitado a 280 chars via CHECK.
+
+B-101 — Página `/aluno/aula/[id]/page.tsx` (novo hub da aula para o aluno): foto da turma (`aulas.foto_url`), técnicas ensinadas agrupadas por categoria com chips coloridos, lista "Quem foi" com avatares/iniciais via view `presencas`, card com link para diário privado, `ResenhaSection` ao final. `/aluno/historico` atualizado: card vira link para `/aluno/aula/[id]`; ícone ✏️/📝 permanece link separado para `/aluno/aula/[id]/anotacao` (padrão de `<div>` relativo + `<Link>` absoluto para evitar `<a>` dentro de `<Link>`).
+
+B-102 — `ResenhaSection` client component: post/delete otimistas, tempo relativo, contador de chars abaixo de 40 restantes, botão ✕ visível apenas no hover das próprias resenhas. Cabeçalho "🗣 Cantinho da Resenha" com linhas decorativas. Empty state com CTA. Enter envia; Shift+Enter nova linha.
+
+**Arquivos novos:**
+- `supabase/migrations/20260722000004_resenhas_aula.sql`
+- `src/app/(app)/aluno/aula/[id]/page.tsx`
+- `src/app/(app)/aluno/aula/[id]/resenha-section.tsx`
+
+**Arquivos modificados:**
+- `src/app/(app)/aluno/historico/page.tsx` — cards de aula com link duplo
+- `src/app/(app)/aluno/aula/[id]/actions.ts` — adicionar `postarResenha` e `deletarResenha`
 
 ---
 

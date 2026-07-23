@@ -304,8 +304,9 @@ najapass/
 | Aluno Surreal (streak, diário, celebração) | ✅ Concluído |
 | Professor Surreal (notas, churn, currículo) | ✅ Concluído |
 | Jornada no Tatame (cards instagramáveis) | ✅ Concluído |
+| Aula Social (detalhe da aula + Cantinho da Resenha) | ⏳ Sprint 28 |
 
-99 cards entregues · 27 sprints completos · 24 HANDOFFs escritos · R$ 0/mês
+102 cards · 28 sprints · 25 HANDOFFs · R$ 0/mês
 
 ---
 
