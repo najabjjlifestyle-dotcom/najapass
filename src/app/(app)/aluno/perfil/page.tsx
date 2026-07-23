@@ -6,6 +6,8 @@ import { updateFotoPropria } from '../actions'
 import PushSubscribeButton from '../push-subscribe'
 import PerfilForm from './perfil-form'
 import { graduacaoInsight } from '@/lib/graduacao-insight'
+import { HorasNoTatame } from '@/components/aluno/horas-tatame'
+import { Conquistas } from '@/components/aluno/conquistas'
 import { CalendarDays, MapPin } from 'lucide-react'
 
 const FAIXA_HEX: Record<string, string> = {
@@ -47,7 +49,14 @@ function BeltBar({ faixa, grau }: { faixa: string; grau: number }) {
 export default async function AlunoPerfilPage() {
   const { aluno, supabase } = await getAlunoOuRedireciona()
 
-  const [{ data: turmasData }, { count: total }, { data: academia }, { count: aulasNaFaixa }] = await Promise.all([
+  const [
+    { data: turmasData },
+    { count: total },
+    { data: academia },
+    { count: aulasNaFaixa },
+    { data: horasData },
+    { data: conquistasData },
+  ] = await Promise.all([
     supabase.from('alunos_turmas')
       .select('turmas(id, nome, dias_semana, horario)')
       .eq('aluno_id', aluno.id).eq('ativo', true),
@@ -60,7 +69,24 @@ export default async function AlunoPerfilPage() {
       .select('aulas!inner(data)', { count: 'exact', head: true })
       .eq('aluno_id', aluno.id)
       .gte('aulas.data', (aluno.graduado_em ?? aluno.matriculado_em ?? '1970-01-01').substring(0, 10)),
+    // Maestria: horas reais no tatame + dados de conquistas. .then de
+    // fallback pra não quebrar o perfil caso a migration ainda não rodou.
+    supabase.rpc('horas_no_tatame', { p_aluno_id: aluno.id }).then(r => r.error ? { data: null } : r),
+    supabase.rpc('dados_conquistas_aluno', { p_aluno_id: aluno.id }).then(r => r.error ? { data: null } : r),
   ])
+
+  const horas = (horasData as number | null) ?? 0
+  type ConquistasRow = { total_presencas: number; max_treinos_mes: number }
+  const cRow = (conquistasData as ConquistasRow[] | null)?.[0]
+  const anosNaAcademia = aluno.matriculado_em
+    ? (Date.now() - new Date(aluno.matriculado_em).getTime()) / (1000 * 60 * 60 * 24 * 365)
+    : 0
+  const dadosConquistas = {
+    totalPresencas: cRow?.total_presencas ?? total ?? 0,
+    maxTreinosMes: cRow?.max_treinos_mes ?? 0,
+    anosNaAcademia,
+    faixa: aluno.faixa ?? 'branca',
+  }
 
   const turmas = (turmasData ?? [])
     .map(t => t.turmas as unknown as { id: string; nome: string; dias_semana: string[] | null; horario: string | null } | null)
@@ -189,6 +215,12 @@ export default async function AlunoPerfilPage() {
             <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--brand-texto-sec)' }}>{insight.texto}</p>
           </div>
         </div>
+
+        {/* ── Horas no Tatame ── */}
+        <HorasNoTatame horas={horas} totalPresencas={total ?? 0} />
+
+        {/* ── Conquistas ── */}
+        <Conquistas dados={dadosConquistas} />
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 gap-3">

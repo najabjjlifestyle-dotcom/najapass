@@ -26,9 +26,11 @@ export async function updateTurma(
   diasSemana: string[],
   horario: string,
   autoAbrirHoras: number | null,
+  duracaoMinutos: number,
 ) {
   const nomeTrim = nome.trim()
   if (!nomeTrim) return { error: 'Nome é obrigatório.' }
+  const duracao = [60, 90, 120].includes(duracaoMinutos) ? duracaoMinutos : 60
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -41,6 +43,7 @@ export async function updateTurma(
       dias_semana: diasSemana,
       horario: horario || null,
       auto_abrir_horas: autoAbrirHoras,
+      duracao_minutos: duracao,
     })
     .eq('id', turmaId)
 

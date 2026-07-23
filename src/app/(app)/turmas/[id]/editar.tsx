@@ -22,13 +22,14 @@ const OPCOES_AUTO_ABRIR = [
 ]
 
 export default function EditarTurmaForm({
-  turmaId, nomeAtual, diasAtuais, horarioAtual, autoAbrirHorasAtual,
+  turmaId, nomeAtual, diasAtuais, horarioAtual, autoAbrirHorasAtual, duracaoMinutosAtual,
 }: {
   turmaId: string
   nomeAtual: string
   diasAtuais: string[]
   horarioAtual: string | null
   autoAbrirHorasAtual: number | null
+  duracaoMinutosAtual: number | null
 }) {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState(nomeAtual)
@@ -37,6 +38,7 @@ export default function EditarTurmaForm({
   const [autoAbrirHoras, setAutoAbrirHoras] = useState(
     autoAbrirHorasAtual === null || autoAbrirHorasAtual === undefined ? '' : String(autoAbrirHorasAtual)
   )
+  const [duracaoMinutos, setDuracaoMinutos] = useState<number>(duracaoMinutosAtual ?? 60)
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
 
@@ -47,7 +49,7 @@ export default function EditarTurmaForm({
   function handleSalvar() {
     setError('')
     startTransition(async () => {
-      const res = await updateTurma(turmaId, nome, dias, horario, autoAbrirHoras === '' ? null : Number(autoAbrirHoras))
+      const res = await updateTurma(turmaId, nome, dias, horario, autoAbrirHoras === '' ? null : Number(autoAbrirHoras), duracaoMinutos)
       if (res?.error) { setError(res.error); return }
       setOpen(false)
     })
@@ -100,6 +102,26 @@ export default function EditarTurmaForm({
         <input value={horario} onChange={e => setHorario(e.target.value)} type="time"
           className="w-full px-3 py-2 rounded-xl bg-transparent text-sm text-white focus:outline-none"
           style={{ border: '1px solid var(--brand-border-str)' }} />
+      </div>
+
+      <div>
+        <label className="block text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>Duração da aula</label>
+        <div className="grid grid-cols-3 gap-2">
+          {([60, 90, 120] as const).map(min => (
+            <button key={min} type="button" onClick={() => setDuracaoMinutos(min)}
+              className="py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              style={{
+                background: duracaoMinutos === min ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
+                border: `1px solid ${duracaoMinutos === min ? 'var(--brand-gold-border)' : 'var(--brand-border)'}`,
+                color: duracaoMinutos === min ? 'var(--brand-gold)' : 'var(--brand-texto-muted)',
+              }}>
+              {min === 60 ? '1h' : min === 90 ? '1h30' : '2h'}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] mt-1" style={{ color: 'var(--brand-texto-muted)' }}>
+          Usado para calcular as horas totais dos alunos no tatame.
+        </p>
       </div>
 
       <div>
