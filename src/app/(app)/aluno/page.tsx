@@ -32,7 +32,7 @@ export default async function AlunoHomePage() {
   // Celebração de graduação pendente — tem prioridade sobre tudo
   if (aluno.celebrar_graduacao) redirect('/aluno/celebracao')
 
-  const [{ data: insightsRaw }, { data: streakData }, { data: ultimaFotoData }] = await Promise.all([
+  const [{ data: insightsRaw }, { data: streakData }, { data: ultimaFotoData }, { count: totalPresencas }] = await Promise.all([
     supabase.rpc('aluno_home_insights', { p_aluno_id: aluno.id }),
     supabase.rpc('calcular_streak_aluno', { p_aluno_id: aluno.id }),
     // Foto da última aula finalizada que o aluno participou (pra "última aula")
@@ -43,10 +43,16 @@ export default async function AlunoHomePage() {
       .order('registrado_em', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // Presenças de todos os tempos (qualquer status) — pra saber se é aluno
+    // realmente novo. Inclui check-in em aula ao vivo (aberta).
+    supabase.from('presencas')
+      .select('id', { count: 'exact', head: true })
+      .eq('aluno_id', aluno.id),
   ])
   const insights = insightsRaw as HomeInsights | null
   const streak = (streakData as number | null) ?? 0
   const fotoUltimaAula = (ultimaFotoData?.aulas as unknown as { foto_url: string | null } | null)?.foto_url ?? null
+  const alunoNuncaTreinou = (totalPresencas ?? 0) === 0
 
   // Perfil incompleto: falta nascimento OU saúde nunca foi preenchida (null).
   // condicoes_saude === '' conta como preenchido ("sem condições").
@@ -559,8 +565,10 @@ export default async function AlunoHomePage() {
             )
           })()}
 
-          {/* Empty state — aluno novo sem nenhuma presença */}
-          {!insights?.ultima_aula && (insights?.presencas_30d ?? 0) === 0 && (
+          {/* Empty state — só pra aluno que NUNCA teve presença nenhuma
+              (inclui check-in ao vivo). Antes usava a janela de 30d, então
+              aparecia até pra aluno graduado só por estar sem treino recente. */}
+          {alunoNuncaTreinou && (
             <div className="rounded-2xl p-5 text-center" style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
               <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>
                 Bem-vindo ao NajaPass!
