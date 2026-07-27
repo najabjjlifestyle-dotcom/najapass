@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 type EntradaRanking = {
   aluno_id: string
   aluno_nome: string
@@ -73,8 +75,9 @@ export function LeaderboardMensal({
                   <div style={{ flex: 1, height: 1, background: 'var(--brand-border)' }} />
                 </div>
               )}
-              <div
-                className="flex items-center gap-3 px-4 py-3"
+              <Link
+                href={`/aluno/perfil/${entrada.aluno_id}`}
+                className="flex items-center gap-3 px-4 py-3 active:opacity-70 transition-opacity"
                 style={{
                   background: euSou ? 'var(--brand-gold-dim)' : idx % 2 === 0 ? 'var(--brand-surf)' : 'transparent',
                   borderTop: idx > 0 && !separador ? '1px solid var(--brand-border)' : 'none',
@@ -107,7 +110,7 @@ export function LeaderboardMensal({
                     {entrada.presencas_mes === 1 ? 'treino' : 'treinos'}
                   </p>
                 </div>
-              </div>
+              </Link>
             </div>
           )
         })}
