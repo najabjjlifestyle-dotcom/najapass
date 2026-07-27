@@ -31,11 +31,31 @@ export async function getAlunoOuRedireciona(): Promise<{
 
   // Os 3 campos sensíveis vivem em alunos_dados_sensiveis (RLS estrita) —
   // trazidos por embed pra manter o formato do AlunoBasico intacto.
-  const { data: aluno } = await supabase
+  const SELECT_ALUNO = 'id, nome, faixa, grau, academia_id, foto_url, matriculado_em, graduado_em, grau_em, celebrar_graduacao, alunos_dados_sensiveis(data_nascimento, condicoes_saude, dia_mensalidade)'
+
+  let { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, academia_id, foto_url, matriculado_em, graduado_em, grau_em, celebrar_graduacao, alunos_dados_sensiveis(data_nascimento, condicoes_saude, dia_mensalidade)')
+    .select(SELECT_ALUNO)
     .eq('user_id', user.id)
     .maybeSingle()
+
+  // Não achou pelo user_id? Pode ser um aluno pré-cadastrado pelo professor
+  // (email cadastrado, sem user_id). Tenta vincular pelo email VERIFICADO do
+  // login e busca de novo — assim funciona mesmo quando o PWA abre direto em
+  // /aluno, sem passar pelo boas-vindas.
+  if (!aluno) {
+    const { data: vinculou } = await supabase.rpc('vincular_aluno_por_email', {
+      p_email: user.email!,
+      p_user_id: user.id,
+    })
+    if (vinculou) {
+      ({ data: aluno } = await supabase
+        .from('alunos')
+        .select(SELECT_ALUNO)
+        .eq('user_id', user.id)
+        .maybeSingle())
+    }
+  }
 
   if (!aluno) redirect('/aluno/sem-conta')
 
