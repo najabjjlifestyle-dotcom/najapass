@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { ChevronLeft, ChevronRight, UserRound, Pencil, BookOpen } from 'lucide-react'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import ResenhaSection from './resenha-section'
 
@@ -15,6 +16,21 @@ const CATEGORIA_CORES: Record<string, string> = {
   'Finalização': '#9333EA',
   'Defesa': '#64748B',
   'Fundamentos': '#374151',
+}
+
+// Data compacta: "Sex, 24 jul"
+function formatDataCompacta(data: string): string {
+  const d = new Date(data + 'T12:00:00')
+  const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+  const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+  return `${dias[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${meses[d.getMonth()]}`
+}
+
+// No currículo, algumas técnicas têm o nome cadastrado como "... (entrada)".
+// Isso é ruído pro aluno — remove só esse sufixo de tipo, preservando
+// parênteses legítimos ("(float pass)", "(Ashi Garami)", "(pêndulo)").
+function limparNomeTecnica(nome: string): string {
+  return nome.replace(/\s*\((entrada|refor[çc]o)\)\s*$/i, '').trim()
 }
 
 export default async function AulaDetalheAlunoPage({
@@ -63,7 +79,7 @@ export default async function AulaDetalheAlunoPage({
   const ensinadas = ((aula.aula_tecnicas ?? []) as unknown as TecnicaRaw[])
     .filter(at => at.tipo === 'ensinada' && at.tecnicas)
     .map(at => ({
-      nome: at.tecnicas!.nome,
+      nome: limparNomeTecnica(at.tecnicas!.nome),
       categoria: at.tecnicas!.categorias_tecnicas?.nome ?? 'Outras',
     }))
 
@@ -74,9 +90,6 @@ export default async function AulaDetalheAlunoPage({
   }, {})
 
   const turma = aula.turmas as unknown as { nome: string } | null
-  const dataFormatada = new Date(aula.data + 'T12:00:00').toLocaleDateString('pt-BR', {
-    weekday: 'long', day: '2-digit', month: 'long',
-  })
 
   type PresencaRaw = {
     aluno_id: string | null
@@ -116,21 +129,36 @@ export default async function AulaDetalheAlunoPage({
 
   return (
     <div className="min-h-dvh pb-8" style={{ background: 'var(--brand-fundo)' }}>
-      {/* Header */}
-      <div className="px-4 pt-safe pb-4 flex items-center gap-3"
+      {/* Header contextual: turma + data compacta + presentes + status */}
+      <div className="px-4 pt-safe pb-3 flex items-center gap-2"
         style={{ borderBottom: '1px solid var(--brand-border)' }}>
         <Link href="/aluno/historico"
-          className="w-9 h-9 flex items-center justify-center rounded-full flex-shrink-0 active:scale-90 transition-transform"
-          style={{ border: '1px solid var(--brand-border)' }}>
-          <span style={{ color: 'var(--brand-texto)' }}>←</span>
+          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <ChevronLeft size={16} style={{ color: 'var(--brand-texto-muted)' }} />
         </Link>
+
         <div className="flex-1 min-w-0">
-          <p className="font-bold truncate" style={{ color: 'var(--brand-texto)' }}>
+          <h1 className="text-[15px] font-semibold leading-tight truncate"
+            style={{ color: 'var(--brand-texto)' }}>
             {turma?.nome ?? 'Aula'}
+          </h1>
+          <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-texto-muted)' }}>
+            {formatDataCompacta(aula.data as string)}
+            {hora ? ` · ${hora.substring(0, 5)}` : ''}
+            {' · '}{presentes.length} {presentes.length === 1 ? 'presente' : 'presentes'}
           </p>
-          <p className="text-xs capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
-            {dataFormatada}{hora ? ` · ${hora.substring(0, 5)}` : ''}
-          </p>
+        </div>
+
+        <div className="px-2 py-1 rounded-md flex-shrink-0"
+          style={{
+            background: aula.status === 'aberta' ? 'rgba(74,222,128,0.10)' : 'rgba(200,169,110,0.10)',
+            border: `1px solid ${aula.status === 'aberta' ? 'rgba(74,222,128,0.25)' : 'rgba(200,169,110,0.25)'}`,
+          }}>
+          <span className="text-[8px] font-semibold tracking-[0.4px]"
+            style={{ color: aula.status === 'aberta' ? '#4ade80' : 'var(--brand-gold)' }}>
+            {aula.status === 'aberta' ? 'AO VIVO' : 'ENCERRADA'}
+          </span>
         </div>
       </div>
 
@@ -186,43 +214,63 @@ export default async function AulaDetalheAlunoPage({
           </div>
         )}
 
-        {/* Quem foi */}
+        {/* Quem foi — avatares circulares com scroll horizontal */}
         {presentes.length > 0 && (
           <div className="space-y-3">
             <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
-              Quem foi · {presentes.length} {presentes.length === 1 ? 'pessoa' : 'pessoas'}
+              Quem foi
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none' }}>
               {presentes.map(p => {
-                const inner = (
+                const isEu = !p.isVisitante && p.id === aluno.id
+                const rotulo = isEu ? 'Você' : p.nome.split(' ')[0]
+                const anel = isEu ? 'var(--brand-gold)' : '#2A2A2A'
+
+                const avatar = p.isVisitante ? (
+                  /* Visitante: anel tracejado + ícone */
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center"
+                    style={{ background: 'var(--brand-surf)', border: '2px dashed var(--brand-border)' }}>
+                    <UserRound size={16} style={{ color: 'var(--brand-texto-muted)' }} />
+                  </div>
+                ) : p.foto_url ? (
+                  /* Com foto */
+                  <div className="w-11 h-11 rounded-full overflow-hidden"
+                    style={{ border: `2px solid ${anel}` }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.foto_url} alt={rotulo} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  /* Sem foto: inicial */
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-semibold"
+                    style={{
+                      background: isEu ? 'rgba(200,169,110,0.12)' : '#1C1C1C',
+                      border: `2px solid ${anel}`,
+                      color: isEu ? 'var(--brand-gold)' : '#777',
+                    }}>
+                    {rotulo.charAt(0).toUpperCase()}
+                  </div>
+                )
+
+                const conteudo = (
                   <>
-                    {p.foto_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.foto_url} alt={p.nome}
-                        className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
-                        style={{ background: p.isVisitante ? '#222' : 'var(--brand-gold-dim)', color: p.isVisitante ? '#666' : 'var(--brand-gold)' }}>
-                        {p.isVisitante ? '?' : p.nome.charAt(0)}
-                      </div>
-                    )}
-                    <span className="text-xs font-medium" style={{ color: p.isVisitante ? 'var(--brand-texto-muted)' : 'var(--brand-texto)' }}>
-                      {p.nome.split(' ')[0]}{p.isVisitante ? ' (visitante)' : ''}
+                    {avatar}
+                    <span className="text-[9px] max-w-[48px] truncate text-center"
+                      style={{ color: isEu ? 'var(--brand-gold)' : 'var(--brand-texto-muted)' }}>
+                      {rotulo}
                     </span>
                   </>
                 )
-                // Visitante não tem conta → não é clicável. Aluno → perfil público.
-                return p.isVisitante ? (
-                  <div key={p.id}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                    style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                    {inner}
+
+                // Colega (não eu, não visitante) → perfil público clicável.
+                return p.isVisitante || isEu ? (
+                  <div key={p.id} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                    {conteudo}
                   </div>
                 ) : (
                   <Link key={p.id} href={`/aluno/perfil/${p.id}`}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
-                    style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                    {inner}
+                    className="flex flex-col items-center gap-1.5 flex-shrink-0 active:scale-95 transition-transform">
+                    {conteudo}
                   </Link>
                 )
               })}
@@ -230,24 +278,29 @@ export default async function AulaDetalheAlunoPage({
           </div>
         )}
 
-        {/* Minha anotação */}
+        {/* Diário do treino — ícone dourado + estado contextual */}
         <Link href={`/aluno/aula/${id}/anotacao`}
-          className="flex items-center justify-between px-4 py-3.5 rounded-xl active:scale-[0.98] transition-transform"
-          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-lg flex-shrink-0">{anotacao ? '📝' : '✏️'}</span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold" style={{ color: 'var(--brand-texto)' }}>
-                {anotacao ? 'Minha anotação' : 'Anotar esse treino'}
-              </p>
-              {anotacao && (
-                <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--brand-texto-muted)' }}>
-                  {anotacao.texto}
-                </p>
-              )}
+          className="block active:scale-[0.98] transition-transform">
+          <div className="flex items-center gap-3 p-4 rounded-2xl"
+            style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(200,169,110,0.08)', border: '1px solid rgba(200,169,110,0.16)' }}>
+              {anotacao
+                ? <BookOpen size={16} style={{ color: 'var(--brand-gold)' }} />
+                : <Pencil size={16} style={{ color: 'var(--brand-gold)' }} />}
             </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium" style={{ color: 'var(--brand-texto)' }}>
+                Diário do treino
+              </p>
+              <p className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--brand-texto-muted)' }}>
+                {anotacao
+                  ? anotacao.texto.slice(0, 60) + (anotacao.texto.length > 60 ? '…' : '')
+                  : 'Toque para adicionar uma reflexão'}
+              </p>
+            </div>
+            <ChevronRight size={14} style={{ color: 'var(--brand-border)' }} className="flex-shrink-0" />
           </div>
-          <span className="flex-shrink-0 ml-2" style={{ color: 'var(--brand-texto-muted)' }}>→</span>
         </Link>
 
         {/* Cantinho da Resenha */}
