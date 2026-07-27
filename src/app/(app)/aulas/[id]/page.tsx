@@ -8,6 +8,7 @@ import AulaAgendadaActions from './agendada-actions'
 import DuplicarAulaButton from '@/components/duplicar-aula-button'
 import AulaFotoUpload from '@/components/aula-foto-upload'
 import { salvarFotoAula } from './actions'
+import ZonaDePerigo from './gestao-aula'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
@@ -320,6 +321,17 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
       )}
+
+      {/* Zona de perigo — reabrir / apagar */}
+      <div className="px-5">
+        <ZonaDePerigo
+          aulaId={id}
+          status={aula.status}
+          turmaLabel={turma?.nome ?? 'Aula'}
+          dataLabel={dataFormatada}
+          totalPresencas={presencas.length}
+        />
+      </div>
     </div>
   )
 }
