@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { togglePresenca, adicionarVisitante, removerVisitante } from '../actions'
@@ -45,6 +45,7 @@ export default function AttendanceList({
   const [showVisitanteForm, setShowVisitanteForm] = useState(false)
   const [novoVisitante, setNovoVisitante] = useState('')
   const [addingVisitante, setAddingVisitante] = useState(false)
+  const visitanteInputRef = useRef<HTMLInputElement>(null)
 
   const [showAvulsoForm, setShowAvulsoForm] = useState(false)
   const [avulsoId, setAvulsoId] = useState('')
@@ -67,7 +68,8 @@ export default function AttendanceList({
     if (result?.success && result.id) {
       setVisitantes(prev => [...prev, { id: result.id!, nome }])
       setNovoVisitante('')
-      setShowVisitanteForm(false)
+      // Form fica aberto pra adicionar vários seguidos — refoca o campo.
+      requestAnimationFrame(() => visitanteInputRef.current?.focus())
     }
     setAddingVisitante(false)
   }
@@ -154,9 +156,11 @@ export default function AttendanceList({
       {showVisitanteForm && (
         <div className="flex gap-2 mb-4">
           <input
+            ref={visitanteInputRef}
             type="text"
             value={novoVisitante}
             onChange={e => setNovoVisitante(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddVisitante() } }}
             placeholder="Nome do visitante"
             autoFocus
             className="flex-1 px-3 py-2 rounded-xl text-sm placeholder-white/30 focus:outline-none"

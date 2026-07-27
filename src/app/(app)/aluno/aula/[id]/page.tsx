@@ -193,25 +193,39 @@ export default async function AulaDetalheAlunoPage({
               Quem foi · {presentes.length} {presentes.length === 1 ? 'pessoa' : 'pessoas'}
             </p>
             <div className="flex flex-wrap gap-2">
-              {presentes.map(p => (
-                <div key={p.id}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                  style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                  {p.foto_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.foto_url} alt={p.nome}
-                      className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
-                      style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)' }}>
-                      {p.nome.charAt(0)}
-                    </div>
-                  )}
-                  <span className="text-xs font-medium" style={{ color: p.isVisitante ? 'var(--brand-texto-muted)' : 'var(--brand-texto)' }}>
-                    {p.nome.split(' ')[0]}{p.isVisitante ? ' (visitante)' : ''}
-                  </span>
-                </div>
-              ))}
+              {presentes.map(p => {
+                const inner = (
+                  <>
+                    {p.foto_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.foto_url} alt={p.nome}
+                        className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                        style={{ background: p.isVisitante ? '#222' : 'var(--brand-gold-dim)', color: p.isVisitante ? '#666' : 'var(--brand-gold)' }}>
+                        {p.isVisitante ? '?' : p.nome.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-xs font-medium" style={{ color: p.isVisitante ? 'var(--brand-texto-muted)' : 'var(--brand-texto)' }}>
+                      {p.nome.split(' ')[0]}{p.isVisitante ? ' (visitante)' : ''}
+                    </span>
+                  </>
+                )
+                // Visitante não tem conta → não é clicável. Aluno → perfil público.
+                return p.isVisitante ? (
+                  <div key={p.id}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+                    style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                    {inner}
+                  </div>
+                ) : (
+                  <Link key={p.id} href={`/aluno/perfil/${p.id}`}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                    style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+                    {inner}
+                  </Link>
+                )
+              })}
             </div>
           </div>
         )}
