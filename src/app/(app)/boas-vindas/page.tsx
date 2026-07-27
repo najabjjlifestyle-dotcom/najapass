@@ -35,6 +35,17 @@ export default async function BoasVindasPage({
     redirect('/dashboard')
   }
 
+  // Aluno pré-cadastrado pelo professor (email cadastrado, sem user_id) →
+  // vincular ao login automaticamente. O RPC é SECURITY DEFINER (bypassa
+  // RLS) e só liga uma linha cujo email bate com o email VERIFICADO do
+  // login; retorna true se vinculou. Sem isso, o aluno que o professor
+  // cadastrou caía no "solicitar entrada" sem conseguir entrar.
+  const { data: vinculouAluno } = await supabase.rpc('vincular_aluno_por_email', {
+    p_email: user.email!,
+    p_user_id: user.id,
+  })
+  if (vinculouAluno) redirect('/aluno')
+
   // Unificação com a landing: a role já foi escolhida lá. Professor vai
   // direto pro onboarding — sem repetir a pergunta "BEM-VINDO".
   if (role === 'professor') redirect('/onboarding')
