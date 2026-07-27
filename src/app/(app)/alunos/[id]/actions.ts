@@ -79,13 +79,24 @@ export async function updateAluno(
       nome: nomeTrim,
       email: email.trim() || null,
       telefone: telefone.trim() || null,
-      data_nascimento: dataNascimento.trim() || null,   // vazio = não preenchido
-      condicoes_saude: condicoesSaude,                   // '' é válido = sem condições
-      dia_mensalidade: diaMensalidade ? Number(diaMensalidade) || null : null,
     })
     .eq('id', alunoId)
 
   if (error) return { error: 'Erro ao atualizar aluno.' }
+
+  // Campos sensíveis vão pra tabela própria (RLS estrita). Professor da
+  // academia tem policy de escrita nela, então o upsert direto funciona.
+  const { error: errSens } = await supabase
+    .from('alunos_dados_sensiveis')
+    .upsert({
+      aluno_id: alunoId,
+      data_nascimento: dataNascimento.trim() || null,   // vazio = não preenchido
+      condicoes_saude: condicoesSaude,                   // '' é válido = sem condições
+      dia_mensalidade: diaMensalidade ? Number(diaMensalidade) || null : null,
+    }, { onConflict: 'aluno_id' })
+
+  if (errSens) return { error: 'Erro ao salvar dados do aluno.' }
+
   revalidatePath(`/alunos/${alunoId}`)
   revalidatePath('/alunos')
   return { success: true }

@@ -57,11 +57,19 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
 
   const { data: aluno } = await supabase
     .from('alunos')
-    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url, data_nascimento, condicoes_saude, dia_mensalidade, graduado_em, grau_em')
+    .select('id, nome, faixa, grau, email, telefone, ativo, matriculado_em, foto_url, graduado_em, grau_em, alunos_dados_sensiveis(data_nascimento, condicoes_saude, dia_mensalidade)')
     .eq('id', id)
     .single()
 
   if (!aluno) redirect('/alunos')
+
+  // Dados sensíveis vêm da tabela protegida (professor tem policy de leitura).
+  type Sens = { data_nascimento: string | null; condicoes_saude: string | null; dia_mensalidade: number | null }
+  const sensRaw = (aluno as { alunos_dados_sensiveis: Sens | Sens[] | null }).alunos_dados_sensiveis
+  const sens = (Array.isArray(sensRaw) ? sensRaw[0] : sensRaw) ?? null
+  const dataNascimento = sens?.data_nascimento ?? null
+  const condicoesSaude = sens?.condicoes_saude ?? null
+  const diaMensalidade = sens?.dia_mensalidade ?? null
 
   const { data: turmasData } = await supabase
     .from('alunos_turmas')
@@ -202,15 +210,15 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
         )}
 
         {/* Dados pessoais — só aparece se o aluno preencheu algo */}
-        {(aluno.data_nascimento || aluno.condicoes_saude !== null || aluno.dia_mensalidade) && (
+        {(dataNascimento || condicoesSaude !== null || diaMensalidade) && (
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--brand-texto-muted)' }}>
               Dados pessoais
             </p>
 
-            {aluno.data_nascimento && (() => {
-              const aniv = proximoAniversario(aluno.data_nascimento)
-              const dataFormatada = new Date(aluno.data_nascimento + 'T12:00:00')
+            {dataNascimento && (() => {
+              const aniv = proximoAniversario(dataNascimento)
+              const dataFormatada = new Date(dataNascimento + 'T12:00:00')
                 .toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
               return (
                 <div className="flex items-center justify-between px-4 py-3 rounded-2xl"
@@ -243,26 +251,26 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
               )
             })()}
 
-            {aluno.condicoes_saude !== null && (
+            {condicoesSaude !== null && (
               <div className="px-4 py-3 rounded-2xl"
                 style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
                 <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
                   Saúde
                 </p>
-                <p className="text-sm" style={{ color: aluno.condicoes_saude ? 'var(--brand-texto-sec)' : 'var(--brand-texto-muted)' }}>
-                  {aluno.condicoes_saude || 'Nenhuma condição informada'}
+                <p className="text-sm" style={{ color: condicoesSaude ? 'var(--brand-texto-sec)' : 'var(--brand-texto-muted)' }}>
+                  {condicoesSaude || 'Nenhuma condição informada'}
                 </p>
               </div>
             )}
 
-            {aluno.dia_mensalidade && (
+            {diaMensalidade && (
               <div className="px-4 py-3 rounded-2xl"
                 style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
                 <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--brand-texto-muted)' }}>
                   Mensalidade
                 </p>
                 <p className="text-sm" style={{ color: 'var(--brand-texto-sec)' }}>
-                  Dia {aluno.dia_mensalidade} de cada mês
+                  Dia {diaMensalidade} de cada mês
                 </p>
               </div>
             )}
@@ -383,9 +391,9 @@ export default async function AlunoPerfilPage({ params }: { params: Promise<{ id
           emailAtual={aluno.email}
           telefoneAtual={aluno.telefone}
           ativo={aluno.ativo ?? true}
-          dataNascimentoAtual={aluno.data_nascimento ?? null}
-          condicoesSaudeAtual={aluno.condicoes_saude ?? null}
-          diaMensalidadeAtual={aluno.dia_mensalidade ?? null}
+          dataNascimentoAtual={dataNascimento ?? null}
+          condicoesSaudeAtual={condicoesSaude ?? null}
+          diaMensalidadeAtual={diaMensalidade ?? null}
         />
 
         {/* Attendance history */}
