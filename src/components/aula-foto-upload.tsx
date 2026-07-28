@@ -38,7 +38,9 @@ export default function AulaFotoUpload({
       .upload(path, file, { upsert: true, contentType: file.type })
 
     if (uploadError) {
-      setError('Erro ao enviar foto.')
+      // Mostra a mensagem real do Supabase (RLS, bucket, etc.) em vez de um
+      // genérico — assim dá pra diagnosticar upload que falha em produção.
+      setError(uploadError.message || 'Erro ao enviar foto.')
       setUploading(false)
       return
     }
