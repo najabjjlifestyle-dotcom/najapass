@@ -401,11 +401,15 @@ export default async function AlunoHomePage() {
                 const d = new Date(p.data + 'T12:00:00')
                 const dataFmt = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
                 return (
-                  <div key={p.id} className="rounded-2xl p-4"
+                  <div key={p.id} className="relative rounded-2xl p-4 active:opacity-80 transition-opacity"
                     style={{
                       background: p.euVou ? 'var(--brand-gold-dim)' : 'var(--brand-surf)',
                       border: `1px solid ${p.euVou ? 'var(--brand-gold-border)' : 'var(--brand-border)'}`,
                     }}>
+                    {/* Link cobre o card inteiro (z-0) — navega pro detalhe */}
+                    <Link href={`/aluno/aula/${p.id}`}
+                      className="absolute inset-0 z-0 rounded-2xl"
+                      aria-label={`Ver detalhes da aula ${p.turma_nome ?? ''}`} />
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>
@@ -425,7 +429,10 @@ export default async function AlunoHomePage() {
                           </div>
                         )}
                       </div>
-                      <ConfirmarPresencaButton aulaId={p.id} confirmado={p.euVou} />
+                      {/* Botão de confirmar fica acima do Link (z-10) */}
+                      <div className="relative z-10 flex-shrink-0">
+                        <ConfirmarPresencaButton aulaId={p.id} confirmado={p.euVou} />
+                      </div>
                     </div>
                   </div>
                 )

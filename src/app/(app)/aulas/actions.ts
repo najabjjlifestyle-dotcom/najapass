@@ -22,6 +22,9 @@ export async function abrirAula(formData: FormData) {
   const tema_id = (formData.get('tema_id') as string | null) || null
   const hora_inicio = (formData.get('hora_inicio') as string | null) || null
   const video_url = (formData.get('video_url') as string | null)?.trim() || null
+  // Observação livre do professor pros alunos (reusa a coluna `observacoes`,
+  // que já existe no schema e estava sem uso). Vazia salva como null.
+  const observacoes = (formData.get('observacoes') as string | null)?.trim() || null
 
   const planejadas = formData.getAll('planejadas[]') as string[]
 
@@ -41,6 +44,7 @@ export async function abrirAula(formData: FormData) {
       hora_inicio: hora_inicio || null,
       tema_id: tema_id || null,
       video_url,
+      observacoes,
       status,
     })
     .select('id')
