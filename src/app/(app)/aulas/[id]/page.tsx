@@ -9,6 +9,7 @@ import DuplicarAulaButton from '@/components/duplicar-aula-button'
 import AulaFotoUpload from '@/components/aula-foto-upload'
 import { salvarFotoAula } from './actions'
 import ZonaDePerigo from './gestao-aula'
+import InfoAulaEdit from './info-aula-edit'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
@@ -28,7 +29,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   const { data: aula } = await supabase
     .from('aulas')
-    .select('id, data, status, hora_inicio, turma_id, video_url, tema_id, foto_url, turmas(nome), tema:categorias_tecnicas(nome)')
+    .select('id, data, status, hora_inicio, turma_id, video_url, observacoes, tema_id, foto_url, turmas(nome), tema:categorias_tecnicas(nome)')
     .eq('id', id)
     .single()
 
@@ -226,13 +227,6 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
               {(temasDerivados.length > 0 ? temasDerivados : [temaNome]).join(' · ')}
             </p>
           )}
-          {aula.video_url && (
-            <a href={aula.video_url as string} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs mt-1.5 underline underline-offset-2"
-              style={{ color: 'var(--brand-gold)' }}>
-              ▶ Link de estudo
-            </a>
-          )}
         </div>
         <DuplicarAulaButton aulaId={id} turmas={turmasResult.data ?? []} />
       </header>
@@ -242,6 +236,12 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
           <AulaAgendadaActions aulaId={id} />
         </div>
       )}
+
+      <InfoAulaEdit
+        aulaId={id}
+        observacoesIniciais={(aula.observacoes as string | null) ?? null}
+        videoUrlInicial={(aula.video_url as string | null) ?? null}
+      />
 
       {ultimaAulaDaTurma && (
         <div className="mx-5 mt-4 px-4 py-3 rounded-xl"

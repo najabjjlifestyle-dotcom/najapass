@@ -28,6 +28,38 @@ async function academiaDoProfessor(supabase: Awaited<ReturnType<typeof createCli
   return prof?.academia_id ?? null
 }
 
+// Edita a observação livre pros alunos e o link de estudo de uma aula já
+// criada. `observacoes` reusa a coluna homônima do schema (antes sem uso).
+export async function atualizarInfoAula(
+  aulaId: string,
+  dados: { observacoes: string; video_url: string },
+) {
+  const supabase = await createClient()
+  const academiaId = await academiaDoProfessor(supabase)
+  if (!academiaId) return { error: 'Sessão expirada.' }
+
+  const { data: aula } = await supabase
+    .from('aulas')
+    .select('id')
+    .eq('id', aulaId)
+    .eq('academia_id', academiaId)
+    .maybeSingle()
+
+  if (!aula) return { error: 'Aula não encontrada.' }
+
+  const observacoes = dados.observacoes.trim() || null
+  const video_url = dados.video_url.trim() || null
+
+  const { error } = await supabase
+    .from('aulas')
+    .update({ observacoes, video_url })
+    .eq('id', aulaId)
+
+  if (error) return { error: 'Erro ao salvar.' }
+  revalidatePath(`/aulas/${aulaId}`)
+  return { success: true }
+}
+
 export async function reabrirAula(aulaId: string) {
   const supabase = await createClient()
   const academiaId = await academiaDoProfessor(supabase)
