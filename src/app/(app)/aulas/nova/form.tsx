@@ -416,6 +416,17 @@ export default function NovaAulaForm({
               style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
           </div>
 
+          <div>
+            <label htmlFor="observacoes" className="block text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--brand-texto-muted)' }}>
+              Observação para os alunos
+              <span className="ml-2 normal-case font-normal" style={{ opacity: 0.6 }}>(opcional)</span>
+            </label>
+            <textarea id="observacoes" name="observacoes" rows={3} maxLength={1000}
+              placeholder="Ex: Traga quimono azul. Foco em base hoje."
+              className="w-full px-4 py-3 rounded-xl bg-transparent placeholder-white/30 text-sm focus:outline-none transition-colors resize-none"
+              style={{ border: '1px solid var(--brand-border-str)', color: 'var(--brand-texto)' }} />
+          </div>
+
           {error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
 
           <input ref={intentRef} type="hidden" name="intent" defaultValue="planejar" />
