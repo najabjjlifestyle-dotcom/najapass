@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import BackButton from '@/components/back-button'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 const DIAS_STALE = 21
 
@@ -46,14 +47,14 @@ export default async function AlunoTecnicaCategoriaPage({ params }: { params: Pr
 
   const { data: todasRows } = await supabase
     .from('tecnicas')
-    .select('id, nome')
+    .select('id, nome, tecnicas_academias(nome_custom)')
     .eq('categoria_id', id)
     .or(`global.eq.true,academia_id.eq.${aluno.academia_id}`)
     .order('nome')
 
   const tecnicaMap = new Map<string, TecnicaDetalhe>()
   for (const t of todasRows ?? []) {
-    tecnicaMap.set(t.id, { id: t.id, nome: t.nome, vezes: 0, ultimaVez: null, diasDesdeUltima: null })
+    tecnicaMap.set(t.id, { id: t.id, nome: nomeTecnica(t as unknown as { nome: string; tecnicas_academias: { nome_custom: string }[] | null }), vezes: 0, ultimaVez: null, diasDesdeUltima: null })
   }
 
   type VistaRow = { tecnica_id: string; aulas: { data: string } | null }

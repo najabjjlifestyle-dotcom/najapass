@@ -5,6 +5,7 @@ import AgendadaCard from '@/components/agendada-card'
 import AulaHojeCard from './aula-hoje-card'
 import InsightCard from './insight-card'
 import Avatar from '@/components/avatar'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -136,16 +137,16 @@ export default async function DashboardPage() {
   const { data: tecnicasHojeData } = aulasHojeAgendadasIds.length > 0
     ? await supabase
         .from('aula_tecnicas')
-        .select('aula_id, reforco, tecnicas(nome)')
+        .select('aula_id, reforco, tecnicas(nome, tecnicas_academias(nome_custom))')
         .in('aula_id', aulasHojeAgendadasIds)
         .eq('tipo', 'planejada')
     : { data: [] }
 
-  type TecHojeRow = { aula_id: string; reforco: boolean; tecnicas: { nome: string } | null }
+  type TecHojeRow = { aula_id: string; reforco: boolean; tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }
   const tecnicasPorAulaHoje = ((tecnicasHojeData ?? []) as unknown as TecHojeRow[]).reduce<Record<string, { nome: string; reforco: boolean }[]>>((acc, r) => {
     if (!r.tecnicas) return acc
     if (!acc[r.aula_id]) acc[r.aula_id] = []
-    acc[r.aula_id].push({ nome: r.tecnicas.nome, reforco: r.reforco })
+    acc[r.aula_id].push({ nome: nomeTecnica(r.tecnicas), reforco: r.reforco })
     return acc
   }, {})
 

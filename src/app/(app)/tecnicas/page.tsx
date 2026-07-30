@@ -2,13 +2,17 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import BackButton from '@/components/back-button'
+import { nomeTecnica } from '@/lib/tecnicas'
+import TecnicaItem from './tecnica-item'
 
 type Tecnica = {
   id: string
   nome: string
   descricao: string | null
   global: boolean
+  tecnica_origem_id: string | null
   categorias_tecnicas: { nome: string; cor: string | null } | null
+  tecnicas_academias: { nome_custom: string }[] | null
 }
 
 export default async function TecnicasPage() {
@@ -22,19 +26,22 @@ export default async function TecnicasPage() {
 
   const { data: tecnicas } = await supabase
     .from('tecnicas')
-    .select('id, nome, descricao, global, categorias_tecnicas(nome, cor)')
+    .select('id, nome, descricao, global, tecnica_origem_id, categorias_tecnicas(nome, cor), tecnicas_academias(nome_custom)')
     .or(`academia_id.eq.${professor.academia_id},global.eq.true`)
     .order('nome')
 
   const rows = (tecnicas ?? []) as unknown as Tecnica[]
 
-  // Group by category
+  // Group by category — ordena pelo nome de exibição (custom quando houver)
   const grupos = rows.reduce<Record<string, Tecnica[]>>((acc, t) => {
     const cat = t.categorias_tecnicas?.nome ?? 'Sem categoria'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(t)
     return acc
   }, {})
+  for (const cat of Object.keys(grupos)) {
+    grupos[cat].sort((a, b) => nomeTecnica(a).localeCompare(nomeTecnica(b)))
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
@@ -76,24 +83,15 @@ export default async function TecnicasPage() {
                 </p>
                 <div className="space-y-1.5">
                   {items.map(t => (
-                    <div key={t.id}
-                      className="px-4 py-3 rounded-xl"
-                      style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>{t.nome}</p>
-                        {t.global && (
-                          <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0"
-                            style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
-                            sugestão
-                          </span>
-                        )}
-                      </div>
-                      {t.descricao && (
-                        <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--brand-texto-sec)' }}>
-                          {t.descricao}
-                        </p>
-                      )}
-                    </div>
+                    <TecnicaItem
+                      key={t.id}
+                      id={t.id}
+                      nomeExibido={nomeTecnica(t)}
+                      global={t.global}
+                      temCustom={(t.tecnicas_academias?.length ?? 0) > 0}
+                      ehVariacao={Boolean(t.tecnica_origem_id)}
+                      descricao={t.descricao}
+                    />
                   ))}
                 </div>
               </div>

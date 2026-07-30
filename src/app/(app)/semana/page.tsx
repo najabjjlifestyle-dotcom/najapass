@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import BackButton from '@/components/back-button'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 const DIAS_PT: Record<number, string> = {
   0: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta',
@@ -27,6 +28,7 @@ type TecnicaRow = {
   id: string; nome: string
   faixas: string[]
   categorias_tecnicas: { nome: string } | null
+  tecnicas_academias: { nome_custom: string }[] | null
 }
 type AulaTecnicaRow = { aula_id: string; tipo: string; reforco: boolean; tecnicas: TecnicaRow | null }
 type AulaRow = {
@@ -61,7 +63,7 @@ export default async function SemanaPage() {
   const { data: atRows } = aulaIds.length > 0
     ? await supabase
         .from('aula_tecnicas')
-        .select('aula_id, tipo, reforco, tecnicas(id, nome, faixas, categorias_tecnicas(nome))')
+        .select('aula_id, tipo, reforco, tecnicas(id, nome, faixas, categorias_tecnicas(nome), tecnicas_academias(nome_custom))')
         .in('aula_id', aulaIds)
     : { data: [] }
 
@@ -195,7 +197,7 @@ export default async function SemanaPage() {
                                   <span key={at.tecnicas.id}
                                     className="px-2 py-0.5 rounded text-[10px] font-bold"
                                     style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--brand-texto-sec)', border: '1px solid var(--brand-border)' }}>
-                                    📋 {at.tecnicas.nome}
+                                    📋 {nomeTecnica(at.tecnicas)}
                                     {at.tecnicas.faixas?.length > 0 && (
                                       <span className="ml-1 opacity-60">({at.tecnicas.faixas.join(', ')})</span>
                                     )}
@@ -209,7 +211,7 @@ export default async function SemanaPage() {
                                   <span key={at.tecnicas.id}
                                     className="px-2 py-0.5 rounded text-[10px] font-bold"
                                     style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
-                                    {at.reforco && '🔁 '}{at.tecnicas.nome}
+                                    {at.reforco && '🔁 '}{nomeTecnica(at.tecnicas)}
                                   </span>
                                 ))}
                               </div>
