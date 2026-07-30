@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { nomeTecnica } from '@/lib/tecnicas'
 import NovaAulaForm from './form'
 
 export default async function NovaAulaPage({
@@ -33,7 +34,7 @@ export default async function NovaAulaPage({
       .order('nome'),
     supabase
       .from('tecnicas')
-      .select('id, nome, categoria_id, faixas')
+      .select('id, nome, categoria_id, faixas, tecnicas_academias(nome_custom)')
       .or(`academia_id.eq.${professor.academia_id},global.eq.true`)
       .order('nome'),
     supabase
@@ -84,7 +85,9 @@ export default async function NovaAulaPage({
   }
 
   type TecnicaOpt = { id: string; nome: string; categoria_id: string | null; faixas: string[] }
-  const tecnicas = (tecnicasResult.data ?? []) as TecnicaOpt[]
+  type TecnicaRow = TecnicaOpt & { tecnicas_academias: { nome_custom: string }[] | null }
+  const tecnicas = ((tecnicasResult.data ?? []) as unknown as TecnicaRow[])
+    .map(t => ({ id: t.id, nome: nomeTecnica(t), categoria_id: t.categoria_id, faixas: t.faixas })) as TecnicaOpt[]
 
   type HistorinhaTecnica = { ordem: number; tecnica_id: string; tecnicas: { nome: string } | null }
   type Historinha = { id: string; nome: string; historinha_tecnicas: HistorinhaTecnica[] | null }

@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
 import { LeaderboardMensal } from '@/components/aluno/leaderboard-mensal'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 type AulaPresenca = {
   id: string | null
   data: string | null
   foto_url: string | null
   turmas: { nome: string } | null
-  aula_tecnicas: { tipo: string; tecnicas: { nome: string } | null }[] | null
+  aula_tecnicas: { tipo: string; tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }[] | null
 }
 
 export default async function AlunoHistoricoPage() {
@@ -37,7 +38,7 @@ export default async function AlunoHistoricoPage() {
     supabase.from('presencas').select('registrado_em')
       .eq('aluno_id', aluno.id).order('registrado_em', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('presencas')
-      .select('registrado_em, aulas(id, data, foto_url, turmas(nome), aula_tecnicas(tipo, tecnicas(nome)))')
+      .select('registrado_em, aulas(id, data, foto_url, turmas(nome), aula_tecnicas(tipo, tecnicas(nome, tecnicas_academias(nome_custom))))')
       .eq('aluno_id', aluno.id)
       .order('registrado_em', { ascending: false })
       .limit(50),
@@ -64,7 +65,7 @@ export default async function AlunoHistoricoPage() {
       const aula = p.aulas
       const tecnicas = (aula?.aula_tecnicas ?? [])
         .filter(at => at.tipo === 'ensinada')
-        .map(at => at.tecnicas?.nome)
+        .map(at => at.tecnicas ? nomeTecnica(at.tecnicas) : null)
         .filter((n): n is string => Boolean(n))
       return {
         aulaId: aula?.id ?? null,

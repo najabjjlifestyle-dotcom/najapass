@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import BackButton from '@/components/back-button'
 import Avatar from '@/components/avatar'
 import { getPeriodoDatas } from '@/lib/periodo'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 const FAIXA_COR_HEX: Record<string, string> = {
   branca: '#fff', cinza: '#9CA3AF', amarela: '#FBBF24', laranja: '#F97316',
@@ -109,7 +110,7 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
   const [{ data: ensinadasData }, { data: ultimaAula }, { data: todasTecnicasData }] = await Promise.all([
     supabase
       .from('aula_tecnicas')
-      .select('tecnica_id, tecnicas(nome), aulas!inner(data, academia_id)')
+      .select('tecnica_id, tecnicas(nome, tecnicas_academias(nome_custom)), aulas!inner(data, academia_id)')
       .eq('aulas.academia_id', acadId)
       .eq('tipo', 'ensinada')
       .gte('aulas.data', dataInicio)
@@ -124,12 +125,12 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
       .maybeSingle(),
     supabase
       .from('tecnicas')
-      .select('id, nome, categorias_tecnicas(nome)')
+      .select('id, nome, categorias_tecnicas(nome), tecnicas_academias(nome_custom)')
       .or(`academia_id.eq.${acadId},global.eq.true`)
       .order('nome'),
   ])
 
-  type EnsinadaRow = { tecnica_id: string; tecnicas: { nome: string } | null }
+  type EnsinadaRow = { tecnica_id: string; tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }
   const ensinadas = (ensinadasData ?? []) as unknown as EnsinadaRow[]
 
   const contagem = new Map<string, { nome: string; count: number }>()
@@ -137,7 +138,7 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
     if (!r.tecnicas) continue
     const atual = contagem.get(r.tecnica_id)
     if (atual) atual.count++
-    else contagem.set(r.tecnica_id, { nome: r.tecnicas.nome, count: 1 })
+    else contagem.set(r.tecnica_id, { nome: nomeTecnica(r.tecnicas), count: 1 })
   }
   const ranking = Array.from(contagem.entries())
     .map(([id, v]) => ({ id, ...v }))
@@ -145,14 +146,14 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
     .slice(0, 8)
 
   const { data: reforcosData } = ultimaAula
-    ? await supabase.from('aula_tecnicas').select('tecnicas(nome)').eq('aula_id', ultimaAula.id).eq('reforco', true)
+    ? await supabase.from('aula_tecnicas').select('tecnicas(nome, tecnicas_academias(nome_custom))').eq('aula_id', ultimaAula.id).eq('reforco', true)
     : { data: null }
-  type ReforcoRow = { tecnicas: { nome: string } | null }
+  type ReforcoRow = { tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }
   const reforcos = ((reforcosData ?? []) as unknown as ReforcoRow[])
     .filter(r => r.tecnicas)
-    .map(r => ({ nome: r.tecnicas!.nome }))
+    .map(r => ({ nome: nomeTecnica(r.tecnicas!) }))
 
-  type TecnicaRow = { id: string; nome: string; categorias_tecnicas: { nome: string } | null }
+  type TecnicaRow = { id: string; nome: string; categorias_tecnicas: { nome: string } | null; tecnicas_academias: { nome_custom: string }[] | null }
   const todasTecnicas = (todasTecnicasData ?? []) as unknown as TecnicaRow[]
   const lacunaTecnicas = todasTecnicas.filter(t => !contagem.has(t.id))
 
@@ -213,7 +214,7 @@ async function TecnicasTab({ acadId, dataInicio, dataFim }: { acadId: string; da
               <span key={t.id}
                 className="px-2 py-0.5 rounded text-[9px]"
                 style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-                {t.nome}
+                {nomeTecnica(t)}
                 {t.categorias_tecnicas?.nome && <span className="opacity-50 ml-1">({t.categorias_tecnicas.nome})</span>}
               </span>
             ))}
@@ -405,7 +406,7 @@ async function CurriculoTab({ acadId }: { acadId: string }) {
 
   const { data: curriculoData } = await supabase
     .from('tecnicas')
-    .select('id, nome, faixas, categorias_tecnicas(nome)')
+    .select('id, nome, faixas, categorias_tecnicas(nome), tecnicas_academias(nome_custom)')
     .or(`academia_id.eq.${acadId},global.eq.true`)
 
   type TecCurr = {
@@ -413,6 +414,7 @@ async function CurriculoTab({ acadId }: { acadId: string }) {
     nome: string
     faixas: string[]
     categorias_tecnicas: { nome: string } | null
+    tecnicas_academias: { nome_custom: string }[] | null
   }
   const curriculo = (curriculoData ?? []) as unknown as TecCurr[]
 
@@ -468,7 +470,7 @@ async function CurriculoTab({ acadId }: { acadId: string }) {
                     <span key={t.id}
                       className="text-[10px] px-2 py-0.5 rounded-lg"
                       style={{ border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }}>
-                      {t.nome}
+                      {nomeTecnica(t)}
                     </span>
                   ))}
                   {gap.length > 8 && (

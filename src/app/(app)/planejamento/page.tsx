@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import SectionTabs from '@/components/section-tabs'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 function formatarDataCurta(data: string) {
   return new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', {
@@ -9,7 +10,7 @@ function formatarDataCurta(data: string) {
   })
 }
 
-type AulaTecnicaRow = { tipo: string; reforco: boolean; tecnicas: { nome: string } | null }
+type AulaTecnicaRow = { tipo: string; reforco: boolean; tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }
 type UltimaAula = { id: string; data: string; aula_tecnicas: AulaTecnicaRow[] | null }
 type ProximaAula = { id: string; data: string; hora_inicio: string | null; aula_tecnicas: { tipo: string }[] | null }
 type Turma = { id: string; nome: string; dias_semana: string[] | null; horario: string | null }
@@ -81,7 +82,7 @@ export default async function PlanejamentoPage() {
       const [ultimaAulaRes, proximasRes, insightsRes] = await Promise.all([
         supabase
           .from('aulas')
-          .select('id, data, aula_tecnicas(tipo, reforco, tecnicas(nome))')
+          .select('id, data, aula_tecnicas(tipo, reforco, tecnicas(nome, tecnicas_academias(nome_custom)))')
           .eq('turma_id', turma.id)
           .eq('status', 'finalizada')
           .order('data', { ascending: false })
@@ -174,7 +175,7 @@ export default async function PlanejamentoPage() {
                           border: `1px solid ${t.reforco ? 'rgba(251,146,60,0.25)' : 'rgba(74,222,128,0.2)'}`,
                           color: t.reforco ? '#FB923C' : '#4ADE80',
                         }}>
-                        {t.reforco ? '↺' : '✓'} {t.tecnicas!.nome}
+                        {t.reforco ? '↺' : '✓'} {nomeTecnica(t.tecnicas!)}
                       </span>
                     ))}
                   </div>

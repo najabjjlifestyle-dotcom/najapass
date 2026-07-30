@@ -10,6 +10,7 @@ import AulaFotoUpload from '@/components/aula-foto-upload'
 import { salvarFotoAula } from './actions'
 import ZonaDePerigo from './gestao-aula'
 import InfoAulaEdit from './info-aula-edit'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
 
@@ -42,11 +43,11 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     supabase.from('presencas').select('id, aluno_id, nome_visitante').eq('aula_id', id),
     supabase
       .from('aula_tecnicas')
-      .select('tipo, reforco, tecnicas(id, nome, categoria_id, categorias_tecnicas(nome))')
+      .select('tipo, reforco, tecnicas(id, nome, categoria_id, categorias_tecnicas(nome), tecnicas_academias(nome_custom))')
       .eq('aula_id', id),
     supabase
       .from('tecnicas')
-      .select('id, nome, categoria_id, categorias_tecnicas(nome)')
+      .select('id, nome, categoria_id, categorias_tecnicas(nome), tecnicas_academias(nome_custom)')
       .or(`academia_id.eq.${professor.academia_id},global.eq.true`)
       .order('nome'),
     supabase
@@ -112,13 +113,13 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   type RawAT = {
     tipo: string
     reforco: boolean
-    tecnicas: { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null } | null
+    tecnicas: { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null; tecnicas_academias: { nome_custom: string }[] | null } | null
   }
   const aulaTecnicas = ((aulaTecnicasResult.data ?? []) as unknown as RawAT[]).filter(r => r.tecnicas)
 
   const tecnicasNaAula = aulaTecnicas.map(r => ({
     id: r.tecnicas!.id,
-    nome: r.tecnicas!.nome,
+    nome: nomeTecnica(r.tecnicas!),
     categoria: r.tecnicas!.categorias_tecnicas?.nome ?? null,
     tipo: r.tipo as 'planejada' | 'ensinada' | 'nao_ensinada',
     reforco: r.reforco,
@@ -130,10 +131,10 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   const naAulaIds = new Set(tecnicasNaAula.map(t => t.id))
 
-  type RawTec = { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null }
+  type RawTec = { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null; tecnicas_academias: { nome_custom: string }[] | null }
   const disponiveis = ((todasTecnicasResult.data ?? []) as unknown as RawTec[])
     .filter(t => !naAulaIds.has(t.id))
-    .map(t => ({ id: t.id, nome: t.nome, categoria: t.categorias_tecnicas?.nome ?? null }))
+    .map(t => ({ id: t.id, nome: nomeTecnica(t), categoria: t.categorias_tecnicas?.nome ?? null }))
 
   const turma = aula.turmas as unknown as { nome: string } | null
 

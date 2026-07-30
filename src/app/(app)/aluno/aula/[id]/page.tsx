@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, UserRound, Pencil, BookOpen, Play, ExternalLink } from 'lucide-react'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
+import { nomeTecnica } from '@/lib/tecnicas'
 import ResenhaSection from './resenha-section'
 
 // Cor por categoria pros chips de técnica
@@ -85,7 +86,7 @@ export default async function AulaDetalheAlunoPage({
     .select(`
       id, data, hora_inicio, tema, foto_url, status, video_url, observacoes,
       turmas(nome),
-      aula_tecnicas(tipo, tecnicas(nome, categorias_tecnicas(nome)))
+      aula_tecnicas(tipo, tecnicas(nome, categorias_tecnicas(nome), tecnicas_academias(nome_custom)))
     `)
     .eq('id', id)
     .eq('academia_id', aluno.academia_id)
@@ -115,11 +116,15 @@ export default async function AulaDetalheAlunoPage({
   // planejadas, a prévia da aula agendada/ao vivo.
   type TecnicaRaw = {
     tipo: string
-    tecnicas: { nome: string; categorias_tecnicas: { nome: string } | null } | null
+    tecnicas: {
+      nome: string
+      categorias_tecnicas: { nome: string } | null
+      tecnicas_academias: { nome_custom: string }[] | null
+    } | null
   }
   const aulaTecnicas = (aula.aula_tecnicas ?? []) as unknown as TecnicaRaw[]
   const mapTec = (at: TecnicaRaw): TecItem => ({
-    nome: limparNomeTecnica(at.tecnicas!.nome),
+    nome: limparNomeTecnica(nomeTecnica(at.tecnicas!)),
     categoria: at.tecnicas!.categorias_tecnicas?.nome ?? 'Outras',
   })
   const porCategoriaEnsinadas = agruparPorCategoria(

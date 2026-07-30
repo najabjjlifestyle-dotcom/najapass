@@ -8,6 +8,7 @@ import PushSubscribeButton from './push-subscribe'
 import ConfirmarPresencaButton from './confirmar-button'
 import { graduacaoInsight } from '@/lib/graduacao-insight'
 import JornadaBanner from '@/components/jornada-banner'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 const FAIXA_HEX: Record<string, string> = {
   branca: '#FFFFFF', cinza: '#9CA3AF', amarela: '#FBBF24',
@@ -105,15 +106,15 @@ export default async function AlunoHomePage() {
     const [{ data: quemVaiData }, { data: tecnicasData }] = await Promise.all([
       supabase.rpc('quem_vai', { p_aula_id: aula.id }),
       supabase.from('aula_tecnicas')
-        .select('tipo, tecnicas(nome, categorias_tecnicas(nome))')
+        .select('tipo, tecnicas(nome, categorias_tecnicas(nome), tecnicas_academias(nome_custom))')
         .eq('aula_id', aula.id)
         .in('tipo', ['planejada', 'ensinada']),
     ])
     const confirmados = (quemVaiData ?? []) as { nome: string; visitante: boolean }[]
-    type TecRow = { tipo: string; tecnicas: { nome: string; categorias_tecnicas: { nome: string } | null } | null }
+    type TecRow = { tipo: string; tecnicas: { nome: string; categorias_tecnicas: { nome: string } | null; tecnicas_academias: { nome_custom: string }[] | null } | null }
     const tecs = (tecnicasData ?? []) as unknown as TecRow[]
-    const planejadas = tecs.filter(t => t.tipo === 'planejada').map(t => t.tecnicas?.nome).filter((n): n is string => Boolean(n))
-    const ensinadas = tecs.filter(t => t.tipo === 'ensinada').map(t => t.tecnicas?.nome).filter((n): n is string => Boolean(n))
+    const planejadas = tecs.filter(t => t.tipo === 'planejada').map(t => t.tecnicas ? nomeTecnica(t.tecnicas) : null).filter((n): n is string => Boolean(n))
+    const ensinadas = tecs.filter(t => t.tipo === 'ensinada').map(t => t.tecnicas ? nomeTecnica(t.tecnicas) : null).filter((n): n is string => Boolean(n))
     // Tema derivado das categorias das posições (fallback pro tema_id antigo)
     const temasDerivados = [...new Set(tecs.map(t => t.tecnicas?.categorias_tecnicas?.nome).filter(Boolean))] as string[]
     return {
@@ -187,19 +188,20 @@ export default async function AlunoHomePage() {
       const aulaSemanaisIds = aulasSemanais.map(a => a.id)
       const { data: atData } = await supabase
         .from('aula_tecnicas')
-        .select('aula_id, tecnicas(nome, faixas)')
+        .select('aula_id, tecnicas(nome, faixas, tecnicas_academias(nome_custom))')
         .in('aula_id', aulaSemanaisIds)
         .in('tipo', ['planejada', 'ensinada'])
 
       const faixaAluno = aluno.faixa
+      type SemTec = { nome: string; faixas: string[]; tecnicas_academias: { nome_custom: string }[] | null }
       tecnicasDaSemana = aulasSemanais.map(a => {
         const turmaObj = a.turmas as unknown as { nome: string } | null
         const ats = (atData ?? []).filter(at => at.aula_id === a.id)
         const posicoes = ats
-          .map(at => at.tecnicas as unknown as { nome: string; faixas: string[] } | null)
-          .filter((t): t is { nome: string; faixas: string[] } => Boolean(t))
+          .map(at => at.tecnicas as unknown as SemTec | null)
+          .filter((t): t is SemTec => Boolean(t))
           .filter(t => t.faixas.length === 0 || t.faixas.includes(faixaAluno))
-          .map(t => t.nome)
+          .map(t => nomeTecnica(t))
         return { data: a.data, turma_nome: turmaObj?.nome ?? null, posicoes }
       }).filter(a => a.posicoes.length > 0)
     }
@@ -221,7 +223,7 @@ export default async function AlunoHomePage() {
   if (aulasAtivas.length === 0 && turmaIds.length > 0) {
     const { data: proximasData } = await supabase
       .from('aulas')
-      .select('id, data, hora_inicio, turma_id, turmas(nome), aula_tecnicas(tipo, tecnicas(nome))')
+      .select('id, data, hora_inicio, turma_id, turmas(nome), aula_tecnicas(tipo, tecnicas(nome, tecnicas_academias(nome_custom))))')
       .eq('academia_id', aluno.academia_id)
       .eq('status', 'agendada')
       .in('turma_id', turmaIds)
@@ -233,7 +235,7 @@ export default async function AlunoHomePage() {
     type ProximaRow = {
       id: string; data: string; hora_inicio: string | null
       turmas: { nome: string } | null
-      aula_tecnicas: { tipo: string; tecnicas: { nome: string } | null }[] | null
+      aula_tecnicas: { tipo: string; tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }[] | null
     }
     const proximasRows = (proximasData ?? []) as unknown as ProximaRow[]
     const proximasIds = proximasRows.map(a => a.id)
@@ -259,7 +261,7 @@ export default async function AlunoHomePage() {
       euVou: meusIds.has(a.id),
       tecnicas: (a.aula_tecnicas ?? [])
         .filter(at => at.tipo === 'planejada')
-        .map(at => at.tecnicas?.nome)
+        .map(at => at.tecnicas ? nomeTecnica(at.tecnicas) : null)
         .filter((n): n is string => Boolean(n)),
     }))
   }

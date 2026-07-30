@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { getAlunoOuRedireciona } from '@/lib/aluno-auth'
+import { nomeTecnica } from '@/lib/tecnicas'
 
 const DIAS_STALE = 21
 
@@ -34,7 +35,7 @@ export default async function AlunoTecnicasPage() {
 
   const { data: curriculoRows } = await supabase
     .from('tecnicas')
-    .select('id, nome, categorias_tecnicas(id, nome)')
+    .select('id, nome, categorias_tecnicas(id, nome), tecnicas_academias(nome_custom)')
     .or(`global.eq.true,academia_id.eq.${aluno.academia_id}`)
 
   const categoriaMap = new Map<string, CategoriaCard>()
@@ -45,7 +46,7 @@ export default async function AlunoTecnicasPage() {
     if (!categoriaMap.has(catObj.id)) {
       categoriaMap.set(catObj.id, { id: catObj.id, nome: catObj.nome, total: [], vistasIds: new Set(), staleIds: new Set(), topVistas: [] })
     }
-    categoriaMap.get(catObj.id)!.total.push({ id: row.id, nome: row.nome })
+    categoriaMap.get(catObj.id)!.total.push({ id: row.id, nome: nomeTecnica(row as unknown as { nome: string; tecnicas_academias: { nome_custom: string }[] | null }) })
   }
 
   // Última vez que cada técnica apareceu (MAX data)
