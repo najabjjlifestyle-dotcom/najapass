@@ -10,6 +10,7 @@ import AulaFotoUpload from '@/components/aula-foto-upload'
 import { salvarFotoAula } from './actions'
 import ZonaDePerigo from './gestao-aula'
 import InfoAulaEdit from './info-aula-edit'
+import GruposAula from './grupos-aula'
 import { nomeTecnica } from '@/lib/tecnicas'
 
 type AlunoRow = { id: string; nome: string; faixa: string; grau: number; foto_url: string | null }
@@ -39,11 +40,11 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   const temaNome = (aula.tema as unknown as { nome: string } | null)?.nome ?? null
 
   // Parallel: presencas, todas as aula_tecnicas, posições disponíveis, turmas (p/ duplicar)
-  const [presencasResult, aulaTecnicasResult, todasTecnicasResult, turmasResult] = await Promise.all([
-    supabase.from('presencas').select('id, aluno_id, nome_visitante').eq('aula_id', id),
+  const [presencasResult, aulaTecnicasResult, todasTecnicasResult, turmasResult, gruposResult] = await Promise.all([
+    supabase.from('presencas').select('id, aluno_id, nome_visitante, grupo_id').eq('aula_id', id),
     supabase
       .from('aula_tecnicas')
-      .select('tipo, reforco, tecnicas(id, nome, categoria_id, categorias_tecnicas(nome), tecnicas_academias(nome_custom))')
+      .select('tipo, reforco, grupo_id, tecnicas(id, nome, categoria_id, categorias_tecnicas(nome), tecnicas_academias(nome_custom))')
       .eq('aula_id', id),
     supabase
       .from('tecnicas')
@@ -56,10 +57,12 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
       .eq('academia_id', professor.academia_id)
       .eq('ativa', true)
       .order('nome'),
+    supabase.from('aula_grupos').select('id, nome').eq('aula_id', id).order('criado_em'),
   ])
 
+  const grupos = (gruposResult.data ?? []) as { id: string; nome: string }[]
   const presencas = (presencasResult.data ?? []) as unknown as
-    { id: string; aluno_id: string | null; nome_visitante: string | null }[]
+    { id: string; aluno_id: string | null; nome_visitante: string | null; grupo_id: string | null }[]
   const presencaAlunoIds = presencas.map(p => p.aluno_id).filter((v): v is string => Boolean(v))
   const visitantesIniciais = presencas
     .filter(p => p.nome_visitante)
@@ -113,6 +116,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   type RawAT = {
     tipo: string
     reforco: boolean
+    grupo_id: string | null
     tecnicas: { id: string; nome: string; categoria_id: string | null; categorias_tecnicas: { nome: string } | null; tecnicas_academias: { nome_custom: string }[] | null } | null
   }
   const aulaTecnicas = ((aulaTecnicasResult.data ?? []) as unknown as RawAT[]).filter(r => r.tecnicas)
@@ -123,6 +127,7 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     categoria: r.tecnicas!.categorias_tecnicas?.nome ?? null,
     tipo: r.tipo as 'planejada' | 'ensinada' | 'nao_ensinada',
     reforco: r.reforco,
+    grupo_id: r.grupo_id,
   }))
 
   // Temas da aula = categorias das posições que ela tem (multi). Fallback pro
@@ -137,6 +142,18 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
     .map(t => ({ id: t.id, nome: nomeTecnica(t), categoria: t.categorias_tecnicas?.nome ?? null }))
 
   const turma = aula.turmas as unknown as { nome: string } | null
+
+  // Dados pro cartão de grupos: cada presente com seu grupo, cada posição
+  // ensinada/planejada com seu grupo (NULL = comum a todos).
+  const nomePorAlunoId = new Map(alunos.map(a => [a.id, a.nome]))
+  const presentesGrupo = presencas.map(p => ({
+    presencaId: p.id,
+    nome: p.aluno_id ? (nomePorAlunoId.get(p.aluno_id) ?? 'Aluno') : (p.nome_visitante ?? 'Visitante'),
+    grupoId: p.grupo_id,
+  }))
+  const tecnicasGrupo = tecnicasNaAula
+    .filter(t => t.tipo === 'ensinada' || t.tipo === 'planejada')
+    .map(t => ({ tecnicaId: t.id, nome: t.nome, grupoId: t.grupo_id }))
 
   const dataFormatada = new Date(aula.data + 'T12:00:00').toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long',
@@ -290,6 +307,13 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         visitantesIniciais={visitantesIniciais}
         outrosAlunos={outrosAlunos}
         status={aula.status}
+      />
+
+      <GruposAula
+        aulaId={id}
+        grupos={grupos}
+        presentes={presentesGrupo}
+        tecnicas={tecnicasGrupo}
       />
 
       {/* Foto da turma — só em aula finalizada */}

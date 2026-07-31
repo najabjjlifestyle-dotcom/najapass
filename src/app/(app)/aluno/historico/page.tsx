@@ -8,7 +8,7 @@ type AulaPresenca = {
   data: string | null
   foto_url: string | null
   turmas: { nome: string } | null
-  aula_tecnicas: { tipo: string; tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }[] | null
+  aula_tecnicas: { tipo: string; grupo_id: string | null; tecnicas: { nome: string; tecnicas_academias: { nome_custom: string }[] | null } | null }[] | null
 }
 
 export default async function AlunoHistoricoPage() {
@@ -38,7 +38,7 @@ export default async function AlunoHistoricoPage() {
     supabase.from('presencas').select('registrado_em')
       .eq('aluno_id', aluno.id).order('registrado_em', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('presencas')
-      .select('registrado_em, aulas(id, data, foto_url, turmas(nome), aula_tecnicas(tipo, tecnicas(nome, tecnicas_academias(nome_custom))))')
+      .select('registrado_em, grupo_id, aulas(id, data, foto_url, turmas(nome), aula_tecnicas(tipo, grupo_id, tecnicas(nome, tecnicas_academias(nome_custom))))')
       .eq('aluno_id', aluno.id)
       .order('registrado_em', { ascending: false })
       .limit(50),
@@ -60,11 +60,12 @@ export default async function AlunoHistoricoPage() {
     ? Math.floor((Date.now() - new Date(ultimaPresenca.registrado_em).getTime()) / 86400000)
     : null
 
-  const presencas = ((presencasData ?? []) as unknown as { registrado_em: string; aulas: AulaPresenca | null }[])
+  const presencas = ((presencasData ?? []) as unknown as { registrado_em: string; grupo_id: string | null; aulas: AulaPresenca | null }[])
     .map(p => {
       const aula = p.aulas
+      // Só as técnicas do grupo do aluno naquela aula (+ as comuns, grupo NULL).
       const tecnicas = (aula?.aula_tecnicas ?? [])
-        .filter(at => at.tipo === 'ensinada')
+        .filter(at => at.tipo === 'ensinada' && (at.grupo_id === null || at.grupo_id === p.grupo_id))
         .map(at => at.tecnicas ? nomeTecnica(at.tecnicas) : null)
         .filter((n): n is string => Boolean(n))
       return {
