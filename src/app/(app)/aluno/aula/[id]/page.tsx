@@ -86,7 +86,7 @@ export default async function AulaDetalheAlunoPage({
     .select(`
       id, data, hora_inicio, tema, foto_url, status, video_url, observacoes,
       turmas(nome),
-      aula_tecnicas(tipo, tecnicas(nome, categorias_tecnicas(nome), tecnicas_academias(nome_custom)))
+      aula_tecnicas(tipo, grupo_id, tecnicas(nome, categorias_tecnicas(nome), tecnicas_academias(nome_custom)))
     `)
     .eq('id', id)
     .eq('academia_id', aluno.academia_id)
@@ -98,7 +98,7 @@ export default async function AulaDetalheAlunoPage({
 
   const [{ data: presencasData }, { data: anotacao }, { data: resenhas }] = await Promise.all([
     supabase.from('presencas')
-      .select('aluno_id, nome_visitante, alunos(nome, foto_url)')
+      .select('aluno_id, nome_visitante, grupo_id, alunos(nome, foto_url)')
       .eq('aula_id', id)
       .order('registrado_em'),
     supabase.from('anotacoes_treino')
@@ -116,32 +116,40 @@ export default async function AulaDetalheAlunoPage({
   // planejadas, a prévia da aula agendada/ao vivo.
   type TecnicaRaw = {
     tipo: string
+    grupo_id: string | null
     tecnicas: {
       nome: string
       categorias_tecnicas: { nome: string } | null
       tecnicas_academias: { nome_custom: string }[] | null
     } | null
   }
+  type PresencaRaw = {
+    aluno_id: string | null
+    nome_visitante: string | null
+    grupo_id: string | null
+    alunos: { nome: string; foto_url: string | null } | null
+  }
+  const presencasRaw = (presencasData ?? []) as unknown as PresencaRaw[]
+
+  // Grupo do próprio aluno nesta aula (null = sem grupo). Ele vê só as técnicas
+  // do grupo dele + as comuns (grupo_id NULL na técnica).
+  const meuGrupo = presencasRaw.find(p => p.aluno_id === aluno.id)?.grupo_id ?? null
+  const noMeuGrupo = (at: TecnicaRaw) => at.grupo_id === null || at.grupo_id === meuGrupo
+
   const aulaTecnicas = (aula.aula_tecnicas ?? []) as unknown as TecnicaRaw[]
   const mapTec = (at: TecnicaRaw): TecItem => ({
     nome: limparNomeTecnica(nomeTecnica(at.tecnicas!)),
     categoria: at.tecnicas!.categorias_tecnicas?.nome ?? 'Outras',
   })
   const porCategoriaEnsinadas = agruparPorCategoria(
-    aulaTecnicas.filter(at => at.tipo === 'ensinada' && at.tecnicas).map(mapTec)
+    aulaTecnicas.filter(at => at.tipo === 'ensinada' && at.tecnicas && noMeuGrupo(at)).map(mapTec)
   )
   const porCategoriaPlanejadas = agruparPorCategoria(
-    aulaTecnicas.filter(at => at.tipo === 'planejada' && at.tecnicas).map(mapTec)
+    aulaTecnicas.filter(at => at.tipo === 'planejada' && at.tecnicas && noMeuGrupo(at)).map(mapTec)
   )
   const temPlanejadas = Object.keys(porCategoriaPlanejadas).length > 0
 
   const turma = aula.turmas as unknown as { nome: string } | null
-
-  type PresencaRaw = {
-    aluno_id: string | null
-    nome_visitante: string | null
-    alunos: { nome: string; foto_url: string | null } | null
-  }
   const presentes = (presencasData ?? []).map((p) => {
     const pr = p as unknown as PresencaRaw
     return {

@@ -20,15 +20,21 @@ export default async function AlunoTecnicasPage() {
 
   const { data: presencas } = await supabase
     .from('presencas')
-    .select('aula_id')
+    .select('aula_id, grupo_id')
     .eq('aluno_id', aluno.id)
 
   const aulaIds = (presencas ?? []).map(p => p.aula_id)
+  // Grupo do aluno em cada aula (null = sem grupo). Usado pra só contar as
+  // técnicas do grupo dele (+ as comuns, grupo_id NULL na técnica).
+  const grupoPorAula = new Map<string, string | null>()
+  for (const p of (presencas ?? []) as { aula_id: string; grupo_id: string | null }[]) {
+    grupoPorAula.set(p.aula_id, p.grupo_id)
+  }
 
   const { data: vistaRows } = aulaIds.length > 0
     ? await supabase
         .from('aula_tecnicas')
-        .select('tecnicas(id, nome, categorias_tecnicas(id, nome)), aulas(data)')
+        .select('aula_id, grupo_id, tecnicas(id, nome, categorias_tecnicas(id, nome)), aulas(data)')
         .in('aula_id', aulaIds)
         .eq('tipo', 'ensinada')
     : { data: [] }
@@ -51,11 +57,13 @@ export default async function AlunoTecnicasPage() {
 
   // Última vez que cada técnica apareceu (MAX data)
   const ultimaVezPorTecnica = new Map<string, Date>()
-  type VistaRow = { tecnicas: { id: string } | null; aulas: { data: string } | null }
+  type VistaRow = { aula_id: string; grupo_id: string | null; tecnicas: { id: string } | null; aulas: { data: string } | null }
   for (const row of ((vistaRows ?? []) as unknown as VistaRow[])) {
     const tecId = row.tecnicas?.id
     const dataStr = row.aulas?.data
     if (!tecId || !dataStr) continue
+    // Só conta se a técnica é comum (grupo_id NULL) ou do grupo do aluno naquela aula.
+    if (row.grupo_id !== null && row.grupo_id !== grupoPorAula.get(row.aula_id)) continue
     const data = new Date(dataStr + 'T12:00:00')
     const atual = ultimaVezPorTecnica.get(tecId)
     if (!atual || data > atual) ultimaVezPorTecnica.set(tecId, data)
