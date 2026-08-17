@@ -48,14 +48,51 @@ export async function criarTecnica(formData: FormData) {
 
   if (!nome) return { error: 'Nome é obrigatório.' }
 
-  const { error } = await supabase.from('tecnicas').insert({
+  const { data: nova, error } = await supabase.from('tecnicas').insert({
     academia_id: professor.academia_id, nome, categoria_id, descricao,
     faixas: faixas.length > 0 ? faixas : [],
-  })
+  }).select('id').single()
 
-  if (error) return { error: 'Erro ao salvar técnica.' }
+  if (error || !nova) return { error: 'Erro ao salvar técnica.' }
   revalidatePath('/tecnicas')
-  redirect('/tecnicas')
+  // Vai direto pro detalhe da técnica recém-criada (antes caía na lista e a
+  // técnica ficava inacessível — não dava pra editar/ver).
+  redirect(`/tecnicas/${nova.id}`)
+}
+
+// Edita uma técnica DA ACADEMIA (globais usam o override via
+// tecnicas_academias, não são editadas direto). Valida a posse antes de gravar.
+export async function editarTecnica(tecnicaId: string, formData: FormData) {
+  const supabase = await createClient()
+  const academiaId = await academiaDoProfessor(supabase)
+  if (!academiaId) return { error: 'Apenas professores podem editar.' }
+
+  const { data: tecnica } = await supabase
+    .from('tecnicas')
+    .select('id')
+    .eq('id', tecnicaId)
+    .eq('academia_id', academiaId)
+    .eq('global', false)
+    .maybeSingle()
+
+  if (!tecnica) return { error: 'Técnica não encontrada ou não editável.' }
+
+  const nome = (formData.get('nome') as string | null)?.trim()
+  if (!nome) return { error: 'Nome é obrigatório.' }
+
+  const categoria_id = (formData.get('categoria_id') as string | null) || null
+  const faixas = formData.getAll('faixas[]') as string[]
+
+  const { error } = await supabase
+    .from('tecnicas')
+    .update({ nome, categoria_id, faixas })
+    .eq('id', tecnicaId)
+
+  if (error) return { error: 'Erro ao salvar.' }
+
+  revalidatePath('/tecnicas')
+  revalidatePath(`/tecnicas/${tecnicaId}`)
+  return { success: true }
 }
 
 // Academia do professor logado (null se não for professor). Defesa além do RLS.
