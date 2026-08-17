@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Pencil, Copy, RotateCcw, Check, X } from 'lucide-react'
 import { renomearTecnica, removerRenomeTecnica, duplicarTecnica } from './actions'
 
@@ -84,7 +85,10 @@ export default function TecnicaItem({
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-bold text-sm" style={{ color: 'var(--brand-texto)' }}>{nomeExibido}</p>
+              <Link href={`/tecnicas/${id}`} className="font-bold text-sm active:opacity-70 transition-opacity"
+                style={{ color: 'var(--brand-texto)' }}>
+                {nomeExibido}
+              </Link>
               {global && (
                 <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0"
                   style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
