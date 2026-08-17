@@ -74,6 +74,14 @@ export default async function DashboardPage() {
   const academia = professor.academias as unknown as { nome: string } | null
   const acadId = professor.academia_id
 
+  // Aulas pendentes: agendadas com data vencida (semana passada sem registro).
+  const { count: aulasPendentesCount } = await supabase
+    .from('aulas')
+    .select('id', { count: 'exact', head: true })
+    .eq('academia_id', acadId)
+    .eq('status', 'agendada')
+    .lt('data', new Date().toISOString().split('T')[0])
+
   const primeiroDiaMes = new Date(
     new Date().getFullYear(), new Date().getMonth(), 1
   ).toISOString().split('T')[0]
@@ -274,6 +282,15 @@ export default async function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Aulas pendentes de registro — prioridade alta, independe da RPC */}
+      {aulasPendentesCount != null && aulasPendentesCount > 0 && (
+        <section className="px-4 mb-4">
+          <InsightCard cor="orange" href="/planejamento">
+            ⚠ <b style={{ color: '#ccc' }}>{aulasPendentesCount} aula{aulasPendentesCount > 1 ? 's' : ''}</b> da semana passada sem registro — toque para registrar →
+          </InsightCard>
+        </section>
+      )}
 
       {/* ── INSIGHTS ── */}
       {insights && (

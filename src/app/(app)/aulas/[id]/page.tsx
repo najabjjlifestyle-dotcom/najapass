@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AttendanceList from './attendance-list'
 import TecnicasAula from './tecnicas-aula'
@@ -158,6 +159,11 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
   const dataFormatada = new Date(aula.data + 'T12:00:00').toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long',
   })
+  // Aula com data no passado ainda não registrada — o professor está fazendo
+  // um registro retroativo (semana que passou). Data livre, sem bloqueio.
+  const hojeStr = new Date().toISOString().split('T')[0]
+  const isRetroativa = (aula.data as string) < hojeStr
+    && aula.status !== 'finalizada' && aula.status !== 'cancelada'
 
   // Contexto da última aula da turma — só faz sentido pra aula ainda não
   // iniciada, com turma definida (aula avulsa não tem "última aula" a comparar)
@@ -248,6 +254,16 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         </div>
         <DuplicarAulaButton aulaId={id} turmas={turmasResult.data ?? []} />
       </header>
+
+      {isRetroativa && (
+        <div className="mx-5 mt-4 flex items-center gap-2 px-3 py-2 rounded-lg"
+          style={{ background: 'var(--brand-surf)', border: '1px solid var(--brand-border)' }}>
+          <Clock size={14} style={{ color: 'var(--brand-texto-muted)' }} className="flex-shrink-0" />
+          <p className="text-xs capitalize" style={{ color: 'var(--brand-texto-muted)' }}>
+            Registrando aula retroativa — {dataFormatada}
+          </p>
+        </div>
+      )}
 
       {aula.status === 'agendada' && (
         <div className="px-5 mt-4">

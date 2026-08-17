@@ -1,8 +1,13 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { AlertTriangle, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import SectionTabs from '@/components/section-tabs'
 import { nomeTecnica } from '@/lib/tecnicas'
+
+function dataCompactaPlan(data: string): string {
+  return new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+}
 
 function formatarDataCurta(data: string) {
   return new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', {
@@ -37,6 +42,20 @@ export default async function PlanejamentoPage() {
     .maybeSingle()
 
   if (!professor?.academia_id) redirect('/onboarding')
+
+  // Aulas pendentes: agendadas com data já vencida — aconteceram mas não foram
+  // registradas. É onde o Mestre acha a semana que passou.
+  const hojeStr = new Date().toISOString().split('T')[0]
+  const { data: aulasPendentesData } = await supabase
+    .from('aulas')
+    .select('id, data, turmas(nome)')
+    .eq('academia_id', professor.academia_id)
+    .eq('status', 'agendada')
+    .lt('data', hojeStr)
+    .order('data', { ascending: false })
+    .limit(10)
+  const aulasPendentes = (aulasPendentesData ?? []) as unknown as
+    { id: string; data: string; turmas: { nome: string } | null }[]
 
   const { data: turmasData } = await supabase
     .from('turmas')
@@ -128,6 +147,36 @@ export default async function PlanejamentoPage() {
       ]} />
 
       <main className="px-5 pt-5 pb-24 space-y-4">
+        {/* Aulas pendentes de semanas anteriores — registro retroativo */}
+        {aulasPendentes.length > 0 && (
+          <section className="space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={14} style={{ color: '#F59E0B' }} />
+              <h2 className="text-sm font-bold" style={{ color: '#F59E0B' }}>
+                {aulasPendentes.length} {aulasPendentes.length === 1 ? 'aula pendente' : 'aulas pendentes'} de semanas anteriores
+              </h2>
+            </div>
+            {aulasPendentes.map(a => (
+              <Link key={a.id} href={`/aulas/${a.id}`}
+                className="flex items-center justify-between p-3 rounded-xl active:scale-[0.98] transition-transform"
+                style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.22)' }}>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--brand-texto)' }}>
+                    {a.turmas?.nome ?? 'Aula avulsa'}
+                  </p>
+                  <p className="text-xs capitalize" style={{ color: 'rgba(245,158,11,0.75)' }}>
+                    {dataCompactaPlan(a.data)} · não registrada
+                  </p>
+                </div>
+                <ChevronRight size={16} style={{ color: 'rgba(245,158,11,0.5)' }} className="flex-shrink-0" />
+              </Link>
+            ))}
+            <p className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
+              Abra a aula, registre presença e técnicas, depois finalize.
+            </p>
+          </section>
+        )}
+
         {dadosPorTurma.map(({ turma, ultimaAula, proximasAulas, insights }) => {
           const tecnicas = ultimaAula?.aula_tecnicas ?? []
           const ensinadas = tecnicas.filter(t => t.tipo === 'ensinada' && t.tecnicas)
