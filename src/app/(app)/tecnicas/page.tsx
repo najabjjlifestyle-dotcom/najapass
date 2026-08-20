@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import BackButton from '@/components/back-button'
 import { nomeTecnica } from '@/lib/tecnicas'
-import TecnicaItem from './tecnica-item'
+import TecnicasLista from './tecnicas-lista'
 
 type Tecnica = {
   id: string
@@ -33,15 +33,27 @@ export default async function TecnicasPage() {
   const rows = (tecnicas ?? []) as unknown as Tecnica[]
 
   // Group by category — ordena pelo nome de exibição (custom quando houver)
-  const grupos = rows.reduce<Record<string, Tecnica[]>>((acc, t) => {
+  const gruposMap = rows.reduce<Record<string, Tecnica[]>>((acc, t) => {
     const cat = t.categorias_tecnicas?.nome ?? 'Sem categoria'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(t)
     return acc
   }, {})
-  for (const cat of Object.keys(grupos)) {
-    grupos[cat].sort((a, b) => nomeTecnica(a).localeCompare(nomeTecnica(b)))
-  }
+  const grupos = Object.entries(gruposMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([categoria, items]) => ({
+      categoria,
+      itens: items
+        .sort((a, b) => nomeTecnica(a).localeCompare(nomeTecnica(b)))
+        .map(t => ({
+          id: t.id,
+          nomeExibido: nomeTecnica(t),
+          global: t.global,
+          temCustom: (t.tecnicas_academias?.length ?? 0) > 0,
+          ehVariacao: Boolean(t.tecnica_origem_id),
+          descricao: t.descricao,
+        })),
+    }))
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--brand-fundo)' }}>
@@ -74,29 +86,7 @@ export default async function TecnicasPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-6">
-            {Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b)).map(([cat, items]) => (
-              <div key={cat}>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'var(--brand-gold)' }}>
-                  {cat} ({items.length})
-                </p>
-                <div className="space-y-1.5">
-                  {items.map(t => (
-                    <TecnicaItem
-                      key={t.id}
-                      id={t.id}
-                      nomeExibido={nomeTecnica(t)}
-                      global={t.global}
-                      temCustom={(t.tecnicas_academias?.length ?? 0) > 0}
-                      ehVariacao={Boolean(t.tecnica_origem_id)}
-                      descricao={t.descricao}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <TecnicasLista grupos={grupos} />
         )}
       </main>
     </div>

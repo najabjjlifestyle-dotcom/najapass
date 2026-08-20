@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { Pencil, Check } from 'lucide-react'
 import { adicionarTecnicaAula, removerTecnicaAula, confirmarTecnica } from './tecnicas-actions'
 
 type AulaTecnica = {
@@ -29,6 +30,7 @@ export default function TecnicasAula({
   disponiveis,
   aulaAberta,
   aulaAgendada,
+  aulaFinalizada = false,
   temaNome,
 }: {
   aulaId: string
@@ -36,14 +38,20 @@ export default function TecnicasAula({
   disponiveis: Tecnica[]
   aulaAberta: boolean
   aulaAgendada: boolean
+  aulaFinalizada?: boolean
   temaNome?: string | null
 }) {
   const [isPending, startTransition] = useTransition()
+  // Aula finalizada é read-only por padrão. "Editar técnicas" abre um modo de
+  // edição sem mexer no status — pro professor que esqueceu de adicionar algo.
+  const [editandoFinalizada, setEditandoFinalizada] = useState(false)
+  const modoEdicaoFinalizada = aulaFinalizada && editandoFinalizada
 
   // Nas duas fases a lista de posições é editável: no planejamento
   // (agendada) adicionando/removendo planejadas, na aula ao vivo (aberta)
-  // confirmando/adicionando ensinadas.
-  const editavel = aulaAberta || aulaAgendada
+  // confirmando/adicionando ensinadas. Finalizada só quando o professor
+  // ativa o modo de edição.
+  const editavel = aulaAberta || aulaAgendada || modoEdicaoFinalizada
 
   const planejadas = tecnicas.filter(t => t.tipo === 'planejada')
   const ensinadas = tecnicas.filter(t => t.tipo === 'ensinada')
@@ -75,9 +83,26 @@ export default function TecnicasAula({
     <div className="px-5 py-4 space-y-4"
       style={{ borderTop: '1px solid var(--brand-border)' }}>
 
-      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
-        {tituloHeader}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--brand-gold)' }}>
+          {tituloHeader}
+        </p>
+        {aulaFinalizada && (
+          editandoFinalizada ? (
+            <button onClick={() => setEditandoFinalizada(false)}
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform"
+              style={{ color: 'var(--brand-gold)', border: '1px solid var(--brand-gold-border)' }}>
+              <Check size={12} /> Concluir edição
+            </button>
+          ) : (
+            <button onClick={() => setEditandoFinalizada(true)}
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform"
+              style={{ color: 'var(--brand-texto-muted)', border: '1px solid var(--brand-border)' }}>
+              <Pencil size={12} /> Editar técnicas
+            </button>
+          )
+        )}
+      </div>
 
       {/* Planejadas (aguardando confirmação) */}
       {planejadas.length > 0 && (
@@ -161,13 +186,13 @@ export default function TecnicasAula({
                     }}>
                     {t.reforco && <span title="Reforço agendado">🔁</span>}
                     {t.nome}
-                    {aulaAberta && (
+                    {(aulaAberta || modoEdicaoFinalizada) && (
                       <button onClick={() => handleRemover(t.id)} disabled={isPending}
                         className="ml-0.5 opacity-60 hover:opacity-100 disabled:opacity-30">
                         ×
                       </button>
                     )}
-                    {!aulaAberta && t.reforco && (
+                    {!aulaAberta && !modoEdicaoFinalizada && t.reforco && (
                       <span className="text-[9px] ml-0.5 opacity-70">reforço</span>
                     )}
                   </span>
