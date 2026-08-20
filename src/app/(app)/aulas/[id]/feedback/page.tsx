@@ -25,11 +25,14 @@ export default async function FeedbackPage({ params }: { params: Promise<{ id: s
   if (!aula) redirect('/aulas')
   if (!['aberta', 'finalizada'].includes(aula.status)) redirect(`/aulas/${id}`)
 
-  const { data: tecnicasData } = await supabase
-    .from('aula_tecnicas')
-    .select('tecnica_id, tipo, reforco, tecnicas(nome)')
-    .eq('aula_id', id)
-    .in('tipo', ['planejada', 'ensinada'])
+  const [{ data: tecnicasData }, { count: presencasCount }] = await Promise.all([
+    supabase
+      .from('aula_tecnicas')
+      .select('tecnica_id, tipo, reforco, tecnicas(nome)')
+      .eq('aula_id', id)
+      .in('tipo', ['planejada', 'ensinada']),
+    supabase.from('presencas').select('id', { count: 'exact', head: true }).eq('aula_id', id),
+  ])
 
   type TecRow = { tecnica_id: string; tipo: 'planejada' | 'ensinada'; reforco: boolean; tecnicas: { nome: string } | null }
   const tecnicas = ((tecnicasData ?? []) as unknown as TecRow[])
@@ -46,6 +49,7 @@ export default async function FeedbackPage({ params }: { params: Promise<{ id: s
       tecnicas={tecnicas}
       turmaNome={turma?.nome ?? 'Aula avulsa'}
       data={aula.data}
+      presencas={presencasCount ?? 0}
     />
   )
 }

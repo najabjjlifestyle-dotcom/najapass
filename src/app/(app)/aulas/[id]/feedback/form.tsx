@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Repeat, ChevronRight } from 'lucide-react'
+import { Check, Repeat, ChevronRight, CheckCircle } from 'lucide-react'
 import { concluirAula } from './actions'
 
 type Tecnica = {
@@ -19,6 +19,7 @@ export default function FeedbackForm({
   tecnicas,
   turmaNome,
   data,
+  presencas,
 }: {
   aulaId: string
   aulaStatus: string
@@ -26,8 +27,10 @@ export default function FeedbackForm({
   tecnicas: Tecnica[]
   turmaNome: string
   data: string
+  presencas: number
 }) {
   const router = useRouter()
+  const [showConfirm, setShowConfirm] = useState(false)
   // Técnicas já marcadas como ensinadas durante a aula ficam pré-selecionadas
   const [ensinadas, setEnsinadas] = useState<Set<string>>(
     new Set(tecnicas.filter(t => t.tipo === 'ensinada').map(t => t.tecnica_id))
@@ -189,7 +192,7 @@ export default function FeedbackForm({
           </p>
         )}
         <button
-          onClick={handleConcluir}
+          onClick={() => setShowConfirm(true)}
           disabled={isPending}
           className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-widest disabled:opacity-40 transition-transform active:scale-[0.98]"
           style={{ background: 'var(--brand-gold)', color: '#000' }}
@@ -197,6 +200,80 @@ export default function FeedbackForm({
           {isPending ? 'Encerrando...' : `Concluir aula · ${ensinadas.size} ensinada${ensinadas.size !== 1 ? 's' : ''}`}
         </button>
       </div>
+
+      {/* Confirmação dupla — resumo do que vai ser registrado antes de finalizar */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => !isPending && setShowConfirm(false)}>
+          <div className="rounded-t-2xl p-6 space-y-5"
+            style={{ background: 'var(--brand-surf)' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <CheckCircle size={20} style={{ color: 'var(--brand-gold)' }} />
+              <h2 className="text-base font-bold" style={{ color: 'var(--brand-texto)' }}>Finalizar aula?</h2>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl"
+                style={{ background: 'var(--brand-fundo)', border: '1px solid var(--brand-border)' }}>
+                <span className="text-sm" style={{ color: 'var(--brand-texto-muted)' }}>Presenças registradas</span>
+                <span className="text-sm font-bold" style={{ color: 'var(--brand-texto)' }}>{presencas}</span>
+              </div>
+
+              <div className="p-3 rounded-xl"
+                style={{ background: 'var(--brand-fundo)', border: '1px solid var(--brand-border)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm" style={{ color: 'var(--brand-texto-muted)' }}>Técnicas registradas</span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--brand-texto)' }}>{ensinadas.size}</span>
+                </div>
+                {ensinadas.size === 0 ? (
+                  <p className="text-xs" style={{ color: '#FBBF24' }}>
+                    ⚠️ Nenhuma técnica foi adicionada ainda.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {tecnicas.filter(t => ensinadas.has(t.tecnica_id)).slice(0, 5).map(t => (
+                      <span key={t.tecnica_id} className="text-[10px] px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--brand-gold-dim)', color: 'var(--brand-gold)' }}>
+                        {t.nome}
+                      </span>
+                    ))}
+                    {ensinadas.size > 5 && (
+                      <span className="text-[10px]" style={{ color: 'var(--brand-texto-muted)' }}>
+                        +{ensinadas.size - 5} mais
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {ensinadas.size === 0 && (
+              <p className="text-xs" style={{ color: 'var(--brand-texto-muted)' }}>
+                Você pode adicionar técnicas depois de finalizar tocando em &quot;Editar técnicas&quot;.
+              </p>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleConcluir}
+                disabled={isPending}
+                className="w-full py-3 rounded-xl font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-60"
+                style={{ background: 'var(--brand-gold)', color: '#000' }}>
+                {isPending ? 'Finalizando...' : 'Sim, finalizar aula'}
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={isPending}
+                className="w-full py-3 rounded-xl text-sm active:scale-[0.98] transition-transform"
+                style={{ border: '1px solid var(--brand-border)', color: 'var(--brand-texto-muted)' }}>
+                Voltar e adicionar técnicas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
